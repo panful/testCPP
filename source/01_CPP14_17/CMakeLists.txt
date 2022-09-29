@@ -1,0 +1,8 @@
+﻿cmake_minimum_required (VERSION 3.8)
+
+add_subdirectory("01_file_system")
+add_subdirectory("02_any_optional_variant")
+add_subdirectory("03_syntacticSugar")
+add_subdirectory("04_sequence")
+add_subdirectory("05_type_traits")
+add_subdirectory("06_byte_bitset")
