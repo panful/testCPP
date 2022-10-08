@@ -354,7 +354,7 @@ struct false_type {
 };
 
 template <typename B, typename D>
-true_type test_is_base(B*) {};
+true_type test_is_base(B*){return true_type();}
 
 // 函数 test_is_base可以不用实现
 template <typename B, typename D>
