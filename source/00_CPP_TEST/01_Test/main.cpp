@@ -11,7 +11,7 @@
 * 6. Windows下读取并修改控制台颜色
 */
 
-#define TEST8
+#define TEST7
 
 #ifdef TEST1
 
@@ -218,83 +218,7 @@ int main()
 
 int main()
 {
-    system("pause");
 }
 #endif // TEST7
 
-#ifdef TEST8
 
-#include <iostream>
-
-class A {};
-class B :public A {};
-
-int main()
-{
-    // static_cast
-    {
-        int n = 0, * pn = &n;
-        //auto r1 = static_cast<float*>(pn);    // error
-        auto r2 = static_cast<float>(n);      // ok r2类型为float
-        auto r3 = static_cast<int*>(nullptr); // ok r3类型为int*，且r3 = nullptr
-
-        A* pA = new A();
-        B* pB = new B();
-        auto r4 = static_cast<B*>(pA);  // ok 父类转子类，不安全，不建议这样做
-        auto r5 = static_cast<A*>(pB);  // ok 子类转父类，安全
-        auto r6 = static_cast<void*>(nullptr); // ok
-    }
-
-    // const_cast
-    {
-        const int cn = 0, * pcn = &cn, & rcn = cn;
-        int n = 0, * pn = &n, & rn = n;
-        //auto r1 = const_cast<int>(cn);   // error <>中的类型只能是指针或引用
-        auto r2 = const_cast<int*>(pcn); // ok 可以是指针，引用
-        auto r3 = const_cast<int&>(rcn); // ok
-        auto r4 = const_cast<const int&>(n); // ok r4类型为 int&
-    }
-
-    std::cout << "---------------\n";
-
-    {
-        const int a = 10;
-        const int* p = &a;
-        int* q = const_cast<int*>(p);
-        *q = 20;    //fine
-
-        std::cout << "a=" << a << " " << "&a = " << &a << std::endl;
-        std::cout << "*p=" << *p << " " << "p = " << p << std::endl;
-        std::cout << "*q=" << *q << " " << "q = " << q << std::endl;
-    }
-
-    std::cout << "---------------\n";
-
-    {
-        int c = 11;
-        const int a = c;
-        const int* p = &a;
-        int* q = const_cast<int*>(p);
-        *q = 20;    //fine
-
-        std::cout << "a=" << a << " " << "&a = " << &a << std::endl;
-        std::cout << "*p=" << *p << " " << "p = " << p << std::endl;
-        std::cout << "*q=" << *q << " " << "q = " << q << std::endl;
-    }
-
-    std::cout << "---------------\n";
-
-    {
-        const int c = 11;
-        const int a = c;
-        const int* p = &a;
-        int* q = const_cast<int*>(p);
-        *q = 20;    //fine
-
-        std::cout << "a=" << a << " " << "&a = " << &a << std::endl;
-        std::cout << "*p=" << *p << " " << "p = " << p << std::endl;
-        std::cout << "*q=" << *q << " " << "q = " << q << std::endl;
-    }
-}
-
-#endif // TEST8
