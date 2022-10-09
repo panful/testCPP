@@ -3,9 +3,10 @@
 * 2. boost::process 启动进程杀掉进程
 * 3. sml State Machine Libray 状态机 https://github.com/boost-ext/sml 
 * 4. mpl Meta Programming 元编程
+* 5. boost::lexical_cast 数值与字符串转换，c++流也可以，不过没有错误检查
 */
 
-#define TEST2
+#define TEST5
 
 #ifdef TEST1
 
@@ -468,3 +469,49 @@ int main(int argc, char* argv[]) {
 
 
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <iostream>
+#include <boost/lexical_cast.hpp>
+#include <sstream>
+
+using namespace std;
+using namespace boost;
+
+int main()
+{
+    //string 转 数值
+    //lexical_cast依赖于字符流std::stringstream，其原理相当简单：把源类型读入到字符流中，再写到目标类型中。
+    using boost::lexical_cast;
+    int nInt = lexical_cast<int>("123");
+    //等价
+    int d;
+    std::stringstream s;
+    s << "123";
+    s >> d;
+
+    double dLong = lexical_cast<double>("3.14");
+    cout << nInt << endl;
+    cout << dLong << endl;
+
+    cout << lexical_cast<string>(0x10) << endl;//16
+    cout << lexical_cast<bool>(1) << endl;//1
+
+    //异常
+    try {
+        nInt = boost::lexical_cast<int>("abcd");
+    }
+    catch (boost::bad_lexical_cast& e)
+    {
+        cout << e.what() << endl;
+    }
+
+    ////数值 转 string。 boost1.6.7版本，无浮点数的精度问题， 可输完整字符串
+    std::string strf = boost::lexical_cast<std::string>(123.123456789);
+    cout << strf << endl; //123.123456789
+
+    return EXIT_SUCCESS;
+}
+
+#endif // TEST5
