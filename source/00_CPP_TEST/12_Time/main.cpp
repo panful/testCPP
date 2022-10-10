@@ -2,12 +2,12 @@
 * 1. Windows API以及C方式获取当前时间
 * 2. C++方式获取当前时间
 * 3. 时间类型转换
-* 4. 计时
+* 4. 计时，秒表
 * 5. 时长，线程睡眠一定时间
 * 6. ++i和i++花费时间
 */
 
-#define TEST6
+#define TEST4
 
 
 #ifdef TEST1
@@ -83,7 +83,7 @@ int main()
     // 允许用 24h 、 1ms 、 1s 代替对应的,std::chrono::hours(24) 等
     using namespace std::literals; 
 
-    // 当前时刻
+    // 当前时刻，会随着系统时间变化，比如修改Windows的系统时间，这个返回值也会跟着变化
     const std::chrono::time_point<std::chrono::system_clock> now =
         std::chrono::system_clock::now();
 
@@ -135,20 +135,41 @@ int main()
 
 int main()
 {
-    // 1
-    auto start1 = std::chrono::system_clock::now();
-    // do something
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    auto end1 = std::chrono::system_clock::now();
-    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
-    std::cout << "took " << duration.count() / 1000.0 << "s" << std::endl;  //花费多少秒
+    {
+        // 最好不要用这种方式计时，因为system_clock会随着系统时间的修改而变化
+        auto start1 = std::chrono::system_clock::now();
+        // do something
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        auto end1 = std::chrono::system_clock::now();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
+        std::cout << "took " << duration.count() / 1000.0 << "s" << std::endl;  //花费多少秒
 
-    // 2
-    auto start2 = std::chrono::high_resolution_clock::now();
-    // do something
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    auto end2 = std::chrono::high_resolution_clock::now();
-    std::cout << "took " << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count()/1000.0 << "s" << std::endl;
+        auto token1 = start1.time_since_epoch(); // 获得1970年1月1日到start1这个时间点经过的时间间隔（duration）
+        auto token2 = end1.time_since_epoch();   // epoch是纪元的意思
+    }
+
+    {
+        // steady_clock就相当于秒表，所以最好使用该类来计算时间消耗
+        // 获取开始时间点
+        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+        // 执行业务流程
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        // 获取结束时间点
+        std::chrono::steady_clock::time_point last = std::chrono::steady_clock::now();
+        // 计算差值
+        auto dt = last - start;
+        std::cout<< "total token: " << dt.count() << "ns" << std::endl; // 纳秒
+    }
+
+    {
+        // high_resolution_clock其实就是steady_clock的别名，源文件中有如下定义
+        // using high_resolution_clock = steady_clock;
+        auto start2 = std::chrono::high_resolution_clock::now();
+        // do something
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        auto end2 = std::chrono::high_resolution_clock::now();
+        std::cout << "took " << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count() / 1000.0 << "s" << std::endl;
+    }
 
     return 0;
 }
