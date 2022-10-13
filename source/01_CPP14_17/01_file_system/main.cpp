@@ -1,7 +1,7 @@
-﻿/*  关于流(stream)的使用可以查看 00_08
-* 1. csv文件读写
+﻿/*
+* 1. C++读写文件 https://www.cnblogs.com/mmmmmmmmm/p/14136211.html
 * 2. C风格读写文件
-* 3. std::local 本地化库 中文路径 编码转换等
+* 3. std::local std::format 本地化库 中文路径 编码转换 utf-8 unicode
 * 4. std::setw std::setfill 控制流中的字符空格，打印格式
 * 5. filesystem getcwd 获取当前路径
 * 6. 压缩解压缩
@@ -12,9 +12,12 @@
 * 11.多线程读写文件，还没弄好
 */
 
-#define TEST9
+// 关于流(stream)的使用可以查看 00_08
+
+#define TEST1
 
 #ifdef TEST1
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -22,42 +25,50 @@
 
 int main(int argc, char* argv[])
 {
-    //写文件
-    std::ofstream ofs;
-    ofs.open("fruit.csv", std::ios::out); // 打开模式可省略
-    ofs << "Apple" << ',' << 5.5 << ',' << "2.2kg" << std::endl;
-    ofs << "Banana" << ',' << 4.5 << ',' << "1.5kg" << std::endl;
-    ofs << "Grape" << ',' << 6.8 << ',' << "2.6kg" << std::endl;
-    ofs.close();
+    // 写文件
+    {
+        std::ofstream ofs;
+        ofs.open("fruit.csv", std::ios::out); // 打开模式可省略
+        ofs << "Apple" << ',' << 5.5 << ',' << "2.2kg" << '\n';
+        ofs << "Banana" << ',' << 4.5 << ',' << "1.5kg" << '\n';
+        ofs << "Grape" << ',' << 6.8 << ',' << "2.6kg" << '\n';
 
-    //读文件
-    std::ifstream ifs("fruit.csv", std::ios::in);
+        ofs.close();
+    }
 
+    // 读文件
     std::cout << "-----第一种方式------" << std::endl;
-
-    std::string sub1;
-    while (std::getline(ifs, sub1, ','))
     {
-        std::cout << sub1 << std::endl;
-    }
+        std::ifstream ifs("fruit.csv", std::ios::in);
+        std::string subStr;
 
-    std::cout << "-----第二种方式------" << std::endl;
-
-    std::string line;
-    std::string sub2;
-    std::ifstream ifs2("fruit.csv", std::ios::in);  //此处需要重读一遍文件，因为前面的ifs已经读取完毕
-    while (std::getline(ifs2, line))
-    {
-        std::stringstream ss(line);
-        //std::vector<std::string> vec;可以用vector存储每一个字段，然后写到结构体中
-        while (std::getline(ss, sub2, ','))  //注意此处第一个参数为stringstream类型
+        // 直到遇到','或'\n'停止读取
+        // std::getline返回std::ios_base，std::ios_base重载了operator bool()
+        while (std::getline(ifs, subStr, ','))
         {
-            //vec.emplace_back(sub2);
-            std::cout << sub2 << ",";
+            std::cout << subStr << '\n';
         }
-        //struct.option = vec[0]
-        std::cout << std::endl;
     }
+    // 读文件
+    std::cout << "-----第二种方式------" << std::endl;
+    {
+        std::string subLine;
+        std::ifstream ifs("fruit.csv", std::ios::in);  //此处需要重读一遍文件，因为前面的ifs已经读取完毕
+        // 直到遇到'\n'停止读取
+        // 先将每一行内容读取到std::string
+        while (std::getline(ifs, subLine))
+        {
+            // 将刚才读取的一行内容构造为std::stream
+            std::stringstream ss(subLine);
+            std::string subStr;
+            // 从刚才读取的一行中再读取','
+            while (std::getline(ss, subStr, ','))
+            {
+                std::cout << subStr << '\n';
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -106,22 +117,40 @@ int main()
 
 // https://zh.cppreference.com/w/cpp/locale
 
+// icu https://icu.unicode.org/
+
 #include <iostream>
-#include <ctime>
-#include <iomanip>
-#include <codecvt>
+#include <locale>
 
 int main()
 {
-    std::time_t t = std::time(NULL);
-    std::wbuffer_convert<std::codecvt_utf8<wchar_t>> conv(std::cout.rdbuf());
-    std::wostream out(&conv);
-    out.imbue(std::locale("ja_JP.utf8"));
-    // 此 I/O 操纵符 std::put_time 使用 std::time_put<wchar_t>
-    out << std::put_time(std::localtime(&t), L"%A %c") << '\n';
-
-    return 0;
+    std::wcout << "User-preferred locale setting is " << std::locale("").name().c_str() << '\n';
+    // 在启动时，全局本地环境是 "C" 本地环境
+    std::wcout << 1000.01 << '\n';
+    // 以用户偏好的本地环境替换 C++ 本地环境和 C 本地环境
+    std::locale::global(std::locale(""));
+    // 将来的宽字符输出使用新的全局本地环境
+    std::wcout.imbue(std::locale());
+    // 再次输出同一数字
+    std::wcout << 1000.01 << '\n';
 }
+
+//#include <iostream>
+//#include <ctime>
+//#include <iomanip>
+//#include <codecvt>
+//
+//int main()
+//{
+//    std::time_t t = std::time(NULL);
+//    std::wbuffer_convert<std::codecvt_utf8<wchar_t>> conv(std::cout.rdbuf());
+//    std::wostream out(&conv);
+//    out.imbue(std::locale("ja_JP.utf8"));
+//    // 此 I/O 操纵符 std::put_time 使用 std::time_put<wchar_t>
+//    out << std::put_time(std::localtime(&t), L"%A %c") << '\n';
+//
+//    return 0;
+//}
 
 #endif // TEST3
 
@@ -328,7 +357,7 @@ using namespace std;
 
 int main()
 {
-    ifstream fin("C:\\Users\\yangpan\\Desktop\\test.txt", ios::binary);
+    ifstream fin("test.txt", ios::binary);
     if (!fin)
     {
         std::cout << "read error!\n";
@@ -371,11 +400,11 @@ int main()
 int main()
 {
     // 判断目录是否存在
-    std::filesystem::path myPath1("C:\\Users\\yangpan\\Desktop\\test");
+    std::filesystem::path myPath1("test");
     auto exists1 = std::filesystem::exists(myPath1);  //如果myPath目录存在则返回true
 
     // 判断文件是否存在
-    std::filesystem::path myFilePath1("C:\\Users\\yangpan\\Desktop\\test.bmp");
+    std::filesystem::path myFilePath1("test.bmp");
     auto fileExits1 = std::filesystem::exists(myFilePath1);
 
     std::filesystem::path myPath2("sssssssss");
@@ -393,10 +422,10 @@ int main()
     auto is_directory3 = std::filesystem::is_directory("sss?ss");
     auto is_directory4 = std::filesystem::is_directory("x:\\sss");
     auto is_directory5 = std::filesystem::is_directory("c:\\sss");
-    auto is_directory6 = std::filesystem::is_directory("C:\\Users\\yangpan\\Desktop\\test.jpg");
+    auto is_directory6 = std::filesystem::is_directory("test.jpg");
     auto is_directory7 = std::filesystem::is_directory("C:\\Users\\yangpan\\Desktop");
 
-    std::filesystem::path myPath4("C:\\Users\\yangpan\\Desktop\\test.jpg");
+    std::filesystem::path myPath4("test.jpg");
     auto has_name = myPath4.has_filename();
     auto name = myPath4.filename();  //L"test.jpg"  // 文件名，包括后缀
     auto has_extension = myPath4.has_extension();
@@ -561,7 +590,7 @@ int main()
 
 
     const int cpuNum = 4;
-    std::string path("C:/Users/yangpan/Desktop/file.txt");
+    std::string path("file.txt");
     std::ifstream infile(path);  //加载文件
 
     //infile.seekg(3, infile.beg);
@@ -604,7 +633,7 @@ int main()
     //char s = 'a';
 
 
-    //std::ifstream infile("C:/Users/yangpan/Desktop/file.txt");
+    //std::ifstream infile("file.txt");
     //std::string str;
     //long pos1 = infile.tellg();
     //std::getline(infile, str);

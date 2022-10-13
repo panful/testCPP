@@ -7,7 +7,7 @@
 * 6. std::regex_replace 替换
 */
 
-#define TEST3
+#define TEST1
 
 #ifdef TEST1
 
