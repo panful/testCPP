@@ -1,22 +1,195 @@
 ﻿/*
-* 1. std::regex基本用法
+* 1. std::regex高级用法
 * 2. 
-* 3. [:d:] [:w:]的用法，设置std::regex文法   https://blog.csdn.net/weixin_50964512/article/details/124933873
+* 3. std::regex设置不同文法，设置flag，异常
 * 4. std::regex_match   匹配
 * 5. std::regex_search  查找 按组查找
 * 6. std::regex_replace 替换
 */
 
-// std::regex_match    匹配指定字符串【整体】是否符合
-// std::regex_search   匹配字符串中符合的【子字符串】
-// std::regex_replace  替换字符串中指定的【子字符串】
+#define TEST3
 
+#ifdef TEST1
 
-#define TEST6
+#include <iostream>
+#include <regex>
 
+#define PRINT_RET(str) std::cout<<std::boolalpha<<str<<std::endl;
 
+int main()
+{
+    {
+        std::string str(R"(1234)");
+        std::regex reg(R"([\d]*)");
+        // 如果字符串str的格式和正则表达式reg匹配，则返回true
+        auto ret = std::regex_match(str, reg);
+        PRINT_RET(ret);
+    }
+    {
+        std::string str(R"(1234)");
+        std::regex reg(R"([\d]*)");
+        // 如果字符串str的格式和正则表达式reg匹配，则返回true
+        // 第三个参数可以指定匹配类型
+        auto ret = std::regex_match(str, reg, std::regex_constants::match_any);
+        PRINT_RET(ret);
+    }
+    {
+        std::string str(R"(abc1234)");
+        std::regex reg(R"([\d]*)");
+        // 将字符串的某一部分和正则表达式匹配
+        auto ret = std::regex_match(str.begin() + 3, str.end(), reg);
+        PRINT_RET(ret);
+    }
+    std::cout << "---------------\n";
+    {
+        std::string str(R"(123abc123)");
+        std::regex reg(R"([a-z]{3})"); // 三个连续的小写字母
+        std::smatch sm; // 是一个容器，用来存放查找到的结果
+        // str中有三个连续的小写字母，所以查找到了返回true
+        auto found = std::regex_search(str, sm, reg);
+        if (found)
+        {
+            for (size_t i = 0; i < sm.size(); ++i)
+            {
+                auto sub_sm = sm.str();
+                std::cout << sub_sm << '\t';
+            }
+            // prefix 返回的是查找到的字符串的前面的字符
+            // suffix 返回的是查找到的字符串的后面的字符
+            std::cout << "prefix:" << sm.prefix().str() << "\tsuffix:" << sm.suffix().str() << '\n';
+        }
+    }
+    {
+        std::string str(R"(123abc456abc789)");
+        std::regex reg(R"([a-z]{3})");
+        std::smatch sm;
+        // 查找到str中的【第一个】符合正则表达式的字符串就立马返回true
+        auto found = std::regex_search(str, sm, reg);
+        if (found)
+        {
+            for (size_t i = 0; i < sm.size(); ++i)
+            {
+                auto sub_sm = sm.str();
+                std::cout << sub_sm << '\t';
+            }
+            std::cout << "prefix:" << sm.prefix().str() << "\tsuffix:" << sm.suffix().str() << '\n';
+        }
+    }
+    {
+        std::string str(R"(abc@123#XYZ=456)");
+        std::regex reg(R"(([\d]{3})@([\d]{3})#([X-Z]{3})=([4-6]{3}))");
+        std::smatch sm;
+        // 所有的组都必须匹配才会返回true
+        auto found = std::regex_search(str, sm, reg);
+        if (found)
+        {
+            std::cout << "found\n";
+        }
+        else
+        {
+            std::cout << "not found\n";
+        }
+    }
+    {
+        std::string str(R"(abc@123#XYZ=456)");
+        std::regex reg(R"(([a-c]{3})@([\d]{3})#([X-Z]{3})=([4-6]{3}))");
+        std::smatch sm;
+        auto found = std::regex_search(str, sm, reg);
+        if (found)
+        {
+            // sm中保存的是每个"()"里边的内容，如果整个字符串匹配，sm的第一个内容是整个字符串
+            for (size_t i = 0; i < sm.size(); ++i)
+            {
+                auto sub_sm = sm.str(i);
+                std::cout << sub_sm << '\t';
+            }
+            // 查找到的是整个字符串，所以没有前缀和后缀，返回空字符串
+            std::cout << "prefix:" << sm.prefix().str() << "\tsuffix:" << sm.suffix().str() << '\n';
+        }
+    }
 
+    std::cout << "----------------------\n";
 
+    {
+        // 多个匹配的结果
+        std::string str(R"(111aaa111 222bbb222 333ccc333)");
+        std::regex reg(R"([\d]{3}[a-z]{3}[\d]{3})"); // 查找由3个数字三个小写字母三个数字组成的长度为9的字符串
+        std::sregex_iterator pos(str.cbegin(), str.cend(), reg);
+        std::sregex_iterator end;
+
+        for (; pos != end; ++pos)
+        {
+            std::cout << pos->str() << '\t';
+        }
+        std::cout << '\n';
+    }
+    {
+        // 多个匹配的结果
+        // 简单理解就是用来搜索子字符串
+        std::string str(R"(111aaa111###222bbb222$$$$123333ccc333)");
+        std::regex reg(R"([\d]{3}[a-z]{3}[\d]{3})"); // 查找由3个数字三个小写字母三个数字组成的长度为9的字符串
+        std::sregex_iterator pos(str.cbegin(), str.cend(), reg);
+        std::sregex_iterator end;
+
+        for (; pos != end; ++pos)
+        {
+            std::cout << pos->str() << '\t';
+        }
+        std::cout << '\n';
+    }
+    std::cout << "------------------------------\n";
+    {
+        // 多个匹配的结果
+        // 每个匹配结果有多个分组
+        std::string str(R"(111aaa111 222bbb222 333ccc333)");
+        std::regex reg(R"(([\d]{3})([a-z]{3})([\d]{3}))");
+        std::sregex_iterator pos(str.cbegin(), str.cend(), reg);
+        std::sregex_iterator end;
+
+        while (pos != end)
+        {
+            std::cout << "size:" << pos->size() << '\t'; // 每个匹配结果有多少组
+            for (size_t i = 0; i < pos->size(); ++i)
+            {
+                // 此处str()的参数即使大于size()也不会崩溃
+                // 打印每一个匹配结果的每一组内容
+                std::cout << pos->str(i) << '\t';
+            }
+            ++pos;
+            std::cout << '\n';
+        }
+    }
+    std::cout << "--------------------------------\n";
+    {
+        // 多个匹配的结果
+        // 每个匹配结果有多个分组
+        // 获取指定分组的内容
+        std::string str = R"(111aaa111 222bbb222 333ccc333)";
+        std::regex reg(R"(([\d]{3})([a-z]{3})([\d]{3}))");
+        // 最后一个参数表示第几个分组(从0开始），例如上面的正则表达式匹配到了3个结果，每个结果4个分组
+        // 这个参数可以为负数，也可以大于匹配到的分组个数，但是此时值就是空的
+        std::sregex_token_iterator pos(str.cbegin(), str.cend(), reg, 3);
+        std::sregex_token_iterator end;
+
+        for (; pos != end; ++pos)
+        {
+            std::cout << "每个匹配结果的第三个分组:" << pos->str() << std::endl;
+        }
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        // 使用匹配结果中的某几个组，生成新的字符串
+        std::string str = "bob@gmail.com  tom@hotmail.com leo@163.com";
+        std::regex e("([[:w:]]+)@([[:w:]]+)\.com");
+        std::cout << std::regex_replace(str, e, "$1 is on $2\n", std::regex_constants::format_no_copy); // 除了捕捉到的组以外，其他的东西均舍弃
+    }
+}
+
+#endif // TEST1
+
+#ifdef TEST2
+
+#endif // TEST2
 
 #ifdef TEST3
 
@@ -26,86 +199,37 @@
 
 int main()
 {
-#define PrintMatch(str,reg) std::cout << std::regex_match(str, reg) << std::endl;
-
-    // 数字
-    // 在默认文法下(ECMAScript) [\d]等价于[[:d:]]等价于[[:digit:]]等价于[^\D]
-    // 其他文法不一定等价
+    std::cout << std::boolalpha;
     {
-        std::regex reg0(R"([^\D]+)", std::regex_constants::grep);
-        //std::regex reg0(R"([^\D]+)");
-        std::regex reg1(R"([\d]+)", std::regex_constants::egrep);
-        //std::regex reg1(R"([\d]+)");
-        std::regex reg2(R"([[:d:]]+)", std::regex_constants::basic);
-        //std::regex reg2(R"([[:d:]]+)");
-        std::regex reg3(R"([[:digit:]]+)", std::regex_constants::awk);
-        //std::regex reg3(R"([[:digit:]]+)");
+        // 设置不同文法，匹配结果可能不同
+        std::string str(R"(123abc###+++)");
+        //std::regex reg(R"([\d]{3}[a-z]{3}[#]{3}[+]{3})");  //true
+        //std::regex reg(R"([\d]{3}[a-z]{3}[#]{3}[+]{3})", std::regex_constants::grep);  // false
+        //std::regex reg(R"([\d]{3}[a-z]{3}[#]{3}[+]{3})", std::regex_constants::egrep);  // false
+        std::regex reg(R"([\d]{3}[a-z]{3}[#]{3}[+]{3})", std::regex_constants::awk);  // false
 
-        std::string str1("123456");
-        std::string str2("123abc123");
-        std::string str3("_123_123");
-
-        PrintMatch(str1, reg0);
-        PrintMatch(str1, reg1);
-        PrintMatch(str1, reg2);
-        PrintMatch(str1, reg3);
-        std::cout << "----\n";
-        PrintMatch(str2, reg0);
-        PrintMatch(str2, reg1);
-        PrintMatch(str2, reg2);
-        PrintMatch(str2, reg3);
-        std::cout << "----\n";
-        PrintMatch(str3, reg0);
-        PrintMatch(str3, reg1);
-        PrintMatch(str3, reg2);
-        PrintMatch(str3, reg3);
+        std::cout << std::regex_match(str, reg) << '\n';
     }
-    std::cout << "++++++++++++++++++\n";
-
-    // 字母数字或下划线
-    // 在默认文法下(ECMAScript) [\w]等价于[[:w:]]等价于[[:digit:][:alpha:]_]等价于[^\W]
     {
-        //std::regex reg0(R"([^\W]+)", std::regex_constants::grep);
-        std::regex reg0(R"([^\W]+)");
-        //std::regex reg1(R"([\w]+)", std::regex_constants::egrep);
-        std::regex reg1(R"([\w]+)");
-        //std::regex reg2(R"([[:w:]]+)", std::regex_constants::basic);
-        std::regex reg2(R"([[:w:]]+)");
-        //std::regex reg3(R"([[:digit:][:alpha:]_]+)", std::regex_constants::awk);
-        std::regex reg3(R"([[:digit:][:alpha:]_]+)");
+        // 设置不区分大小写
+        std::string str(R"(123abc###+++)");
+        //std::regex reg(R"([\d]{3}[A-Z]{3}[#]{3}[+]{3})");  // false
+        //std::regex reg(R"([\d]{3}[A-Z]{3}[#]{3}[+]{3})", std::regex_constants::icase);  // true
+        std::regex reg(R"([\d]{3}[A-Z]{3}[#]{3}[+]{3})", std::regex_constants::icase | std::regex_constants::grep);  // false
 
-        std::string str1("abcd");
-        std::string str2("123abc123");
-        std::string str3("_123_123");
-        std::string str4("==++abc123");
-        std::string str5("__abc++");
-
-        PrintMatch(str1, reg0);
-        PrintMatch(str1, reg1);
-        PrintMatch(str1, reg2);
-        PrintMatch(str1, reg3);
-        std::cout << "----\n";
-        PrintMatch(str2, reg0);
-        PrintMatch(str2, reg1);
-        PrintMatch(str2, reg2);
-        PrintMatch(str2, reg3);
-        std::cout << "----\n";
-        PrintMatch(str3, reg0);
-        PrintMatch(str3, reg1);
-        PrintMatch(str3, reg2);
-        PrintMatch(str3, reg3);
-        std::cout << "----\n";
-        PrintMatch(str4, reg0);
-        PrintMatch(str4, reg1);
-        PrintMatch(str4, reg2);
-        PrintMatch(str4, reg3);
-        std::cout << "----\n";
-        PrintMatch(str5, reg0);
-        PrintMatch(str5, reg1);
-        PrintMatch(str5, reg2);
-        PrintMatch(str5, reg3);
+        std::cout << std::regex_match(str, reg) << '\n';
     }
-
+    {
+        // 构造std::regex抛出异常
+        try
+        {
+            std::regex reg(R"(*)");
+        }
+        catch (...)
+        {
+            std::cout << "catch error\n";
+        }
+    }
 }
 
 #endif // TEST3
