@@ -180,8 +180,8 @@ int main()
     {
         // 使用匹配结果中的某几个组，生成新的字符串
         std::string str = "bob@gmail.com  tom@hotmail.com leo@163.com";
-        std::regex e("([[:w:]]+)@([[:w:]]+)\.com");
-        std::cout << std::regex_replace(str, e, "$1 is on $2\n", std::regex_constants::format_no_copy); // 除了捕捉到的组以外，其他的东西均舍弃
+        std::regex reg("([[:w:]]+)@([[:w:]]+)\\.com"); // c++中'\'需要转义，正则表达式中'.'需要转义，因此需要两个'\'
+        std::cout << std::regex_replace(str, reg, "$1 is on $2\n", std::regex_constants::format_no_copy); // 除了捕捉到的组以外，其他的东西均舍弃
     }
 }
 
