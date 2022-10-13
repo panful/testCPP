@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <type_traits>
 
+
 #include "threadPool.h"
 
 namespace Framework
@@ -34,7 +35,7 @@ public:
     template <typename _Func, typename ..._Args>
     bool RegisterMethod(const std::string& interfaceName, _Func&& func, _Args&& ...args)
     {
-        return _RegisterMethod(std::is_convertible<_Func, Func>::type(), interfaceName, std::forward<_Func>(func), std::forward<_Args>(args)...);
+        return _RegisterMethod(std::is_convertible_v<_Func, Func>, interfaceName, std::forward<_Func>(func), std::forward<_Args>(args)...);
     }
 
     /// @brief 同步调用
@@ -73,16 +74,29 @@ public:
     }
 
 private:
-    template <typename _Func, typename ..._Args>
-    bool _RegisterMethod(std::true_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
-    {
-        return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
-    }
-	template <typename _Func, typename ..._Args>
-	bool _RegisterMethod(std::false_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
-	{
-		return ImpRegisterMethod(interfaceName,std::move(func));
-	}
+    // template <typename _Func, typename ..._Args>
+    // bool _RegisterMethod(std::true_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
+    // {
+        // return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
+    // }
+	// template <typename _Func, typename ..._Args>
+	// bool _RegisterMethod(std::false_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
+	// {
+		// return ImpRegisterMethod(interfaceName,std::move(func));
+	// }
+	
+	 template <typename _Func, typename ..._Args>
+	 bool _RegisterMethod(bool tf, const std::string& interfaceName, _Func&& func, _Args&& ...args)
+	 {
+		 if(tf)
+		 {
+			 return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
+		 }
+		 else
+		 {
+			 return ImpRegisterMethod(interfaceName,std::move(func));
+		 }
+	 }
 
     bool ImpRegisterMethod(const std::string& interfaceName, Func func)
     {

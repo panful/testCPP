@@ -10,18 +10,18 @@
 #ifndef _CONTEXT_HUB_H_
 #define _CONTEXT_HUB_H_
 
-#include "service.hpp"
-#include <unordered_map>
-#include <memory>
-#include <any> // C++17
-#include <mutex>
-#include <functional>
-
 #if defined(_MSC_VER) || defined(_WIN32) || defined(_WIN64)
 # define DLL_API __declspec(dllexport)
 #else
 # define DLL_API
 #endif
+
+#include <unordered_map>
+#include <memory>
+#include <any> // C++17
+#include <mutex>
+#include <functional>
+#include "service.hpp"
 
 namespace Framework
 {
