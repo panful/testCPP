@@ -10,19 +10,25 @@
 #ifndef _CONTEXT_HUB_H_
 #define _CONTEXT_HUB_H_
 
-#include "Service.hpp"
+#include "service.hpp"
 #include <unordered_map>
 #include <memory>
 #include <any> // C++17
 #include <mutex>
 #include <functional>
 
+#if defined(_MSC_VER) || defined(_WIN32) || defined(_WIN64)
+# define DLL_API __declspec(dllexport)
+#else
+# define DLL_API
+#endif
+
 namespace Framework
 {
     template <typename Func>
     using ServicePtr = std::shared_ptr<Service<std::function<Func>>>;
 
-    class __declspec(dllexport) ContextHub
+    class DLL_API ContextHub
     {
     public:
         static ContextHub* GetInstance();

@@ -3,12 +3,12 @@
 set(target_name "Framework")
 
 set(HEADERS
-    ContextHub.h
+    contextHub.h
     threadPool.h
 )
 
 set(SRCS
-    ContextHub.cpp
+    contextHub.cpp
 )
 
 function(prepend_for_each_item src_list prepend_content)

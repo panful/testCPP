@@ -13,7 +13,9 @@
 #include <iostream> // std::clog
 #include <mutex>
 #include <future>
+#include <functional>
 #include <unordered_map>
+#include <type_traits>
 
 #include "threadPool.h"
 
@@ -32,8 +34,7 @@ public:
     template <typename _Func, typename ..._Args>
     bool RegisterMethod(const std::string& interfaceName, _Func&& func, _Args&& ...args)
     {
-        return _RegisterMethod(std::is_convertible<_Func, Func>::type(), interfaceName,
-            std::forward<_Func>(func), std::forward<_Args>(args)...);
+        return _RegisterMethod(std::is_convertible<_Func, Func>::type(), interfaceName, std::forward<_Func>(func), std::forward<_Args>(args)...);
     }
 
     /// @brief 同步调用
@@ -63,7 +64,7 @@ public:
         {
             std::clog << interfaceName << " invoked asynchronously.\n";
             auto fn = std::bind(func, std::forward<Args>(args)...);
-            common::ThreadPool::GetInstance()->Submit(fn);
+            common::ThreadPool::getInstance()->submit(fn);
         }
         else
         {
@@ -77,6 +78,11 @@ private:
     {
         return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
     }
+	template <typename _Func, typename ..._Args>
+	bool _RegisterMethod(std::false_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
+	{
+		return ImpRegisterMethod(interfaceName,std::move(func));
+	}
 
     bool ImpRegisterMethod(const std::string& interfaceName, Func func)
     {

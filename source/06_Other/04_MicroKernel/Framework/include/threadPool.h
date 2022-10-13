@@ -1,9 +1,9 @@
 ﻿
 
 //#include <functional>
-//#include <type_traits> // std::is_invocable c++17 std::invoke_result_t
+#include <type_traits> // std::is_invocable c++17 std::invoke_result_t
 #include <future>
-//#include <thread>
+#include <vector>
 //#include <atomic>
 //#include <queue>
 
@@ -95,9 +95,7 @@ namespace common
         }
 #endif
     };
-}
-
-
+	
 class ThreadPool
 {
 public:
@@ -258,6 +256,10 @@ ThreadPool::~ThreadPool()
             t.join();
     }
 }
+}
+
+
+
 
 //void fun()
 //{
