@@ -71,6 +71,7 @@ namespace common
         std::unique_ptr<Node> popHead()
         {
             // MSVC这里会报错：c26110:unlock of unowned mutex
+            // https://www.jb51.net/article/241314.htm
             //std::lock(head_mutex, tail_mutex);
             //std::lock_guard<std::mutex> headLk(head_mutex, std::adopt_lock);
             //std::lock_guard<std::mutex> tailLk(head_mutex, std::adopt_lock);
