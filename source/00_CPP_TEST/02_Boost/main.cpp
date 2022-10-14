@@ -4,9 +4,10 @@
 * 3. sml State Machine Libray 状态机 https://github.com/boost-ext/sml 
 * 4. mpl Meta Programming 元编程
 * 5. boost::lexical_cast 数值与字符串转换，c++流也可以，不过没有错误检查
+* 6. boost::pfr 反射
 */
 
-#define TEST5
+#define TEST6
 
 #ifdef TEST1
 
@@ -515,3 +516,26 @@ int main()
 }
 
 #endif // TEST5
+
+#ifdef TEST6
+
+#include <iostream>
+#include <string>
+
+#include "boost/pfr.hpp"
+
+struct some_person {
+    std::string name;
+    unsigned birth_year;
+};
+
+int main() {
+    some_person val{ "Edgar Allan Poe", 1809 };
+
+    std::cout << boost::pfr::get<0>(val)                // No macro!
+        << " was born in " << boost::pfr::get<1>(val);  // Works with any aggregate initializables!
+
+    std::cout << boost::pfr::io(val);                   // Outputs: {"Edgar Allan Poe", 1809}
+}
+
+#endif // TEST6
