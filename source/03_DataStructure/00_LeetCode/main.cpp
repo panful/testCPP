@@ -524,6 +524,8 @@ int main()
 
 #ifdef TEST7
 
+#include <iostream>
+
 class Solution {
 public:
     int fib(int n) {
