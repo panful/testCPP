@@ -14,7 +14,7 @@
 
 // 关于流(stream)的使用可以查看 00_08
 
-#define TEST1
+#define TEST3
 
 #ifdef TEST1
 
@@ -35,9 +35,12 @@ int main(int argc, char* argv[])
 
         ofs.close();
     }
+    {
+
+    }
 
     // 读文件
-    std::cout << "-----第一种方式------" << std::endl;
+    std::cout << "============================================" << std::endl;
     {
         std::ifstream ifs("fruit.csv", std::ios::in);
         std::string subStr;
@@ -48,9 +51,11 @@ int main(int argc, char* argv[])
         {
             std::cout << subStr << '\n';
         }
+        ifs.close();
     }
+
     // 读文件
-    std::cout << "-----第二种方式------" << std::endl;
+    std::cout << "------------------------" << std::endl;
     {
         std::string subLine;
         std::ifstream ifs("fruit.csv", std::ios::in);  //此处需要重读一遍文件，因为前面的ifs已经读取完毕
@@ -67,6 +72,48 @@ int main(int argc, char* argv[])
                 std::cout << subStr << '\n';
             }
         }
+        ifs.close();
+    }
+
+    // 读文件
+    std::cout << "------------------------" << std::endl;
+    {
+        std::ifstream ifs("fruit.csv");
+        ifs.seekg(0L, std::ios::end);
+        long length = ifs.tellg(); // 获取文件长度
+        ifs.seekg(0L, std::ios::beg);
+        char* buf = new char[length + 1]();
+        ifs.read(buf, length);
+        ifs.close();
+        std::cout << buf << '\n';
+        delete[] buf;
+        buf = nullptr;
+    }
+
+    // 读文件
+    std::cout << "------------------------" << std::endl;
+    {
+        std::ifstream ifs("fruit.csv");
+        std::stringstream ss;
+        while (!ifs.eof())  // 注意有个 '!'
+        {
+            char* buf = new char[5]();
+            ifs.read(buf, 4);
+            ss.write(buf, 4);
+            delete[] buf;
+            buf = nullptr;
+        }
+        ifs.close();
+        std::cout << ss.str() << '\n';
+    }
+
+    // 读文件
+    std::cout << "------------------------" << std::endl;
+    {
+        std::ifstream ifs("fruit.csv");
+        std::filebuf* buf = ifs.rdbuf();
+        std::cout << buf << '\n';
+        ifs.close();
     }
 
     return 0;
@@ -78,35 +125,56 @@ int main(int argc, char* argv[])
 
 #include <cstdio>
 
-// fwrite write fread read
-// fflush
+// fwrite fread write read
+// fflush fputs fgets
 
 int main()
 {
-    //FILE* fp1,* fp2;
-    //char str[] = "this is test for FILE fwrite";
+    // 写文件
+    {
+        FILE* fp1 = fopen("test1.txt", "w");  // w表示写文件
+        fputs("test fputs\t", fp1);
+        fprintf(fp1, "test %s", "fprintf");
+        fclose(fp1);
+    }
 
+    // 写文件
+    {
+        FILE*  fp2 = fopen("test2.txt", "w");
+        char str[] = "this is test for FILE fwrite";
+        fwrite(str, sizeof(str), 1, fp2);  //二进制
+        fclose(fp2);
+    }
 
-    //fp1 = fopen("test1.txt", "w" );
-    //fp2 = fopen("test2.txt", "w");
+    // 写文件
+    {
+        FILE* fp1;
+        fpos_t position;
+        fp1 = fopen("file1.txt", "w+");  // w+表示读写文件
+        int r = fgetpos(fp1, &position);
+        fputs("hello,world.", fp1);
+        fsetpos(fp1, &position);
+        fputs("this is old position.", fp1);  //会覆盖"hello,world."
+        fclose(fp1);
+    }
 
-    //fputs("test fputs\t", fp1);
+    // 读文件
+    {
+        FILE* fp2 = fopen("test2.txt", "r");
+        char str[30]{ 0 };
+        fread(str, 29, 1, fp2); // 第二个参数表示读取的字节数
+        printf("read:\t%s\n", str);
+        fclose(fp2);
+    }
 
-    //fprintf(fp1, "test %s", "fprintf");
-
-    //fwrite(str, sizeof(str), 1, fp2);  //二进制
-
-    //fclose(fp1);
-    //fclose(fp2);
-
-    FILE* fp1;
-    fpos_t position;
-    fp1 = fopen("file1.txt", "w+");
-    int r = fgetpos(fp1, &position);
-    fputs("hello,world.", fp1);
-    fsetpos(fp1, &position);
-    fputs("this is old position.", fp1);  //会覆盖"hello,world."
-    fclose(fp1);
+    // 读文件
+    {
+        FILE* fp1 = fopen("test1.txt", "r+");
+        char str[100]{ 0 };
+        fgets(str, 99, fp1);
+        printf("get:\t%s\n", str);
+        fclose(fp1);
+    }
 
     return 0;
 }
@@ -117,40 +185,55 @@ int main()
 
 // https://zh.cppreference.com/w/cpp/locale
 
+// fmt https://github.com/fmtlib/fmt
+
 // icu https://icu.unicode.org/
+
+// std::format
+
+#if(0)
+
+#include <format> //  c++20
+#include <iostream>
+#include <string>
+#include <string_view>
+
+template <typename... Args>
+std::string dyna_print(std::string_view rt_fmt_str, Args&&... args) {
+    return std::vformat(rt_fmt_str, std::make_format_args(args...));
+}
+
+int main() {
+    std::cout << std::format("Hello {}!\n", "world");
+
+    std::string fmt;
+    for (int i{}; i != 3; ++i) {
+        fmt += "{} "; // constructs the formatting string
+        std::cout << fmt << " : ";
+        std::cout << dyna_print(fmt, "alpha", 'Z', 3.14, "unused");
+        std::cout << '\n';
+    }
+}
+
+#endif
 
 #include <iostream>
 #include <locale>
+#include <codecvt>
+#include <string>
 
 int main()
 {
-    std::wcout << "User-preferred locale setting is " << std::locale("").name().c_str() << '\n';
-    // 在启动时，全局本地环境是 "C" 本地环境
-    std::wcout << 1000.01 << '\n';
-    // 以用户偏好的本地环境替换 C++ 本地环境和 C 本地环境
-    std::locale::global(std::locale(""));
-    // 将来的宽字符输出使用新的全局本地环境
-    std::wcout.imbue(std::locale());
-    // 再次输出同一数字
-    std::wcout << 1000.01 << '\n';
-}
+    std::locale l1;  // l1 is a copy of the classic "C" locale
+    std::locale l2("en_US.UTF-8"); // l2 is a unicode locale
+    std::locale l3(l1, l2, std::locale::ctype); // l3 is "C" except for ctype, which is unicode
+    std::locale l4(l1, new std::codecvt_utf8<wchar_t>); // l4 is "C" except for codecvt
+    std::cout << "Locale names:\nl1: " << l1.name() << "\nl2: " << l2.name()
+        << "\nl3: " << l3.name() << "\nl4: " << l4.name() << '\n';
 
-//#include <iostream>
-//#include <ctime>
-//#include <iomanip>
-//#include <codecvt>
-//
-//int main()
-//{
-//    std::time_t t = std::time(NULL);
-//    std::wbuffer_convert<std::codecvt_utf8<wchar_t>> conv(std::cout.rdbuf());
-//    std::wostream out(&conv);
-//    out.imbue(std::locale("ja_JP.utf8"));
-//    // 此 I/O 操纵符 std::put_time 使用 std::time_put<wchar_t>
-//    out << std::put_time(std::localtime(&t), L"%A %c") << '\n';
-//
-//    return 0;
-//}
+    std::wstring str(L"123abc中文");
+    std::wcout << str << '\n'; // 中文打印不出来
+}
 
 #endif // TEST3
 
