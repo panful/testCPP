@@ -1,6 +1,5 @@
 ﻿cmake_minimum_required(VERSION 3.12)
 
-if(WIN32)
-    add_subdirectory("01_CallPy")
-endif()
+add_subdirectory("01_CallPy")
+add_subdirectory("02_MPI")
 add_subdirectory("04_MicroKernel")

@@ -23,7 +23,7 @@
 22.pthread
 */
 
-#define TEST22
+#define TEST20
 
 
 #ifdef TEST0
@@ -807,39 +807,7 @@ int main()
 
 
 
-#ifdef TEST19
 
-#include <thread>
-#include <iostream>
-#include <chrono>
-
-
-void fun(int time, int& num)  //参数为int&
-{
-    std::this_thread::sleep_for(std::chrono::seconds(time));
-    num = 20;
-}
-
-int main()
-{
-    auto start = std::chrono::system_clock::now();
-    int num1 = 0;
-    int num2 = 0;
-    std::thread t1(fun, 5, std::ref(num1));
-    std::thread t2(fun, 10, std::ref(num2));
-
-    t1.join();
-    t2.join();
-
-    std::cout << "\nnum:" << num1 + num2;
-    auto end = std::chrono::system_clock::now();
-
-
-    std::cout << std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-    return 0;
-}
-
-#endif // TEST19
 
 #ifdef TEST20
 
@@ -847,8 +815,6 @@ int main()
 #include <future>
 #include <iostream>
 #include <thread>
-
-using namespace std;
 
 int func(int in)
 {
@@ -861,8 +827,8 @@ int main() {
 
     std::future<int> ret = std::async(func, 6);
     //res.wait();
-    cout << res.get() << endl; // 阻塞直到函数返回
-    cout << ret.get() << endl;
+    std::cout << res.get() << std::endl; // 阻塞直到函数返回
+    std::cout << ret.get() << std::endl;
     return 0;
 }
 #endif // TEST20
