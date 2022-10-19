@@ -23,6 +23,7 @@
 #include <vector>
 #include <array>
 #include <type_traits>
+#include <cstring>
 
 template<typename T>
 using str_map = std::map<std::string, T>;
@@ -74,11 +75,11 @@ int main()
     {
         MyPODType* pod1 = new MyPODType{ 1, "111", 2.2f };
         MyPODType* pod2 = new MyPODType{ 0,"",0.0f };
-        memcpy(pod2, pod1, sizeof(MyPODType));
+        std::memcpy(pod2, pod1, sizeof(MyPODType));
 
         MyNotPODType* npod1 = new MyNotPODType{ 2,{'a','b','c'},2.2f };
         MyNotPODType* npod2 = new MyNotPODType{ 0, {}, 0.0f };
-        memcpy(npod2, npod1, sizeof(MyNotPODType));
+        std::memcpy(npod2, npod1, sizeof(MyNotPODType));
 
         auto ret1 = std::is_standard_layout_v<MyNotPODType>; // false
         auto ret2 = std::is_standard_layout_v<MyPODType>;    // true
