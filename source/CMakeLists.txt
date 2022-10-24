@@ -7,3 +7,5 @@ add_subdirectory ("03_DataStructure")
 add_subdirectory ("04_DesignPatterns")
 add_subdirectory ("05_Net")
 add_subdirectory ("06_Other")
+
+install(DIRECTORY resource DESTINATION .)

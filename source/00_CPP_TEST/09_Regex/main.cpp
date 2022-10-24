@@ -1,13 +1,14 @@
 ﻿/*
 * 1. std::regex高级用法
-* 2. 
+* 2.
 * 3. std::regex设置不同文法，设置flag，异常
 * 4. std::regex_match   匹配
 * 5. std::regex_search  查找 按组查找
 * 6. std::regex_replace 替换
+* 7. 读文件 std::sregex_iterator
 */
 
-#define TEST1
+#define TEST7
 
 #ifdef TEST1
 
@@ -183,6 +184,34 @@ int main()
         std::regex reg("([[:w:]]+)@([[:w:]]+)\\.com"); // c++中'\'需要转义，正则表达式中'.'需要转义，因此需要两个'\'
         std::cout << std::regex_replace(str, reg, "$1 is on $2\n", std::regex_constants::format_no_copy); // 除了捕捉到的组以外，其他的东西均舍弃
     }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        // std::sregex_iterator适用于不确定有几组
+        std::string str(R"(#aaa$123$345$456#bbb$111$222#ccc$111#ddd$111$222$333$444#eee$123$456$789)");
+        std::regex reg(R"(#([\w]+)([$\w\d]+))");
+
+        std::sregex_iterator pos(str.cbegin(), str.cend(), reg);
+        std::sregex_iterator end;
+
+        while (pos != end)
+        {
+            auto tempStr = pos->str(2);
+            std::regex reg2(R"([$][\d]+)"); // 只要符合R"([$][\d]+)"都会被遍历，注意'$'要使用'[]'括起来
+            std::sregex_iterator pos2(tempStr.cbegin(), tempStr.cend(), reg2);
+            while (pos2 != end)
+            {
+                std::cout << pos2->str(0) << '\t';
+                ++pos2;
+            }
+            ++pos;
+            std::cout << '\n';
+        }
+    }
+
+
+    return 0;
 }
 
 #endif // TEST1
@@ -577,3 +606,42 @@ int main()
 }
 
 #endif // TEST6
+
+#ifdef TEST7
+
+#include <iostream>
+#include <fstream>
+#include <regex>
+#include <sstream>
+#include <string_view>
+
+int main()
+{
+    {
+        std::ifstream ifs("resource/testRegex.txt");
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        auto str = ss.str();
+
+        //std::regex reg(R"([#][\s\w\d-./]*)");
+        std::regex reg1(R"([#][^#]*)");
+        std::sregex_iterator pos1(str.cbegin(), str.cend(), reg1);
+        std::sregex_iterator end;
+        while (pos1 != end)
+        {
+            auto temp = pos1->str();
+
+            std::regex reg2(R"(.*[\n])");
+            std::sregex_iterator pos2(temp.cbegin(), temp.cend(), reg2);
+            while (pos2 != end)
+            {
+                std::cout << pos2->str();
+                ++pos2;
+            }
+            ++pos1;
+            std::cout << "------------\n";
+        }
+    }
+}
+
+#endif // TEST7

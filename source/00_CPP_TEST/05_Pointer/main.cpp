@@ -16,6 +16,8 @@
 * 15.函数返回局部智能指针，裸指针，局部变量
 * 16.std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
 * 17 类中new出来的成员变量内存位置 https://blog.csdn.net/qq_28584889/article/details/117037810
+* 18 堆和栈 优点缺点
+* 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
 */
 
 #define TEST17
@@ -1004,8 +1006,10 @@ int main() {
 
 #ifdef TEST18
 
-
-// 堆和栈 https ://www.zhihu.com/question/379456802/answer/1115546749
+// 堆和栈 https://www.zhihu.com/question/379456802/answer/1115546749
 #endif // TEST18
 
+#ifdef TEST19
 
+
+#endif // TEST19

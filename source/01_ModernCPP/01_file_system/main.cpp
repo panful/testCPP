@@ -14,7 +14,7 @@
 
 // 关于流(stream)的使用可以查看 00_08
 
-#define TEST3
+#define TEST1
 
 #ifdef TEST1
 
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
         ifs.close();
     }
 
-    // 读文件
+    // 读文件 getline()
     std::cout << "------------------------" << std::endl;
     {
         std::string subLine;
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
         ifs.close();
     }
 
-    // 读文件
+    // 读文件 read() seekg() tellg()
     std::cout << "------------------------" << std::endl;
     {
         std::ifstream ifs("fruit.csv");
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
         buf = nullptr;
     }
 
-    // 读文件
+    // 读文件 read() eof()
     std::cout << "------------------------" << std::endl;
     {
         std::ifstream ifs("fruit.csv");
@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
         std::cout << ss.str() << '\n';
     }
 
-    // 读文件
+    // 读文件 rdbuf()
     std::cout << "------------------------" << std::endl;
     {
         std::ifstream ifs("fruit.csv");
@@ -115,6 +115,23 @@ int main(int argc, char* argv[])
         std::cout << buf << '\n';
         ifs.close();
     }
+
+    // 一次读取整个文件到std::string
+    {
+        {
+            std::ifstream in("fruit.csv");
+            std::istreambuf_iterator<char> beg(in), end;
+            std::string str(beg, end);
+        }
+        // 或
+        {
+            std::ifstream in("fruit.csv");
+            std::ostringstream tmp;
+            tmp << in.rdbuf();
+            std::string str = tmp.str();
+        }
+    }
+
 
     return 0;
 }
