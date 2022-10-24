@@ -14,7 +14,7 @@
 
 // 关于流(stream)的使用可以查看 00_08
 
-#define TEST1
+#define TEST5
 
 #ifdef TEST1
 
@@ -273,13 +273,17 @@ int main()
 #include <iostream>
 #include <filesystem>
 #include <fstream>
-#include <direct.h>
+#ifdef __WIN32
+ #include <direct.h>
+#else
+ #include <unistd.h>
+#endif
 
 int main()
 {
     //返回的是工作目录，不是当前应用程序所在目录
     auto path = std::filesystem::current_path();
-    auto path1 = _getcwd(nullptr, 10);
+    auto path1 = getcwd(nullptr, 10);
 
     std::ifstream ifs;
 
