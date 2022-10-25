@@ -2,7 +2,7 @@
 /*
 * 1. 三目运算符多层嵌套
 * 2. ||的第一个条件满足后，不会再判断第二个条件
-* 3. for循环遍历，右值引用，修改for循环元素
+* 3. for基于范围的循环遍历，右值引用，修改for循环元素
 */
 
 #define TEST3
@@ -68,6 +68,11 @@ public:
     Test(Test&)noexcept { std::cout << " 777 copy construct\n"; }
 };
 
+std::vector<int> func()
+{
+    return { 1,2,3,4,5 };
+}
+
 int main()
 {
     {
@@ -80,7 +85,6 @@ int main()
         vec.emplace_back(t3);
 
         // 遍历不会调用任何构造函数
-        std::cout << "=====================\n";
         for (auto&& elem : vec)
         {
 
@@ -101,7 +105,7 @@ int main()
 
         }
     }
-
+    std::cout << "--------------------\n";
     {
         std::vector<int> vec{ 1,2,3,4,5,6,7 };
 
@@ -110,7 +114,7 @@ int main()
             elem = 3;
         }
     }
-
+    std::cout << "--------------------\n";
     {
         std::vector<int> vec{ 1,2,3,4,5,6,7 };
 
@@ -120,7 +124,7 @@ int main()
             elem = 3;
         }
     }
-
+    std::cout << "--------------------\n";
     {
         std::vector<int> vec{ 1,2,3,4,5,6,7 };
 
@@ -130,7 +134,7 @@ int main()
             elem = 3;
         }
     }
-
+    std::cout << "--------------------\n";
     {
         std::vector<int> vec{ 1,2,3,4,5,6,7 };
 
@@ -141,7 +145,7 @@ int main()
             //elem = 3;
         }
     }
-
+    std::cout << "--------------------\n";
     {
         std::vector<int> vec{ 1,2,3,4,5,6,7 };
 
@@ -149,6 +153,36 @@ int main()
         //for (const auto&& elem : vec)
         {
 
+        }
+    }
+    std::cout << "--------------------\n";
+    {
+        std::vector<int> vec{ 1,2,3,4,5,6,7 };
+
+        for (const auto& elem : vec)
+        {
+            //elem++;  // error 常引用，不可以修改
+        }
+
+        for (int elem : vec)
+        {
+            std::cout << elem << std::endl; // 除过第一次之外输出的都是非法值
+            vec.emplace_back(99);
+            // 容器尾部插入元素，会导致遍历迭代器失效
+            // 可以查看vector底层实现机制
+        }
+    }
+    {
+        // func()函数只会被执行一次
+        for (auto elem : func())
+        {
+            std::cout << elem << '\t';
+        }
+        std::cout << "\n-----------------------\n";
+        // elem是char类型
+        for (auto elem : "abcdefg")
+        {
+            std::cout << elem << '\t';
         }
     }
 }

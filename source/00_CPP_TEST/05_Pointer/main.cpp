@@ -18,9 +18,11 @@
 * 17 类中new出来的成员变量内存位置 https://blog.csdn.net/qq_28584889/article/details/117037810
 * 18 堆和栈 优点缺点
 * 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
+* 20 NULL nullptr nullptr_t
+* 21 自定义智能指针的释放方法
 */
 
-#define TEST17
+#define TEST21
 
 #ifdef TEST1
 
@@ -1013,3 +1015,57 @@ int main() {
 
 
 #endif // TEST19
+
+#ifdef TEST20
+
+#include <iostream>
+
+void func(void*)
+{
+    std::cout << "func1\n";
+}
+void func(int)
+{
+    std::cout << "func2\n";
+}
+
+/*
+* NULL只是一个宏，有如下定义
+* #define NULL 0
+*/
+
+int main()
+{
+    func(0);  // 2
+    func(NULL);  // 2
+    func(nullptr); // 1
+    func(static_cast<void*>(nullptr)); // 1
+
+    // nullptr_t 是一个类型（指针空值类型），nullptr是nullptr_t类型的一个实例对象
+    nullptr_t s = 0; // 必须初始化
+    func(s); // 1
+}
+#endif // TEST20
+
+#ifdef TEST21
+
+#include <memory>
+
+//自定义释放规则
+void deleteInt(int* p) {
+    delete[]p;
+}
+
+int main()
+{
+    // 指定 default_delete 作为释放规则
+    std::shared_ptr<int> p6(new int[10](), std::default_delete<int[]>());
+
+    // 初始化智能指针，并自定义释放规则
+    std::shared_ptr<int> p7(new int[10](), deleteInt);
+
+    // 使用lambda指定智能指针释放规则
+    std::shared_ptr<int> p8(new int[8](), [](int* p) {delete[]p; });
+    auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; });
+}
+#endif // TEST21

@@ -7,17 +7,21 @@
 
 /*
 * auto
-* decltype     01_05_TEST2
-* using        00_13_TEST10 别名模板
-* Args...      00_03 可变参数模板
-* std::tuple   01_07 
-* {}           初始化列表
-* lambda       02_02_01
-* union        01_02_TEST8 POD
-* for(:)       基于范围的for循环
-* constexpr    00_10
-* long long    00_18_TEST4
-* rvale        
+* decltype                  01_05_TEST2
+* using                     00_13_TEST10 别名模板
+* Args...                   00_03 可变参数模板
+* std::tuple                01_07 
+* {}                        初始化列表
+* lambda                    02_02_01
+* union                     01_02_TEST8 POD
+* for(:)                    00_17_TEST3 基于范围的for循环
+* constexpr                 00_10
+* long long                 00_18_TEST4
+* rvale                     02_02_01 02_07
+* std::move std::forward    02_02_01 02_07 移动语义 完美转发
+* nullptr                   00_05
+* std::shared_ptr           00_05
+* 
 */
 
 #include <iostream>
@@ -80,18 +84,7 @@ int main()
         MyUnion u;
     }
 
-    {
-        for (const auto& elem : vec)
-        {
-            //elem++;
-        }
 
-        for (int elem : vec)
-        {
-            std::cout << elem << std::endl; // 除过第一次之外输出的都是非法值
-            vec.emplace_back(99); 
-        }
-    }
 
     {
 
