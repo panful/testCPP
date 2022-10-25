@@ -4,9 +4,10 @@
 * 2. C++方式生成随机数
 * 3. 随机数引擎如果是类成员，不设置种子，每次运行程序生成的随机数一样
 * 4. 返回各种数据类型的极值
+* 5. 二进制字面量与整形字面量分隔符
 */
 
-#define TEST4
+#define TEST5
 
 #ifdef TEST1
 
@@ -139,10 +140,15 @@ int main()
 #ifdef TEST5
 
 #include <iostream>
-#include <vector>
 
 int main()
 {
+    // 0b或0B表示二进制
+    // 0x或0X表示十六进制
+    int a = 0b0001'0011'1010;
+    int b = 0x00'11;
+    double c = 2.34'56;
 
+    std::cout << a << '\n' << b << '\n' << c << '\n';
 }
 #endif // TEST5

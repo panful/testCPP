@@ -24,7 +24,7 @@
 // 模板系列 https://www.zhihu.com/people/mei-you-ming-zi-56-10
 // 模板的实例化过程 https://cppinsights.io/
 
-#define TEST20
+#define TEST2011
 
 #ifdef TEST1
 

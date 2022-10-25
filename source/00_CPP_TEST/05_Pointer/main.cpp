@@ -1050,22 +1050,49 @@ int main()
 #ifdef TEST21
 
 #include <memory>
+#include <iostream>
 
 //自定义释放规则
 void deleteInt(int* p) {
     delete[]p;
 }
 
+//自定义的释放规则
+struct myDel
+{
+    void operator()(int* p) {
+        delete p;
+    }
+};
+
+
 int main()
 {
-    // 指定 default_delete 作为释放规则
-    std::shared_ptr<int> p6(new int[10](), std::default_delete<int[]>());
+    // std::shared_ptr
+    {
+        // 指定 default_delete 作为释放规则
+        std::shared_ptr<int> p6(new int[10](), std::default_delete<int[]>());
 
-    // 初始化智能指针，并自定义释放规则
-    std::shared_ptr<int> p7(new int[10](), deleteInt);
+        // 初始化智能指针，并自定义释放规则
+        std::shared_ptr<int> p7(new int[10](), deleteInt);
+        //std::shared_ptr<int> p5(new int[10](), myDel()); // error
+        //std::shared_ptr<int, myDel> p5(new int[10](), myDel()); // error
+        //std::shared_ptr<int, decltype(deleteInt)> p5(new int[10](), deleteInt); // error
 
-    // 使用lambda指定智能指针释放规则
-    std::shared_ptr<int> p8(new int[8](), [](int* p) {delete[]p; });
-    auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; });
+        // 使用lambda指定智能指针释放规则
+        std::shared_ptr<int> p8(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; });
+        //std::shared_ptr<int> p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // ok
+        //auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
+    }
+
+    // std::unique_ptr只能使用函数对象的方式指定释放规则
+    {
+        std::unique_ptr<int, myDel> p1(new int);
+        std::unique_ptr<int, myDel> p2(new int, myDel());
+        //auto p3 = std::make_unique<int, myDel>(new int, myDel()); // error
+        //auto p3 = std::make_unique<int>(new int, myDel()); // error
+        //std::unique_ptr<int, myDel> p3 = std::make_unique<int, myDel>(new int, myDel()); // error
+    }
 }
+
 #endif // TEST21

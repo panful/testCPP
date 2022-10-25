@@ -6,6 +6,7 @@
 #ifdef TEST1
 
 /*
+* ============C++11================
 * auto
 * decltype                  01_05_TEST2
 * using                     00_13_TEST10 别名模板
@@ -20,8 +21,15 @@
 * rvale                     02_02_01 02_07
 * std::move std::forward    02_02_01 02_07 移动语义 完美转发
 * nullptr                   00_05
-* std::shared_ptr           00_05
-* 
+* std::unique_ptr std::shared_ptr   00_05
+* ============C++14================
+* 返回值类型推导
+* lambda参数可以使用auto
+* 变量模板                   00_13_TEST2
+* constexpr减少限制
+* [[deprecated]]标记         00_17_TEST4
+* 二进制字面量                00_18_TEST5
+* std::shared_timed_mutex与std::shared_lock 读写锁 00_04_TEST202
 */
 
 #include <iostream>

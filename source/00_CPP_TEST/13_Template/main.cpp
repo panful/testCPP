@@ -1,6 +1,6 @@
 ﻿/*
 1. 模板函数在cpp文件实现
-2. 
+2. 变量模板
 3. 模板的别名，特化模板的别名（模板别名和别名模板啥关系？？？什么联系？？？）
 4. 模板特化
 5. 类模板，类成员函数的模板（类一个，函数一个，共两个模板）
@@ -20,7 +20,7 @@
 // 预处理 -> 编译 -> 汇编 -> 链接
 //
 
-#define TEST333
+#define TEST2
 
 #ifdef TEST1
 
@@ -47,6 +47,20 @@ int main()
 
 #endif // TEST1
 
+#ifdef TEST2
+
+#include <iostream>
+
+template<class T>
+constexpr T pi = T(3.1415926535897932385L);
+
+int main() 
+{
+    std::cout << pi<int> << std::endl;    // 3
+    std::cout << pi<double> << std::endl; // 3.14159
+    return 0;
+}
+#endif // TEST2
 
 
 

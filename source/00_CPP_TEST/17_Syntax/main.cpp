@@ -3,9 +3,10 @@
 * 1. 三目运算符多层嵌套
 * 2. ||的第一个条件满足后，不会再判断第二个条件
 * 3. for基于范围的循环遍历，右值引用，修改for循环元素
+* 4.[[deprecated]]标记
 */
 
-#define TEST3
+#define TEST4
 
 #ifdef TEST1
 
@@ -24,7 +25,6 @@ int main()
 }
 
 #endif // TEST1
-
 
 #ifdef TEST2
 
@@ -188,3 +188,21 @@ int main()
 }
 
 #endif // TEST3
+
+#ifdef TEST4
+
+// C++14中增加了deprecated标记，修饰类、变、函数等，当程序中使用到了被其修饰的代码时，
+// 编译时被产生警告，用户提示开发者该标记修饰的内容将来可能会被丢弃，尽量不要使用。
+
+struct [[deprecated]] A { };
+
+struct B { };
+
+int main() 
+{
+    A a;
+    B b;
+    return 0;
+}
+
+#endif // TEST4
