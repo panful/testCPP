@@ -108,21 +108,22 @@ int main()
 
 #define ADD(x,y) std::cout << x + y << std::endl;
 #define STR(x) std::cout << #x << std::endl;
-#define GLUE_STR(x,y) std::cout << x##y << std::endl;
-#define STR2(x) std::cout << #@x << std::endl;
-
+#ifdef WIN32
+# define GLUE_STR(x,y) std::cout << x##y << std::endl;
+# define STR2(x) std::cout << #@x << std::endl;
+#endif // WIN32
 int main()
 {
     ADD(3, 4);
 
     STR(float);
-
+#ifdef WIN32
     GLUE_STR("aa","bb");
 
     STR2(x);
 
     STR2(xx);  // 打印'xx'对应的int值
-
+#endif // WIN32
     return 0;
 }
 #endif // TEST4
