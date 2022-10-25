@@ -3,12 +3,12 @@
 * 2. 常量字符串 string string_view
 * 3. const对象不能调用那些成员函数
 * 4. 修改const变量的值，常量折叠
-* 5. 构造函数使用constexpr https://blog.csdn.net/craftsman1970/article/details/80244873
-* 6. constexpr的使用 https://docs.microsoft.com/zh-cn/cpp/cpp/constexpr-cpp?view=msvc-170
-* 7. C++四种类型转换
+* 5. const和constexpr的区别
+* 6. constexpr修饰函数，构造函数
+* 7. C++四种类型转换  00_07_TEST8 dynamic_cast
 */
 
-#define TEST6
+#define TEST5
 
 #ifdef TEST1
 
@@ -99,7 +99,7 @@ int main()
     //a1.Func4(0); // 错误
     a1.Func5();
 
-    std::cout << "------------\n";
+    std::cout << "----------------------\n";
 
     auto a2 = A();
     a2.Func1();
@@ -158,51 +158,115 @@ int main()
 
 #ifdef TEST5
 
+// const 表示的是只读 constexpr 表示的常量
+void func(const int x) {}  // ok
+//void func(constexpr int y) {} // error
 
+constexpr int func2() { return 2; }
+
+int main()
+{
+    {
+        constexpr int num1 = 1 + 2 + 3;
+        char arr1[num1] = { 0 };
+        //num1++; // error
+
+        const int num2 = 1 + 2 + 3;
+        char arr2[num2] = { 0 };
+        //num2++; // error
+
+        int num3 = 1 + 2 + 3;
+        //char arr3[num3] = { 0 }; // error
+
+        char arr4[func2()] = { 0 };
+    }
+}
 #endif // TEST5
 
 #ifdef TEST6
 
-// constexpr.cpp
-// Compile with: cl /EHsc /W4 constexpr.cpp
+// 构造函数使用constexpr https://blog.csdn.net/craftsman1970/article/details/80244873
+// constexpr的使用 https://docs.microsoft.com/zh-cn/cpp/cpp/constexpr-cpp?view=msvc-170
+
 #include <iostream>
 
 using namespace std;
 
-// Pass by value
-constexpr float exp(float x, int n)
+int test1()
 {
-    return n == 0 ? 1 :
-        n % 2 == 0 ? exp(x * x, n / 2) :
-        exp(x * x, (n - 1) / 2) * x;
+    return 8;
 }
 
-// Pass by reference
-constexpr float exp2(const float& x, const int& n)
+constexpr void test2()
 {
-    return n == 0 ? 1 :
-        n % 2 == 0 ? exp2(x * x, n / 2) :
-        exp2(x * x, (n - 1) / 2) * x;
+    // ok
 }
 
-// Compile-time computation of array length
+const int test3()
+{
+    return 3;
+}
+
+constexpr int test4()
+{
+    //test1(); // error，因为test1没有被constxepr修饰
+    test2(); // ok
+    //test3(); //error，因为test3没有被constexpr修饰，只被const修饰
+
+    return 1;
+}
+
+constexpr int test5(int x)
+{
+    //return x;  // ok
+
+    //return 1 + 2 + x;  // ok
+
+    //int a = x * x;
+    //a = 3;
+    //return a + x;  // ok
+
+    //int ret = 1 + 2 + x;
+    //return ret;  // ok
+
+    //return test3() + x + 2; // error
+
+    //return test1(); // error
+
+    return test4() + x + 2;
+}
+
+// 值传递
+constexpr float func1(float x, int n)
+{
+    return x * n;
+}
+
+// 引用传递
+constexpr float func2(const float& x, const int& n)
+{
+    return x * n;
+}
+
+// 编译期计算数组长度
 template<typename T, int N>
-constexpr int length(const T(&)[N])
+constexpr int func3(const T(&)[N])
 {
     return N;
 }
 
-// Recursive constexpr function
-constexpr int fac(int n)
+// 递归
+constexpr int func4(int n)
 {
-    return n == 1 ? 1 : n * fac(n - 1);
+    return n == 1 ? 1 : n * func4(n - 1);
 }
 
-// User-defined type
+// 自定义类型
 class Foo
 {
 public:
-    constexpr explicit Foo(int i) : _i(i) {}
+    constexpr explicit Foo(int i) : _i(i) {} // c++17:ok c++20:ok
+    //constexpr explicit Foo(int i) { int x = 4; _i = i + x; } // c++17:error c++20:ok
     constexpr int GetValue() const
     {
         return _i;
@@ -213,20 +277,50 @@ private:
 
 int main()
 {
-    // foo is const:
-    constexpr Foo foo(5);
-    // foo = Foo(6); //Error!
+    {
+        std::cout << test1() << '\n';
+        std::cout << test5(test1()) << '\n';
+        auto n = test1();
+        std::cout << test5(n) << '\n';
 
-    // Compile time:
-    constexpr float x = exp(5, 3);
-    constexpr float y{ exp(2, 5) };
-    constexpr int val = foo.GetValue();
-    constexpr int f5 = fac(5);
-    const int nums[]{ 1, 2, 3, 4 };
-    const int nums2[length(nums) * 2]{ 1, 2, 3, 4, 5, 6, 7, 8 };
+        int x = 4;
+        auto ret = test5(x);
+        std::cout << ret << '\n';
+    }
 
-    // Run time:
-    cout << "The value of foo is " << foo.GetValue() << endl;
+    std::cout << "---------------------\n";
+
+    {
+        int x = 3;
+        auto ret1 = test5(x);// auto被推导为int，而不是constexpr int
+        constexpr int ret2 = test5(1); // ok
+        //constexpr int ret3 = test5(x); //error 如果返回值被constexpr修饰的变量接收，则参数必须为常量
+
+        const int y = 4;
+        constexpr int ret4 = test5(y); // ok
+    }
+
+    std::cout << "-------------------\n";
+
+    {
+        // foo is const:
+        constexpr Foo foo1(5);
+        // f1 = Foo(6); //Error!
+        auto foo2 = Foo(2);
+        Foo foo3(3);
+
+        // Compile time:
+        constexpr float x = func1(5, 3);
+        constexpr float y{ func2(2, 5) };
+        constexpr int val = foo1.GetValue();
+        constexpr int f5 = func4(5);
+        const int nums[]{ 1, 2, 3, 4 };
+        const int nums2[func3(nums) * 2]{ 1, 2, 3, 4, 5, 6, 7, 8 };
+
+        // Run time:
+        cout << "The value of foo is " << foo1.GetValue() << endl;
+    }
+
 }
 #endif // TEST6
 

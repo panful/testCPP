@@ -2,7 +2,7 @@
 /*
 * 1. C方式生成随机数
 * 2. C++方式生成随机数
-* 3. 随机数引擎是类中的成员，不设置种子，每次运行程序生成的随机数一样
+* 3. 随机数引擎如果是类成员，不设置种子，每次运行程序生成的随机数一样
 * 4. 返回各种数据类型的极值
 */
 
@@ -104,13 +104,34 @@ int main()
 #include <iostream>
 #include <limits>
 
+#define MAX(x) std::cout << #x << "\tMax:\t" << std::numeric_limits<x>::max() << std::endl;
+#define MIN(x) std::cout << #x << "\tMin:\t" << std::numeric_limits<x>::min() << std::endl;
+
 int main()
 {
-    std::cout << std::numeric_limits<float>::max() << std::endl;
-    std::cout << std::numeric_limits<float>::min() << std::endl;
-    std::cout << std::numeric_limits<int>::max() << std::endl;
-    std::cout << std::numeric_limits<unsigned int>::max() << std::endl;
-    std::cout << std::numeric_limits<long>::max() << std::endl;
+    MAX(double);
+    MIN(double);
+
+    MAX(float);
+    MIN(float);
+
+    MAX(char);
+    MIN(char);
+
+    MAX(int);
+    MIN(int);
+
+    MAX(unsigned int);
+    MIN(unsigned int);
+
+    MAX(long);
+    MIN(long);
+
+    MAX(long long);
+    MIN(long long);
+
+    MAX(long double); // 和double一样
+    MIN(long double);
 }
 
 #endif // TEST4

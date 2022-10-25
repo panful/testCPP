@@ -2,7 +2,7 @@
 * 1. 求C++可变参数列表长度
 * 2. 逗号表达式初始化列表方式访问可变参数列表
 * 3. 递归方式 访问可变参数列表  //https://blog.csdn.net/King_weng/article/details/100099399
-* 4. 简单宏定义 #define
+* 4. 简单宏定义 #define # ## #$
 * 5. 宏定义中使用可变长参数 __VA_ARGS__
 * 6. va_list va_start va_end va_arg 可变参数
 * 7. 折叠表达式Fold Expression C++17 //https://www.cnblogs.com/GEEK-ZHAO/p/15775026.html
@@ -11,10 +11,12 @@
 
 
 
-#define TEST1
+#define TEST4
 
 #ifdef TEST1
+
 #include <iostream>
+
 void test(int a, int b)
 {
     std::cout << a << ',' << b << '\n';
@@ -95,13 +97,31 @@ int main()
 #endif // TEST3
 
 #ifdef TEST4
+
+/*
+# 用来把参数转换成字符串，即用来给参数加双引号
+#@ 用来给参数加单引号
+## 用来把两个参数连接起来
+*/
+
 #include <iostream>
 
-#define FUN(x,y) std::cout<<x+y;
+#define ADD(x,y) std::cout << x + y << std::endl;
+#define STR(x) std::cout << #x << std::endl;
+#define GLUE_STR(x,y) std::cout << x##y << std::endl;
+#define STR2(x) std::cout << #@x << std::endl;
 
 int main()
 {
-    FUN(3, 4);
+    ADD(3, 4);
+
+    STR(float);
+
+    GLUE_STR("aa","bb");
+
+    STR2(x);
+
+    STR2(xx);  // 打印'xx'对应的int值
 
     return 0;
 }

@@ -273,7 +273,7 @@ int main()
 #include <iostream>
 #include <filesystem>
 #include <fstream>
-#ifdef __WIN32
+#ifdef WIN32
  #include <direct.h>
 #else
  #include <unistd.h>

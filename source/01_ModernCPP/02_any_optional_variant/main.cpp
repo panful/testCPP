@@ -6,7 +6,7 @@
 * 5. 自定义any
 * 6. std::any存储仿函数以及模板类 std::functional
 * 7. 函数顺序执行队列  命令模式
-* 
+* 8. union 内存共享 new(p) pp;
 */
 
 #define TEST1
@@ -436,3 +436,8 @@ int main()
 }
 
 #endif // TEST7
+
+#ifdef TEST8
+
+
+#endif // TEST8

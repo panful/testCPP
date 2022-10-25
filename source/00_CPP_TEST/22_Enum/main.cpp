@@ -4,9 +4,10 @@
 * 2. magic_enum https://github.com/Neargye/magic_enum 枚举转字符串第三方库
 * 3. QMetaEnum 枚举转字符串 查看Qt测试程序
 * 4. 枚举与或非操作 00_06_TEST1
+* 5. 匿名枚举
 */
 
-#define TEST2
+#define TEST5
 
 #ifdef TEST1
 
@@ -100,3 +101,20 @@ int main()
 
 
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <string>
+
+int main()
+{
+    // 匿名枚举
+    enum { Sun, Mon, Tue, Wed, Thur, Fri, Sat };
+
+    std::string week[]{ "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" };
+
+    auto theSun = week[Sun];
+    auto theMon = week[Mon];
+}
+
+#endif // TEST5
