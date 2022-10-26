@@ -302,7 +302,7 @@ int main()
 #include <string>
 #include <iostream>
 
-#define Method_1
+//#define Method_1
 
 template <typename T>
 auto glue(T&& t,std::string separator = "|")
@@ -315,8 +315,9 @@ auto glue(T&& t,std::string separator = "|")
     }
     // 指针不能使用begin()等函数
     {
-        auto retVal = *t.begin();
-        for (auto it = ++t.begin(); it != t.end(); ++it)
+        auto itBeg = t.begin();
+        auto retVal = *itBeg;
+        for (auto it = ++itBeg; it != t.end(); ++it)
         {
             retVal += (separator + *it);
         }
