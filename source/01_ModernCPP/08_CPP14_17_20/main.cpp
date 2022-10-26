@@ -31,6 +31,8 @@
 * 二进制字面量                00_18_TEST5
 * std::shared_lock 读写锁    00_04_TEST202
 * std::integer_sequence     01_07_TEST5
+* std::exchange             02_03_TEST3
+* std::quoted               02_08_TEST7
 */
 
 #include <iostream>

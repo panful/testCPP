@@ -5,6 +5,7 @@
 * 4. std::string_view 字面值 原生字符串 https://segmentfault.com/a/1190000018387368
 * 5. std::string 中文字符串比较
 * 6. 字符串拼接
+* 7. std::quoted 给字符串加双引号""
 */
 
 // std::string的实现方式以及缺点 https://www.zhihu.com/question/54664311?sort=created
@@ -12,7 +13,7 @@
 // std::string 的缺点 https://www.zhihu.com/question/35967887?sort=created
 
 
-#define TEST6
+#define TEST7
 
 #ifdef TEST1
 
@@ -362,3 +363,26 @@ int main()
 }
 
 #endif // TEST6
+
+#ifdef TEST7
+
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+int main()
+{
+    std::string str1("aa bb \t cc dd tt \\ ff");
+    auto str2 = std::quoted(str1);
+    auto str3 = std::quoted(str1, '#', 'd');
+    auto str4 = std::quoted(str1, '#');
+
+    /*
+        s      - 要插入或释出的字符串
+        delim  - 用作分隔符的字符，默认为 " 就是将原字符串用delim包围起来
+        escape - 用作转义字符的字符，默认为 \
+    */
+    std::cout << str1 << '\n' << str2 << '\n' << str3 << '\n' << str4;
+}
+
+#endif // TEST7

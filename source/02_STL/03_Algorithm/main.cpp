@@ -1,11 +1,11 @@
 ﻿/*
 * 1. set_difference set_symmetric_difference set_union set_intersection set_difference
 * 2. std::transform std::for_each std::for_each
-*
+* 3. std::exchange
 * 6. for_each transform中使用lambda
 */
 
-#define TEST6
+#define TEST3
 
 #ifdef TEST1
 
@@ -119,6 +119,34 @@ int main()
 }
 
 #endif // TEST2
+
+#ifdef TEST3
+
+#include <vector>
+#include <utility>
+
+int main()
+{
+    {
+        std::vector<int> vec1{ 1,2,3,4,5 };
+        std::vector<int> vec2{ 9,8,7,6 };
+
+        std::exchange(vec1, { 6,7,8,9 });
+        std::exchange(vec1, { 8,8,8 });
+        std::exchange(vec1, vec2); // vec1的值变为vec2的值，vec2的值并未改变
+
+        // exchange(vec1,vec2)相当于下面两句
+        vec1.clear();
+        vec1.assign(vec2.cbegin(),vec2.cend());
+    }
+    {
+        std::vector<int> vec1{ 1,2,3,4,5 };
+        std::vector<int> vec2{ 9,8,7,6 };
+        std::swap(vec1, vec2); // vec1的值变为原来vec2的值，vec2的值变为原来vec1的值
+    }
+
+}
+#endif // TEST3
 
 #ifdef TEST6
 
