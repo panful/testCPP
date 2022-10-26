@@ -1,11 +1,11 @@
 ﻿/*
 * 1. std::sort使用lambda
-* 2. 
+* 2. constexpr lambda表达式
 * 
 * 5. lambda各种捕获方式的区别 mutable值捕获方式修改捕获的值
 */
 
-#define TEST1
+#define TEST2
 
 #ifdef TEST1
 
@@ -28,6 +28,25 @@ int main()
 }
 
 #endif // TEST1
+
+#ifdef TEST2
+
+// constexpr函数有如下限制：
+// 函数体不能包含汇编语句、goto语句、label、try块、静态变量、线程局部存储、没有初始化的普通变量，不能动态分配内存，不能有new delete等，不能虚函数。
+
+#include <string>
+
+int main() { // c++17可编译
+    constexpr auto lamb = [](int n) { return 1 + n * n; };
+    static_assert(lamb(3) == 10, "error");
+
+    constexpr auto lamb2 = [](std::string str) {return "#" + str + "#"; };
+    lamb2("s"); // ok
+    //static_assert(lamb2("s") == std::string("#s#"), "error"); // 编译不过去
+    //static_assert(lamb2("s") == std::string("s"), "error"); // 静态断言失败
+}
+#endif // TEST2
+
 
 
 #ifdef TEST5

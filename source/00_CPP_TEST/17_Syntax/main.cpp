@@ -3,10 +3,11 @@
 * 1. 三目运算符多层嵌套
 * 2. ||的第一个条件满足后，不会再判断第二个条件
 * 3. for基于范围的循环遍历，右值引用，修改for循环元素
-* 4.[[deprecated]]标记
+* 4. [[deprecated]]标记
+* 5. __has_include预处理表达式
 */
 
-#define TEST4
+#define TEST5
 
 #ifdef TEST1
 
@@ -206,3 +207,29 @@ int main()
 }
 
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <iostream>
+#include <optional>
+#include <string>
+
+#if defined __has_include
+# if __has_include(<direct.h>)
+#  define has_direct_h 1
+# elif __has_include(<unistd.h>)
+#  define has_unistd_h 1
+# endif
+#endif
+
+int main()
+{
+#if defined has_direct_h
+    std::cout << "windows\n";
+#elif has_unistd_h
+    std::cout << "linux\n";
+#endif 
+
+    return 0;
+}
+#endif // TEST5

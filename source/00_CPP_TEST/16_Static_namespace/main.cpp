@@ -1,7 +1,7 @@
 ﻿/*
 * 1. 匿名空间和static
 * 2. 函数内部局部静态变量
-* 3. 
+* 3. namespace嵌套
 */
 
 
@@ -87,9 +87,25 @@ int main()
 #endif // TEST2
 
 #ifdef TEST3
+
+#include <iostream>
+
+namespace A {
+    namespace B {
+        namespace C {
+            void func();
+        }
+    }
+}
+
 int main()
 {
+    A::B::C::func();
+}
 
+// c++17，更方便更舒适
+namespace A::B::C {
+    void func() { std::cout << "namespace A::B::C\n"; };
 }
 
 #endif // TEST3

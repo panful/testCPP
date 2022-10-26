@@ -11,7 +11,7 @@
 
 
 
-#define TEST4
+#define TEST7
 
 #ifdef TEST1
 
@@ -181,27 +181,59 @@ int main(void)
 #ifdef TEST7
 
 #include <iostream>
-using namespace std;
 
 template<typename... Ts>
 void printAll(Ts&&... mXs)
 {
     // std::cout使用可变参数
-    (cout << ... << mXs) << endl;
+    (std::cout << ... << mXs) << std::endl;
 }
 
+// mFn是一个函数对象，forArgs作用就是将可变参数mXs依次当作函数对象的参数执行
+// forArg是一个参数的，forArgs是任意个参数的
+template<typename Func,typename T>
+void forArg(Func&& f,T t)
+{
+    f(t);
+}
 template<typename TF, typename... Ts>
 void forArgs(TF&& mFn, Ts&&... mXs)
 {
     (mFn(mXs), ...);
 }
 
+template<typename ...T>
+auto sum(T&& ...t)
+{
+    return (t + ...);
+}
+
 int main()
 {
     printAll(3, 4.0, "5"); // 345
     printAll(); // 空行
-    forArgs([](auto a) {cout << a; }, 3, 4.0, "5"); // 345
-    forArgs([](auto a) {cout << a; }); // 空操作
+
+    std::cout << "--------------------\n";
+
+    forArg([](auto x) {std::cout << x << '\n'; }, 1);
+    //forArg([](auto x) {std::cout << x << '\n'; }, 1, 2, 3); // error，参数太多
+    //forArg([](auto x) {std::cout << x << '\n'; }); // error 参数太少
+
+    std::cout << "--------------------\n";
+
+    forArgs([](auto a) {std::cout << a << '\n'; }, 3, 4.0, "5"); // 345
+    forArgs([](auto a) {std::cout << a << '\n'; }); // 空操作
+
+    std::cout << "--------------------\n";
+
+    std::cout << sum(1, 2, 3) << '\n';
+    std::string s1("aa");
+    std::string s2("bb");
+    std::string s3("cc");
+    std::cout << sum(s1, s2, s3) << '\n';
+    //std::cout << sum() << '\n';
+
+    return 0;
 }
 #endif // TEST7
 

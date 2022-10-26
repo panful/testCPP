@@ -37,8 +37,11 @@
 * 构造函数模板推导           00_13_TEST14
 * 结构化绑定                 01_03_TEST1
 * if\switch中初始化，执行语句 01_03_TEST3
-* 
-* 
+* 内联变量                   00_20_TEST2
+* 折叠表达式                 00_03_TEST7
+* constexpr lambda表达式    02_02_01_TEST2
+* namespace嵌套             00_16_TEST3
+* __has_include预处理表达式  00_17_TEST5
 */
 
 #include <iostream>
