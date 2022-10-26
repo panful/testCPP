@@ -4,6 +4,7 @@
 * 3. std::string中的字符替换
 * 4. std::string_view 字面值 原生字符串 https://segmentfault.com/a/1190000018387368
 * 5. std::string 中文字符串比较
+* 6. 字符串拼接
 */
 
 // std::string的实现方式以及缺点 https://www.zhihu.com/question/54664311?sort=created
@@ -11,12 +12,14 @@
 // std::string 的缺点 https://www.zhihu.com/question/35967887?sort=created
 
 
-#define TEST5
+#define TEST6
 
 #ifdef TEST1
 
 #include <iostream>
 #include <string>
+
+// std::string的析构函数不是虚析构函数，所以std::string不能被继承
 
 class MyString :public std::string
 {
@@ -289,3 +292,72 @@ int main()
 
 
 #endif // TEST5
+
+#ifdef TEST6
+
+#include <vector>
+#include <list>
+#include <set>
+#include <array>
+#include <string>
+#include <iostream>
+
+#define Method_1
+
+template <typename T>
+auto glue(T&& t,std::string separator = "|")
+{
+#ifdef Method_1
+    // 指针不能使用empty()
+    if (t.empty())
+    {
+        return std::string();
+    }
+    // 指针不能使用begin()等函数
+    {
+        auto retVal = *t.begin();
+        for (auto it = ++t.begin(); it != t.end(); ++it)
+        {
+            retVal += (separator + *it);
+        }
+        return retVal;
+    }
+#else
+    {
+        std::string retVal;
+        for (const auto& elem : t)
+        {
+            retVal += (elem + separator);
+        }
+        if(!separator.empty())
+        {
+            return retVal.substr(0, retVal.size() - separator.size());
+        }
+        return retVal;
+    }
+#endif
+}
+
+int main()
+{
+    std::set<std::string> setStr{ "aa","bb","cc","dd","ee" };
+    std::list<std::string> listStr{ "aa","bb","cc","dd","ee" };
+    std::array<std::string, 5> arrayStr{ "aa","bb","cc","dd","ee" };
+    std::vector<std::string> vecStr{ "aa","bb","cc","dd","ee" };
+
+    std::cout << glue(setStr, "#") << '\n';
+    std::cout << glue(listStr, "@") << '\n';
+    std::cout << glue(arrayStr, "$") << '\n';
+    std::cout << glue(vecStr, "") << '\n';
+    std::cout << glue(std::vector<std::string>{}) << '\n';
+    std::cout << glue(std::list<std::string>{"single_str"}, "#") << '\n';
+
+#ifndef Method_1
+    std::string pStr[5]{ "aa","bb","cc","dd","ee" };
+    std::cout << glue(pStr, "^") << '\n';
+#endif // Method_1
+
+    return 0;
+}
+
+#endif // TEST6

@@ -7,7 +7,7 @@
 * 6. std::make_from_tuple
 */
 
-#define TEST6
+#define TEST5
 
 #ifdef TEST1
 
@@ -178,22 +178,106 @@ auto& operator<<(std::basic_ostream<Ch, Tr>& os, const std::tuple<Args...>& t)
     return os << ")";
 }
 
+enum MyEnum { E1,E2,E3};
+
 int main()
 {
-    print_sequence(std::integer_sequence<unsigned, 9, 2, 5, 1, 9, 1, 6>{});
-    print_sequence(std::make_integer_sequence<int, 20>{});
-    print_sequence(std::make_index_sequence<10>{});
-    print_sequence(std::index_sequence_for<float, std::iostream, char>{});
+    {
+        /*
+        * std::integer_sequence作用是产生一个整型数列
+        * 该struct只有一个函数size()，用来返回整型数列的大小
+        */
+        std::integer_sequence<int, 0, 1, 2, 3, 4> myIntegerSequence1;
+        std::cout << "size:\t" << myIntegerSequence1.size() << "\tstd::integer_sequence<int, 0, 1, 2, 3, 4> type:\t" << typeid(decltype(myIntegerSequence1)).name() << '\n';
 
-    std::array<int, 4> array = { 1,2,3,4 };
+        std::integer_sequence<size_t, 3, 2, 1> myIntegerSequence2;
+        std::cout << "size:\t" << myIntegerSequence2.size() << "\tstd::integer_sequence<size_t, 3, 2, 1> type:\t" << typeid(decltype(myIntegerSequence2)).name() << '\n';
 
-    // 转换 array 为 tuple
-    auto tuple = a2t(array);
-    static_assert(std::is_same<decltype(tuple),
-        std::tuple<int, int, int, int>>::value, "");
+        // ok 相当于struct std::integer_sequence<char,97,98,99,1,2,3>
+        std::integer_sequence<char, 'a', 'b', 'c', 1, 2, 3> myIntegerSequence3;
+        std::cout << "size:\t" << myIntegerSequence3.size() << "\tstd::integer_sequence<char, 'a', 'b', 'c', 1, 2, 3> type:\t" << typeid(decltype(myIntegerSequence3)).name() << '\n';
 
-    // 打印到 cout
-    std::cout << tuple << '\n';
+        // error std::integer_sequence模板的第一个参数必须为整形，例如 int, unsigned int, short等
+        //std::integer_sequence<float, 1.1f,2.2f,3.3f> myIntegerSequence4;
+    }
+
+    std::cout << "----------------------------------\n";
+
+    {
+        /*
+        * std::make_integer_sequence模板的第一个参数必须是整形，例如 int, unsigned int, short等
+        * std::make_integer_sequence相当于如下定义：
+        * template <class T, T N>
+        * using make_integer_sequence = integer_sequnce<T, 0, 1, 2, 3, 4, ..., N - 1>
+        */
+        std::make_integer_sequence<int, 5> myIntegerSequence1;
+        std::cout << "std::make_integer_sequence<int, 5> type:\t" << typeid(decltype(myIntegerSequence1)).name() << std::endl;
+
+        std::make_integer_sequence<char, 6> myIntegerSequence2;
+        std::cout << "std::make_integer_sequence<char, 6> type:\t" << typeid(decltype(myIntegerSequence2)).name() << std::endl;
+
+        std::make_integer_sequence<short, 7> myIntegerSequence3;
+        std::cout << "std::make_integer_sequence<short, 7> type:\t" << typeid(decltype(myIntegerSequence3)).name() << std::endl;
+
+        // error
+        //std::make_integer_sequence<MyEnum, MyEnum::E3> myIntegerSequence4;
+
+        // error
+        //std::make_integer_sequence<std::string, 6> myIntegerSequence3;
+    }
+
+    std::cout << "----------------------------------\n";
+
+    {
+        /*
+        * 标准库有如下定义，即std::make_index_sequence只是一个别名模板
+        * template <size_t _Size>
+        * using make_index_sequence = make_integer_sequence<size_t, _Size>;
+        */
+
+        std::make_index_sequence<5> myIndexSequence1;
+        std::cout << "std::make_index_sequence<5> type:\t" << typeid(decltype(myIndexSequence1)).name() << std::endl;
+
+        std::make_integer_sequence<size_t, 5> myIndexSequence2;
+        std::cout << "std::make_integer_sequence<size_t, 5> type:\t" << typeid(decltype(myIndexSequence2)).name() << std::endl;
+    }
+
+    std::cout << "---------------------------------------\n";
+
+    {
+        /*
+        * std::index_sequence_for在标准库有如下定义：
+        * 作用就是将index_sequence_for的模板参数【个数】设置为make_index_sequence的模板参数
+        * index_sequence_for的模板参数必须是类型，不能是值，函数等
+        * template <class... _Types>
+        * using index_sequence_for = make_index_sequence<sizeof...(_Types)>;
+        */
+
+        int n = 0;
+        std::index_sequence_for<int, float, std::string, std::ios, decltype(n), decltype(std::abs(1))> myIndexSequenceFor;
+        std::cout << "size:\t" << myIndexSequenceFor.size() <<
+            "\tstd::index_sequence_for<int, float, std::string, std::ios, decltype(n), decltype(std::abs(1))> type:\t" << typeid(decltype(myIndexSequenceFor)).name() << '\n';
+    }
+
+    std::cout << "---------------------------------------\n";
+
+    {
+        std::array<int, 4> array = { 1,2,3,4 };
+
+        // 转换 array 为 tuple
+        auto tuple = a2t(array);
+        static_assert(std::is_same<decltype(tuple),
+            std::tuple<int, int, int, int>>::value, "different types");
+
+        // 静态断言失败
+        //static_assert(std::is_same<decltype(tuple),
+        //    std::tuple<int, int, int, float>>::value, "different types");
+
+        // 打印到 cout
+        std::cout << tuple << '\n';
+    }
+
+    return 0;
 }
 
 #endif // TEST5
@@ -207,6 +291,6 @@ int main()
 
 int main()
 {
-    // auto t1 = std::make_from_tuple<int,double>(1, 1.1);
+    //auto t1 = std::make_from_tuple<int,double>(1, 1.1);
 }
 #endif // TEST6
