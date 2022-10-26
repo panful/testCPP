@@ -211,13 +211,13 @@ int main()
 #ifdef TEST5
 
 #include <iostream>
-#include <optional>
-#include <string>
 
 #if defined __has_include
 # if __has_include(<direct.h>)
+#include <direct.h>
 #  define has_direct_h 1
 # elif __has_include(<unistd.h>)
+#include <unistd.h>
 #  define has_unistd_h 1
 # endif
 #endif
@@ -230,6 +230,9 @@ int main()
     std::cout << "linux\n";
 #endif 
 
+    std::cout << getcwd(0, 0) << '\n';
+
     return 0;
 }
+
 #endif // TEST5

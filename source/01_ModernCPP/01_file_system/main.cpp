@@ -274,28 +274,70 @@ int main()
 #include <filesystem>
 #include <fstream>
 #ifdef WIN32
- #include <direct.h>
+#include <direct.h>
 #else
- #include <unistd.h>
+#include <unistd.h>
 #endif
 
 int main()
 {
-    //返回的是工作目录，不是当前应用程序所在目录
-    auto path = std::filesystem::current_path();
-    auto path1 = getcwd(nullptr, 10);
-
-    std::ifstream ifs;
-
-    ifs.open(path.append("filesystem.txt"));
-
-    if (ifs)
     {
-        std::cout << "good\n";
+        //返回的是工作目录，不是当前应用程序所在目录
+        std::cout << "current_path:" << std::filesystem::current_path() << '\n';
+        std::cout << "current_path.string():" << std::filesystem::current_path().string() << '\n';
     }
 
-    std::filesystem::current_path("C:\\bc");       // "c:\\bc"目录如果不存在则抛出异常
-    auto path2 = std::filesystem::current_path();  // C:\bc
+    {
+        // 可执行文件如果在 aa/bb/cc/路径下，但是在控制台的aa目录下，以./bb/cc/file_name执行文件，
+        // 则获取的是aa，并不是aa/bb/cc/file_name或aa/bb/cc
+        // Windows和Linux结果一样，也就是getcwd获取的也是工作目录
+        std::cout << "getcwd:" << getcwd(0, 0) << '\n';
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        try {
+            std::cout << "std::filesystem::current_path(\"C:/bc\")\t";
+            // 设置工作目录为"C:/bc"，如果"C:/bc"目录不存在则抛出异常
+            std::filesystem::current_path("C:/bc");
+        }
+        catch (...) {
+            std::cout << "============ \terror";
+        }
+        std::cout << "\ncurrent_path:\t" << std::filesystem::current_path() << '\n';
+        std::cout << "getcwd:" << getcwd(0, 0) << '\n';
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        try {
+            std::cout << "std::filesystem::current_path(\"C:/Program Files\")\t";
+            std::filesystem::current_path("C:/Program Files");
+        }
+        catch (...) {
+            std::cout << "============ \terror";
+        }
+        // Windows下这里会打印 C:/Program Files
+        std::cout << "\ncurrent_path:\t" << std::filesystem::current_path() << '\n';
+        std::cout << "getcwd:" << getcwd(0, 0) << '\n';
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        try {
+            std::cout << "std::filesystem::current_path(\"/home\")\t";
+            std::filesystem::current_path("/home");
+        }
+        catch (...) {
+            std::cout << " ============ \terror";
+        }
+        // Linux下这里会打印 /home
+        std::cout << "\ncurrent_path:\t" << std::filesystem::current_path() << '\n';
+        std::cout << "getcwd:" << getcwd(0, 0) << '\n';
+    }
 
 }
 
