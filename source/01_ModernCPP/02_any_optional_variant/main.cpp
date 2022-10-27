@@ -9,7 +9,7 @@
 * 8. union 内存共享 new(p) pp;
 */
 
-#define TEST1
+#define TEST6
 
 #ifdef TEST1
 
@@ -295,7 +295,9 @@ int main()
 
 #ifdef TEST5
 
+#include <iostream>
 #include <memory>
+
 class MyAny
 {
 public:
@@ -337,7 +339,14 @@ int main()
     auto ret0 = d.any_cast<int>(); // 这里的类型一定要一致，否则this指针为空
     auto ret1 = e.any_cast<char>();
     auto ret2 = f.any_cast<const char*>();
-    auto ret3 = f.any_cast<char*>();  //throw error
+	std::cout<<ret0<<'\t'<<ret1<<'\t'<<ret2<<'\n';
+	
+	try{
+		auto ret3 = f.any_cast<char*>();  //throw error
+	}
+	catch(...){
+		std::cout<<"An exception is thrown here\n";
+	}
 
     return 0;
 }
@@ -373,65 +382,70 @@ void test2(std::string str)
 int main()
 {
     // 1
-    std::function<int(int)> f1 = std::bind(&test1, 3);
-    std::function<void(std::string)> f2 = std::bind(&test2, "sssssssss");
-    std::vector<std::any> myFuns1;
-    myFuns1.emplace_back(f1);
-    myFuns1.emplace_back(f2);
+	{
+		std::function<int(int)> f1 = std::bind(&test1, 3);
+		std::function<void(std::string)> f2 = std::bind(&test2, "sssssssss");
+		std::vector<std::any> myFuns1;
+		myFuns1.emplace_back(f1);
+		myFuns1.emplace_back(f2);
 
-    auto fun1 = std::any_cast<std::function<int(int)>>(myFuns1[0]);
-    auto fun2 = std::any_cast<std::function<void(std::string)>>(myFuns1[1]);
+		auto fun1 = std::any_cast<std::function<int(int)>>(myFuns1[0]);
+		auto fun2 = std::any_cast<std::function<void(std::string)>>(myFuns1[1]);
 
-    // 使用的参数还是std::bind中的实参
-    fun1(2);
-    fun2("www");
-
+		// 使用的参数还是std::bind中的实参
+		fun1(2);
+		fun2("www");
+	}
     std::cout << "====================================\n";
 
     // 2 必须用std::function接收std::bind返回值，才能用any_cast，如果用auto接收，any_cast会抛出异常
-    auto f3 = std::bind(&test1, 999);
-    auto f4 = std::bind(&test2, "test");
+	{
+		auto f3 = std::bind(&test1, 999);
+		auto f4 = std::bind(&test2, "test");
 
-    std::vector<std::any> myFuns2;
-    myFuns2.emplace_back(f3);
-    myFuns2.emplace_back(f4);
+		std::vector<std::any> myFuns2;
+		myFuns2.emplace_back(f3);
+		myFuns2.emplace_back(f4);
 
-    // 内部抛出异常
-    try
-    {
-        auto fun3 = std::any_cast<std::function<int(int)>>(myFuns2[0]);
-        auto fun4 = std::any_cast<std::function<int(int)>>(myFuns2[0]);
-    }
-    catch (...)
-    {
-        std::cout << "std::any_cast throw an error\n";
-    }
-
+		// 内部抛出异常
+		try
+		{
+			auto fun3 = std::any_cast<std::function<int(int)>>(myFuns2[0]);
+			auto fun4 = std::any_cast<std::function<void(std::string)>>(myFuns2[1]);
+		}
+		catch (...)
+		{
+			std::cout << "std::any_cast throw an error\n";
+		}
+	}
     std::cout << "====================================\n";
 
     // 3 使用std::placeholders替换实参
-    std::function<int(int)> f5 = std::bind(&test1, std::placeholders::_1);
-    std::function<void(std::string)> f6 = std::bind(&test2, std::placeholders::_1);
-    std::vector<std::any> myFuns3;
-    myFuns3.emplace_back(f5);
-    myFuns3.emplace_back(f6);
+	{
+		std::function<int(int)> f5 = std::bind(&test1, std::placeholders::_1);
+		std::function<void(std::string)> f6 = std::bind(&test2, std::placeholders::_1);
+		std::vector<std::any> myFuns3;
+		myFuns3.emplace_back(f5);
+		myFuns3.emplace_back(f6);
 
-    auto fun5 = std::any_cast<std::function<int(int)>>(myFuns3[0]);
-    auto fun6 = std::any_cast<std::function<void(std::string)>>(myFuns3[1]);
+		auto fun5 = std::any_cast<std::function<int(int)>>(myFuns3[0]);
+		auto fun6 = std::any_cast<std::function<void(std::string)>>(myFuns3[1]);
 
-    // 实参将会使用此处的参数
-    fun5(123);
-    fun6("string");
-
+		// 实参将会使用此处的参数
+		fun5(123);
+		fun6("string");
+	}
     std::cout << "====================================\n";
 
     // 4 any存储模板类
-    std::vector<std::any> myFuns4;
-    A<int> a; a.t = 5;
-    myFuns4.emplace_back(a);
-    auto ret = std::any_cast<A<int>>(myFuns4[0]);
-    std::cout << "value:" << ret.t << std::endl;
-
+	{
+		std::vector<std::any> myFuns4;
+		A<int> a; a.t = 5;
+		myFuns4.emplace_back(a);
+		auto ret = std::any_cast<A<int>>(myFuns4[0]);
+		std::cout << "value:" << ret.t << std::endl;
+	}
+	
     return 0;
 }
 
@@ -536,8 +550,8 @@ int main()
     queue.push(FuncExecQueue::FuncStruct(&c, static_cast<void*>(p)));
 
     queue.run();
-
-    system("pause");
+	
+	return 0;
 }
 
 #endif // TEST7
