@@ -9,43 +9,51 @@
 * 8. union 内存共享 new(p) pp;
 */
 
-#define TEST8
+#define TEST1
 
 #ifdef TEST1
 
-// std::optional c++17
+// std::optional可以用在函数返回结果不一定正确的时候
+// 例如输入文件名读取文件并返回文件内容，有可能打开文件失败，有可能文件本身就为空
+// 所以返回空字符串就有歧义，如果文件打开失败返回std::nullopt就比较好理解
 
 #include <iostream>
 #include <optional>
 #include <string>
 
-// convert string to int if possible:
+// 将std::string转换为int型数据
 std::optional<int> asInt(const std::string& s)
 {
     try
     {
+        // 转换成功返回结果
         return std::stoi(s);
     }
     catch (...)
     {
+        // 转换失败返回std::nullopt;
+        // 可以理解为nullptr
         return std::nullopt;
     }
 }
+
 int main()
 {
-    for (auto s : { "42", " 077", "hello", "0x33" })
+    for (const auto& s : { "42", " 077", "hello", "0x33" })
     {
-        // convert s to int and use the result if possible:
         std::optional<int> oi = asInt(s);
-        if (oi) {
-            std::cout << "convert '" << s << "' to int: " << *oi << "\n";
+
+        // std::optional<T>对bool()进行了重载，所以直接可以用在if语句中
+        if (oi) 
+        {
+            std::cout << "convert \t'" << s << "' \t\tto int: " << *oi << "\n";
         }
-        else {
-            std::cout << "can't convert '" << s << "' to int\n";
+        else 
+        {
+            std::cout << "can't convert \t'" << s << "' \tto int\n";
         }
     }
 }
-
 
 #endif // TEST1
 
