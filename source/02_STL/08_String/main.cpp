@@ -6,6 +6,7 @@
 * 5. std::string 中文字符串比较
 * 6. 字符串拼接
 * 7. std::quoted 给字符串加双引号""
+* 8. std::from_chars std::to_chars char*和数值互相转换
 */
 
 // std::string的实现方式以及缺点 https://www.zhihu.com/question/54664311?sort=created
@@ -13,7 +14,7 @@
 // std::string 的缺点 https://www.zhihu.com/question/35967887?sort=created
 
 
-#define TEST7
+#define TEST8
 
 #ifdef TEST1
 
@@ -386,3 +387,87 @@ int main()
 }
 
 #endif // TEST7
+
+#ifdef TEST8
+
+#include <charconv>
+#include <iostream>
+
+int main() 
+{
+    // number -> char*
+    {
+        auto f = [](auto&& value,int base = 10) {
+            // result用来接收转换结果，如果buffer大小不足可能会出现意想不到的结果
+            char result[100]{ 0 };
+            auto [ptr, ec] = std::to_chars(result, result + sizeof(result), value);
+
+            std::cout << "source:\t" << value << '\t';
+
+            if (ec == std::errc())
+            {
+                std::cout << "convert success\tresult:" << result << '\n';
+            }
+            else
+            {
+                std::cout << "convert failed\t\t\tptr:" << ptr << '\n';
+            }
+        };
+
+        f(100);
+        f(11.11);
+        f(22.22f);
+        f(0x11);
+        f(0b0101);
+        f('x');
+        f(111'111'111'111'111'111);
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    // char* -> number
+    {
+        auto f = [](const char* first,const char* last,int base = 10) {
+            // 函数参数：char*开始位置，char*结束位置，转换结果，进制（默认10）
+            int ret = 0;
+            auto [ptr, ec] = std::from_chars(first, last, ret, base);
+
+            std::cout << "source:\t" << first << '\t';
+
+            if (ec == std::errc())
+            {
+                std::cout << "convert success\tresult:" << ret << "\tptr:" << ptr << '\n';
+            }
+            else
+            {
+                std::cout << "convert failed\t\t\tptr:" << ptr << '\n';
+            }
+        };
+
+        const char c1[] = "12345";
+        const char c2[] = "a1";
+        const char c3[] = "12 34";
+        const char c4[] = " 123";
+        const char c5[] = "123 ";
+        const char c6[] = "12a34";
+        const char c7[] = "0xa";
+        const char c8[] = "A1h12";
+
+        // 必须是数字开头，且遇到非数字(10进制)立马停止转换
+        f(c1, c1 + sizeof(c1));
+        f(c2, c2 + sizeof(c2));
+        f(c3, c3 + sizeof(c3));
+        f(c4, c4 + sizeof(c4));
+        f(c5, c5 + sizeof(c5));
+        f(c6, c6 + sizeof(c6));
+
+        std::cout << "-----------------------------------------\n";
+
+        // 16进制遇到非数字和abcdefABCDEF停止转换
+        f(c2, c2 + sizeof(c2), 16);
+        f(c7, c7 + sizeof(c7), 16);
+        f(c8, c8 + sizeof(c8), 16);
+    }
+
+}
+#endif // TEST8
