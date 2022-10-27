@@ -9,7 +9,7 @@
 * 8. union 内存共享 new(p) pp;
 */
 
-#define TEST1
+#define TEST8
 
 #ifdef TEST1
 
@@ -50,46 +50,143 @@ int main()
 #endif // TEST1
 
 #ifdef TEST2
-// std::variant std::tuple  有什么联系
+
+
 // std::variant 和 std::any的区别就是：any可以存任意类型的值，而variant只能存储指定类型的值（模板列表中的类型）
+// std::variant类似于union TEST8
+// std::tuple类似于struct
 
 #include <variant>
+#include <tuple>
 #include <string>
 #include <vector>
+#include <iostream>
+
+// 函数返回不同类型的值
+std::variant<int, std::string> func(void* p)
+{
+    if (p)
+    {
+        return 1;
+    }
+    else
+    {
+        return "string";
+    }
+}
 
 int main()
 {
-    std::variant<int, int, int, float, float, std::string> var1;
-    //var1 = 2.0f;  //错误，variant模板初始化有多个float，不知道是给第几个float赋值
-    std::variant<int, int, float, float, char, char> var11{ std::in_place_index<3>,2 }; // 初始化为第三个类型
-    var1.emplace<1>(2.0f); //正确，指定具体第几个类型，会强制类型转换
-    auto index1 = var1.index(); // 1
-    var1.emplace<5>("test");    //正确
-    //var1.emplace<2>("test");  //错误
-    //var1.emplace<int>(2);     //错误
+    {
+        auto ret1 = func(nullptr);
+        auto ret2 = func(new int(1));
 
-    std::variant<int, float, char> var2;
-    var2.emplace<int>(2); // 没有多个int类型时才可以这样赋值
-    var2 = 2.0f;
-    var2 = 3.0f; // 覆盖前面的值
-    var2 = 'x';  // 覆盖前面的值
-    auto index2 = var2.index(); // 此时var2的值为'x'，是var2的第2个类型（从0开始）
-    //auto ret1 = std::get<1>(var2);   //抛出异常，因为var2的值为'x'是第2个类型
-    //auto ret2 = std::get<int>(var2); //抛出异常，var2值的类型为char
-    auto ret1 = std::get<2>(var2);     // ret1 = 'x'
-    auto ret2 = std::get<char>(var2);  // ret2 = 'x'
+        std::cout << std::get<1>(ret1) << '\n';
+        std::cout << std::get<0>(ret2) << '\n';
+    }
+    std::cout << "-------------------------------------------------\n";
+    {
+        std::variant<int, int, int, float, float, std::string> var1;
+        //var1 = 2.0f;  //错误，variant模板初始化有多个float，不知道是给第几个float赋值
+        std::variant<int, int, float, float, char, char> var11{ std::in_place_index<3>,2 }; // 初始化为第三个类型
+        var1.emplace<1>(2.0f); //正确，指定具体第几个类型，会强制类型转换
+        auto index1 = var1.index(); // 1
+        var1.emplace<5>("test");    //正确
+        auto index5 = var1.index(); // 5
+        //var1.emplace<2>("test");  //错误
+        //var1.emplace<int>(2);     //错误
 
-    // 注意get_if的参数必须为指针
-    auto ret3 = std::get_if<int>(&var2);  // 获取失败返回nullptr
-    auto ret4 = std::get_if<char>(&var2); // 获取成功返回char*
+        std::cout << index1 << '\t' << index5 << '\n';
+    }
 
-    std::vector<std::variant<int, float, char>> vec;
-    vec.emplace_back(2);
-    vec.emplace_back(2.0f);
-    vec.emplace_back('x');
-    //vec.emplace_back("xxx");  //错误，因为variant中没有"xxx"的类型
+    {
+        std::variant<int, float, char> var2;
+        var2.emplace<int>(2); // 没有多个int类型时才可以这样赋值
+        var2 = 2.0f;
+        var2 = 3.0f; // 覆盖前面的值
+        var2 = 'x';  // 覆盖前面的值
+        auto index2 = var2.index(); // 此时var2的值为'x'，是var2的第2个类型（从0开始）
+        //auto ret1 = std::get<1>(var2);   //抛出异常，因为var2的值为'x'是第2个类型
+        //auto ret2 = std::get<int>(var2); //抛出异常，var2值的类型为char
+        auto ret1 = std::get<2>(var2);     // ret1 = 'x'
+        auto ret2 = std::get<char>(var2);  // ret2 = 'x'
 
-    int test = 0;
+        // 注意get_if的参数必须为指针
+        auto ret3 = std::get_if<int>(&var2);  // 获取失败返回nullptr
+        auto ret4 = std::get_if<char>(&var2); // 获取成功返回char*
+        auto ret5 = std::get_if<1>(&var2);    // 获取失败返回nullptr
+        auto ret6 = std::get_if<2>(&var2);    // 获取成功返回char*
+    }
+
+    {
+        std::vector<std::variant<int, float, char>> vec;
+        vec.emplace_back(2);
+        vec.emplace_back(2.0f);
+        vec.emplace_back('x');
+        //vec.emplace_back("xxx");  //错误，因为variant中没有"xxx"的类型
+    }
+
+    {
+        struct MyStruct
+        {
+            double a;
+            double b;
+            double c;
+            double d;
+            double e;
+        };
+        std::cout << "double:" << sizeof(double) << "\tfloat:" << sizeof(float) << "\tstd::string:" << sizeof(std::string) << "\tMyStruct:" << sizeof(MyStruct) << '\n';
+
+        std::variant<int, float, double, char> var1;
+        std::variant<int, float, char> var2;
+        std::variant<int, float, char, std::string> var3;
+        std::variant<int, int, int, int> var4;
+        std::variant<int, char, int, int> var5;
+        std::variant<char> var6;
+        std::variant<int> var7;
+        std::variant<MyStruct> var8;
+        std::variant<MyStruct,int> var9;
+        std::variant<MyStruct, int, MyStruct, double> var10;
+
+        auto f = [](auto&& v) {
+            // variant中最大字节数的类型大于8则sizeof(variant)等于这个字节数+8
+            // 小于8则翻倍，好像是这个规律
+            std::cout << sizeof(v) << '\t' << typeid(v).name() << '\n';
+        };
+        f(var1);
+        f(var2);
+        f(var3);
+        f(var4);
+        f(var5);
+        f(var6);
+        f(var7);
+        f(var8);
+        f(var9);
+        f(var10);
+        std::cout << "------------------------------------------\n";
+
+        union MyUnion1{
+            int a; float b; double c; char d;
+        };
+        union MyUnion2{
+            int a; float b; char c; std::string d;
+        };
+
+        struct MyStruct1{// 4+4+8+8 = 24
+            int a; float b; double c; char d;
+        };
+        struct MyStruct2{// 4+4+4+40 + 4 = 56 因为std::string存储了一个指针（8位）因此sizeof(MyStruct2)是8（结构体中最大字节数的成员）的倍数
+            int a; float b; char c; std::string d;
+        };
+
+        std::tuple<int, float, double, char> tuple1;
+        std::tuple<int, float, char, std::string> tuple2;
+
+        std::cout << "union:\t" << sizeof(MyUnion1) << '\t' << sizeof(MyUnion2) << '\n';
+        std::cout << "struct:\t" << sizeof(MyStruct1) << '\t' << sizeof(MyStruct2) << '\n';
+        std::cout << "tuple:\t" << sizeof(tuple1) << '\t' << sizeof(tuple2) << '\n';
+    }
+
     return 0;
 }
 
@@ -439,5 +536,79 @@ int main()
 
 #ifdef TEST8
 
+// 联合体的一些使用场景 https://zhuanlan.zhihu.com/p/495696559
 
+
+// 利用union共享内存的机制组合拆分数据
+#include <iostream>
+
+union bit32_data
+{
+    uint32_t data{ 0 };
+    struct
+    {
+        uint8_t byte0;
+        uint8_t byte1;
+        uint8_t byte2;
+        uint8_t byte3;
+    }byte;
+};
+
+int main()
+{
+    // 组合数据
+    {
+        bit32_data num;
+        std::cout << std::hex << num.data << '\n';
+
+        num.byte.byte0 = 0x78;
+        num.byte.byte1 = 0x56;
+        num.byte.byte2 = 0x34;
+        num.byte.byte3 = 0x12;
+
+        std::cout << std::hex << num.data << '\n';
+    }
+
+    std::cout << "---------------------------------\n";
+
+    // 拆分数据
+    {
+        bit32_data num;
+
+        std::cout << std::hex
+            << static_cast<int>(num.byte.byte3)
+            << static_cast<int>(num.byte.byte2)
+            << static_cast<int>(num.byte.byte1)
+            << static_cast<int>(num.byte.byte0) << '\n';
+
+        num.data = 0x12345678;
+
+        std::cout << std::hex
+            << static_cast<int>(num.byte.byte3)
+            << static_cast<int>(num.byte.byte2)
+            << static_cast<int>(num.byte.byte1)
+            << static_cast<int>(num.byte.byte0) << '\n';
+    }
+
+    std::cout << "---------------------------------\n";
+
+    // 判断大小端
+    {
+        bit32_data num;
+
+        num.data = 0x12345678;
+
+        if (0x78 == num.byte.byte0)
+        {
+            std::cout << "Little endian\n";
+        }
+        else if (0x78 == num.byte.byte3)
+        {
+            std::cout << "Big endian\n";
+        }
+        else {
+            std::cout << "error\n";
+        }
+    }
+}
 #endif // TEST8
