@@ -279,8 +279,16 @@ int main()
 #include <unistd.h>
 #endif
 
-int main()
+int main(int argc,char** argv)
 {
+	{
+		// Linux下打印当前可执行文件的相对路径
+		// Windows下打印当前可执行文件的绝对路径
+		std::cout<<"The exe path:" << argv[0] << '\n';
+	}
+	
+    std::cout << "----------------------------------------\n";
+	
     {
         //返回的是工作目录，不是当前应用程序所在目录
         std::cout << "current_path:" << std::filesystem::current_path() << '\n';
