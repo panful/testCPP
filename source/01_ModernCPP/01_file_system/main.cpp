@@ -157,7 +157,7 @@ int main()
 
     // 写文件
     {
-        FILE*  fp2 = fopen("test2.txt", "w");
+        FILE* fp2 = fopen("test2.txt", "w");
         char str[] = "this is test for FILE fwrite";
         fwrite(str, sizeof(str), 1, fp2);  //二进制
         fclose(fp2);
@@ -279,16 +279,16 @@ int main()
 #include <unistd.h>
 #endif
 
-int main(int argc,char** argv)
+int main(int argc, char** argv)
 {
-	{
-		// Linux下打印当前可执行文件的相对路径
-		// Windows下打印当前可执行文件的绝对路径
-		std::cout<<"The exe path:" << argv[0] << '\n';
-	}
-	
+    {
+        // Linux下打印当前可执行文件的相对路径
+        // Windows下打印当前可执行文件的绝对路径
+        std::cout << "The exe path:" << argv[0] << '\n';
+    }
+
     std::cout << "----------------------------------------\n";
-	
+
     {
         //返回的是工作目录，不是当前应用程序所在目录
         std::cout << "current_path:" << std::filesystem::current_path() << '\n';

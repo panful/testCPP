@@ -3,11 +3,12 @@
 * 1. 三目运算符多层嵌套
 * 2. ||的第一个条件满足后，不会再判断第二个条件
 * 3. for基于范围的循环遍历，右值引用，修改for循环元素
-* 4. [[deprecated]]标记
+* 4. [[deprecated]]标记该函数或类等不建议使用 [[noreturn]]标记函数不应该有返回值
 * 5. __has_include预处理表达式
+* 6. C++17新增Attribute TEST4
 */
 
-#define TEST5
+#define TEST6
 
 #ifdef TEST1
 
@@ -199,10 +200,24 @@ struct [[deprecated]] A { };
 
 struct B { };
 
+// ()中的是warning的提示信息，默认为'***': 被声明为已否决
+[[deprecated("use new func instead")]] void func1() {}
+void func2() {}
+
+[[noreturn]] void func3() {}
+[[noreturn]] int func4() { return 1; } // 会有警告信息
+
 int main() 
 {
     A a;
     B b;
+
+    func1();
+    func2();
+
+    //auto r1 = func3(); // error
+    auto r2 = func4();   // ok
+
     return 0;
 }
 
@@ -236,3 +251,79 @@ int main()
 }
 
 #endif // TEST5
+
+#ifdef TEST6
+
+/*
+* [[fallthrough]]，用在switch中提示可以直接落下去，不需要break，让编译期忽略警告
+* [[nodiscard]] ：表示修饰的内容不能被忽略，可用于修饰函数，标明返回值一定要被处理
+* [[maybe_unused]] ：提示编译器修饰的内容可能暂时没有使用，避免产生警告
+*/
+
+#include <iostream>
+
+enum class MyEnumClass
+{
+    E1,
+    E2,
+    E3,
+    E4
+};
+
+struct MyStruct
+{
+    int a{ 0 };
+};
+
+union MyUnion
+{
+    int a{ 0 };
+    float b;
+};
+
+void func1(MyEnumClass myEnum)
+{
+    switch (myEnum)
+    {
+    case MyEnumClass::E1:
+        // do something       // warning
+    case MyEnumClass::E2:
+        // do something
+        [[fallthrough]];      // 警告消除
+    case MyEnumClass::E3:
+        break;
+    case MyEnumClass::E4:
+        break;
+    default:
+        break;
+    }
+}
+
+int func2() { return 9; }
+[[nodiscard]] int func3() { return 9; }
+void F() {
+    func2(); // 不会有警告信息
+    func3(); // warning 没有处理函数返回值
+}
+
+void func4() {}
+
+int main()
+{
+    {
+        func1(MyEnumClass::E1);
+        func1(MyEnumClass::E2);
+        func1(MyEnumClass::E3);
+        func1(MyEnumClass::E4);
+    }
+
+    {
+        MyUnion u1; // warning:未引用的局部变量
+        [[maybe_unused]] MyUnion u2; // 消除warning
+    }
+
+    return 0;
+}
+
+
+#endif // TEST6

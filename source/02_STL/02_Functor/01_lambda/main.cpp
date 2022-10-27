@@ -1,11 +1,11 @@
 ﻿/*
 * 1. std::sort使用lambda
 * 2. constexpr lambda表达式
-* 
+* 3. lambda捕获*this
 * 5. lambda各种捕获方式的区别 mutable值捕获方式修改捕获的值
 */
 
-#define TEST2
+#define TEST3
 
 #ifdef TEST1
 
@@ -46,6 +46,47 @@ int main() { // c++17可编译
     //static_assert(lamb2("s") == std::string("s"), "error"); // 静态断言失败
 }
 #endif // TEST2
+
+#ifdef TEST3
+
+#include <iostream>
+
+// 正常情况下，lambda表达式中访问类的对象成员变量需要捕获this，
+// 但是这里捕获的是this指针，指向的是对象的引用，正常情况下可能没问题，
+// 但是如果多线程情况下，函数的作用域超过了对象的作用域，对象已经被析构了，还访问了成员变量，就会有问题。
+
+// C++17增加了新特性，捕获*this，不持有this指针，而是持有对象的拷贝，这样生命周期就与对象的生命周期不相关啦。
+
+// https://cppinsights.io/
+
+struct MyStruct
+{
+    int a{ 9 };
+    int Before17GetA() {
+        auto f = [this]() {
+            return a;
+        };
+
+        return f();
+    }
+    int After17GetA() {
+        auto f = [*this]() {
+            //return a;
+            // 使用this->和不使用没区别
+            return this->a;
+        };
+        return f();
+    }
+};
+
+int main()
+{
+    MyStruct s1;
+    std::cout << s1.Before17GetA() << '\n';
+    std::cout << s1.After17GetA() << '\n';
+}
+
+#endif // TEST3
 
 
 
