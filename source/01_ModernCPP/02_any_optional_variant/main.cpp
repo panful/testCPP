@@ -7,9 +7,11 @@
 * 6. std::any存储仿函数以及模板类 std::functional
 * 7. 函数顺序执行队列  命令模式
 * 8. union 内存共享 new(p) pp;
+* 9. memcpy pod union
+* 10 aligned_union
 */
 
-#define TEST6
+#define TEST10
 
 #ifdef TEST1
 
@@ -44,11 +46,11 @@ int main()
         std::optional<int> oi = asInt(s);
 
         // std::optional<T>对bool()进行了重载，所以直接可以用在if语句中
-        if (oi) 
+        if (oi)
         {
             std::cout << "convert \t'" << s << "' \t\tto int: " << *oi << "\n";
         }
-        else 
+        else
         {
             std::cout << "can't convert \t'" << s << "' \tto int\n";
         }
@@ -153,7 +155,7 @@ int main()
         std::variant<char> var6;
         std::variant<int> var7;
         std::variant<MyStruct> var8;
-        std::variant<MyStruct,int> var9;
+        std::variant<MyStruct, int> var9;
         std::variant<MyStruct, int, MyStruct, double> var10;
 
         auto f = [](auto&& v) {
@@ -173,17 +175,17 @@ int main()
         f(var10);
         std::cout << "------------------------------------------\n";
 
-        union MyUnion1{
+        union MyUnion1 {
             int a; float b; double c; char d;
         };
-        union MyUnion2{
+        union MyUnion2 {
             int a; float b; char c; std::string d;
         };
 
-        struct MyStruct1{// 4+4+8+8 = 24
+        struct MyStruct1 {// 4+4+8+8 = 24
             int a; float b; double c; char d;
         };
-        struct MyStruct2{// 4+4+4+40 + 4 = 56 因为std::string存储了一个指针（8位）因此sizeof(MyStruct2)是8（结构体中最大字节数的成员）的倍数
+        struct MyStruct2 {// 4+4+4+40 + 4 = 56 因为std::string存储了一个指针（8位）因此sizeof(MyStruct2)是8（结构体中最大字节数的成员）的倍数
             int a; float b; char c; std::string d;
         };
 
@@ -222,11 +224,11 @@ auto twice = overload{
 
 int main()
 {
-    std::variant<int, std::string> var1(42), var3("visit");
+    std::variant<int, std::string> var1(42), var3("abcde");
 
     std::visit(twice, var1);
     std::visit(twice, var3);
-
+    std::cout << "------------------------------\n";
     std::visit(overload{ // calls best matching lambda for current alternative
         [](int i) { std::cout << "int: " << i << '\n'; },
         [](const std::string& s) {
@@ -339,14 +341,14 @@ int main()
     auto ret0 = d.any_cast<int>(); // 这里的类型一定要一致，否则this指针为空
     auto ret1 = e.any_cast<char>();
     auto ret2 = f.any_cast<const char*>();
-	std::cout<<ret0<<'\t'<<ret1<<'\t'<<ret2<<'\n';
-	
-	try{
-		auto ret3 = f.any_cast<char*>();  //throw error
-	}
-	catch(...){
-		std::cout<<"An exception is thrown here\n";
-	}
+    std::cout << ret0 << '\t' << ret1 << '\t' << ret2 << '\n';
+
+    try {
+        auto ret3 = f.any_cast<char*>();  //throw error
+    }
+    catch (...) {
+        std::cout << "An exception is thrown here\n";
+    }
 
     return 0;
 }
@@ -382,70 +384,70 @@ void test2(std::string str)
 int main()
 {
     // 1
-	{
-		std::function<int(int)> f1 = std::bind(&test1, 3);
-		std::function<void(std::string)> f2 = std::bind(&test2, "sssssssss");
-		std::vector<std::any> myFuns1;
-		myFuns1.emplace_back(f1);
-		myFuns1.emplace_back(f2);
+    {
+        std::function<int(int)> f1 = std::bind(&test1, 3);
+        std::function<void(std::string)> f2 = std::bind(&test2, "sssssssss");
+        std::vector<std::any> myFuns1;
+        myFuns1.emplace_back(f1);
+        myFuns1.emplace_back(f2);
 
-		auto fun1 = std::any_cast<std::function<int(int)>>(myFuns1[0]);
-		auto fun2 = std::any_cast<std::function<void(std::string)>>(myFuns1[1]);
+        auto fun1 = std::any_cast<std::function<int(int)>>(myFuns1[0]);
+        auto fun2 = std::any_cast<std::function<void(std::string)>>(myFuns1[1]);
 
-		// 使用的参数还是std::bind中的实参
-		fun1(2);
-		fun2("www");
-	}
+        // 使用的参数还是std::bind中的实参
+        fun1(2);
+        fun2("www");
+    }
     std::cout << "====================================\n";
 
     // 2 必须用std::function接收std::bind返回值，才能用any_cast，如果用auto接收，any_cast会抛出异常
-	{
-		auto f3 = std::bind(&test1, 999);
-		auto f4 = std::bind(&test2, "test");
+    {
+        auto f3 = std::bind(&test1, 999);
+        auto f4 = std::bind(&test2, "test");
 
-		std::vector<std::any> myFuns2;
-		myFuns2.emplace_back(f3);
-		myFuns2.emplace_back(f4);
+        std::vector<std::any> myFuns2;
+        myFuns2.emplace_back(f3);
+        myFuns2.emplace_back(f4);
 
-		// 内部抛出异常
-		try
-		{
-			auto fun3 = std::any_cast<std::function<int(int)>>(myFuns2[0]);
-			auto fun4 = std::any_cast<std::function<void(std::string)>>(myFuns2[1]);
-		}
-		catch (...)
-		{
-			std::cout << "std::any_cast throw an error\n";
-		}
-	}
+        // 内部抛出异常
+        try
+        {
+            auto fun3 = std::any_cast<std::function<int(int)>>(myFuns2[0]);
+            auto fun4 = std::any_cast<std::function<void(std::string)>>(myFuns2[1]);
+        }
+        catch (...)
+        {
+            std::cout << "std::any_cast throw an error\n";
+        }
+    }
     std::cout << "====================================\n";
 
     // 3 使用std::placeholders替换实参
-	{
-		std::function<int(int)> f5 = std::bind(&test1, std::placeholders::_1);
-		std::function<void(std::string)> f6 = std::bind(&test2, std::placeholders::_1);
-		std::vector<std::any> myFuns3;
-		myFuns3.emplace_back(f5);
-		myFuns3.emplace_back(f6);
+    {
+        std::function<int(int)> f5 = std::bind(&test1, std::placeholders::_1);
+        std::function<void(std::string)> f6 = std::bind(&test2, std::placeholders::_1);
+        std::vector<std::any> myFuns3;
+        myFuns3.emplace_back(f5);
+        myFuns3.emplace_back(f6);
 
-		auto fun5 = std::any_cast<std::function<int(int)>>(myFuns3[0]);
-		auto fun6 = std::any_cast<std::function<void(std::string)>>(myFuns3[1]);
+        auto fun5 = std::any_cast<std::function<int(int)>>(myFuns3[0]);
+        auto fun6 = std::any_cast<std::function<void(std::string)>>(myFuns3[1]);
 
-		// 实参将会使用此处的参数
-		fun5(123);
-		fun6("string");
-	}
+        // 实参将会使用此处的参数
+        fun5(123);
+        fun6("string");
+    }
     std::cout << "====================================\n";
 
     // 4 any存储模板类
-	{
-		std::vector<std::any> myFuns4;
-		A<int> a; a.t = 5;
-		myFuns4.emplace_back(a);
-		auto ret = std::any_cast<A<int>>(myFuns4[0]);
-		std::cout << "value:" << ret.t << std::endl;
-	}
-	
+    {
+        std::vector<std::any> myFuns4;
+        A<int> a; a.t = 5;
+        myFuns4.emplace_back(a);
+        auto ret = std::any_cast<A<int>>(myFuns4[0]);
+        std::cout << "value:" << ret.t << std::endl;
+    }
+
     return 0;
 }
 
@@ -453,7 +455,7 @@ int main()
 
 #ifdef TEST7
 
- // https://blog.csdn.net/weixin_42837024/article/details/121252818
+// https://blog.csdn.net/weixin_42837024/article/details/121252818
 
 #include <iostream>
 #include <queue>
@@ -550,8 +552,8 @@ int main()
     queue.push(FuncExecQueue::FuncStruct(&c, static_cast<void*>(p)));
 
     queue.run();
-	
-	return 0;
+
+    return 0;
 }
 
 #endif // TEST7
@@ -634,3 +636,158 @@ int main()
     }
 }
 #endif // TEST8
+
+#ifdef TEST9
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <type_traits>
+#include <cstring>
+
+// pod（plain old data）类型特征：
+// 平凡数据类型
+// 标准内存布局
+
+struct MyPODType
+{
+    int a;
+    char b[9];
+    float c;
+};
+
+struct MyNotPODType
+{
+    int a;
+    std::vector<char> b;
+    float c;
+};
+
+struct MyStruct
+{
+    MyNotPODType* a;
+    MyPODType* b;
+    int c;
+    std::string d;
+    std::vector<int> e;
+};
+
+class MyClass1
+{
+public:
+    MyClass1() = default;
+    ~MyClass1() = default;
+
+private:
+    int a;
+    float b;
+};
+
+class MyClass2
+{
+public:
+    MyClass2() = default;
+    ~MyClass2() = default;
+
+private:
+    int a = 0;
+    std::string b;
+};
+
+union MyUnion
+{
+    int a;
+    float b;
+    //std::string c;  // error union中不能有非pod类型
+    MyPODType d;
+    //MyNotPODType e; //error
+};
+
+int main()
+{
+    {
+        MyPODType* pod1 = new MyPODType{ 1, "111", 2.2f };
+        MyPODType* pod2 = new MyPODType{ 0,"",0.0f };
+        std::memcpy(pod2, pod1, sizeof(MyPODType));  // ok
+
+        MyNotPODType* npod1 = new MyNotPODType{ 2,{'a','b','c'},2.2f };
+        MyNotPODType* npod2 = new MyNotPODType{ 0, {}, 0.0f };
+        std::memcpy(npod2, npod1, sizeof(MyNotPODType)); // ok
+
+        MyStruct* s1 = new MyStruct{ npod2,pod2,2,std::string("abc"),{1,2,3} };
+        MyStruct* s2 = new MyStruct{ nullptr,nullptr,0,"",{} };
+        std::memcpy(s2, s1, sizeof(MyStruct));  // ok
+
+        std::cout << std::is_standard_layout_v<MyNotPODType> << '\n';     // false
+        std::cout << std::is_standard_layout_v<MyPODType> << '\n';        // true
+        std::cout << std::is_standard_layout_v<MyUnion> << '\n';          // true
+        std::cout << std::is_standard_layout_v<std::vector<int>> << '\n'; // false
+        std::cout << std::is_standard_layout_v<std::string> << '\n';      // false
+        std::cout << std::is_standard_layout_v<MyClass1> << '\n';      // true
+        std::cout << std::is_standard_layout_v<MyClass2> << '\n';      // false
+
+        std::cout << "---------------------------------\n";
+
+        std::cout << std::is_trivial_v<MyNotPODType> << '\n';     // false
+        std::cout << std::is_trivial_v<MyPODType> << '\n';        // true
+        std::cout << std::is_trivial_v<MyUnion> << '\n';          // true
+        std::cout << std::is_trivial_v<std::vector<int>> << '\n'; // false
+        std::cout << std::is_trivial_v<std::string> << '\n';      // false
+        std::cout << std::is_trivial_v<MyClass1> << '\n';      // true
+        std::cout << std::is_trivial_v<MyClass2> << '\n';      // false
+
+        std::cout << "---------------------------------\n";
+
+        // 标准库不建议使用std::is_pod_v
+        std::cout << std::is_pod_v<MyNotPODType> << '\n';     // false
+        std::cout << std::is_pod_v<MyPODType> << '\n';        // true
+        std::cout << std::is_pod_v<MyUnion> << '\n';          // true
+        std::cout << std::is_pod_v<std::vector<int>> << '\n'; // false
+        std::cout << std::is_pod_v<std::string> << '\n';      // false
+        std::cout << std::is_pod_v<MyClass1> << '\n';      // true
+        std::cout << std::is_pod_v<MyClass2> << '\n';      // false
+    }
+
+    return 0;
+}
+
+#endif // TEST9
+
+#ifdef TEST10
+
+#include <iostream>
+#include <type_traits>
+
+// 一个简单的Union类，它可以存int、char或double类型
+union U {
+    int i;
+    char c;
+    double d;
+    U(const char* str) : c(str[0]) {}
+};       // non-POD
+
+// sizeof(U)会取union里最大的数据成员，即sizeof(double)
+typedef std::aligned_union<sizeof(U), int, char, double>::type U_pod;
+
+int main() 
+{
+    std::cout << std::is_standard_layout_v<U> << '\n'; // yes
+
+    // U_pod代表U这种union的内存分配器
+    // 分配一块区间，这个区间可以作为<int,char,double>对象的union，并没有创建union
+    U_pod a, b;              // default-initialized (ok: type is POD)
+
+    // 在a对应的地址，调用placement new，调用U的ctor
+    // 创建正真的union
+    new (&a) U("hello");   // call U's constructor in place
+
+    // 由于b和a是同种类型，而且是POD，可以直接进行赋值
+    b = a;                  // assignment (ok: type is POD)
+
+    // 把b直接转换成U&类型，然后print其i
+    std::cout << reinterpret_cast<U&>(b).c << std::endl;
+
+    return 0;
+}
+
+#endif // TEST10

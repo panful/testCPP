@@ -3,78 +3,7 @@
 // C++11 14 17 20 https://blog.csdn.net/qq_41854911/article/details/119657617
 #define TEST1
 
-#ifdef TEST1
-
-#include <iostream>
-#include <map>
-#include <vector>
-#include <array>
-#include <type_traits>
-#include <cstring>
-
-template<typename T>
-using str_map = std::map<std::string, T>;
-
-struct MyPODType
-{
-    int a;
-    char b[9];
-    float c;
-};
-
-struct MyNotPODType
-{
-    int a;
-    std::vector<char> b;
-    //std::array<char, 9> b;
-    float c;
-};
-
-union MyUnion
-{
-    //std::string s;
-    float b;
-    int a;
-};
-
-std::vector<int> vec{ 1,2,3,4,5,6 };
-
-
-
-int main()
-{
-    {
-        MyPODType* pod1 = new MyPODType{ 1, "111", 2.2f };
-        MyPODType* pod2 = new MyPODType{ 0,"",0.0f };
-        std::memcpy(pod2, pod1, sizeof(MyPODType));
-
-        MyNotPODType* npod1 = new MyNotPODType{ 2,{'a','b','c'},2.2f };
-        MyNotPODType* npod2 = new MyNotPODType{ 0, {}, 0.0f };
-        std::memcpy(npod2, npod1, sizeof(MyNotPODType));
-
-        auto ret1 = std::is_standard_layout_v<MyNotPODType>; // false
-        auto ret2 = std::is_standard_layout_v<MyPODType>;    // true
-
-        //std::memset(pod1, 0, sizeof(MyPODType));
-        //std::memcpy();
-        //std::strcat();
-        //std::memcmp()
-    }
-
-    {
-        [[maybe_unused]]MyUnion u;
-    }
-
-
-
-    {
-
-    }
-
-
-}
-
-#endif // TEST1
+int main() {}
 
 /*
 * ============C++11================
