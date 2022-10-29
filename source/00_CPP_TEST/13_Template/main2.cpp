@@ -14,7 +14,7 @@
 * 13. 模板实参传入C风格数组
 * 14. 类模板的自动类型推导
 * 15. C++20自动类型推导
-* 16. 类模板构造函数可变参数  【后续再改】
+* 16. 类模板构造函数可变参数  00_03_TEST7 01_02_TEST3
 * 17. 模板特化，偏特化
 * 18. 类模板特化 type-traits
 * 19. 函数模板特化
@@ -24,7 +24,7 @@
 // 模板系列 https://www.zhihu.com/people/mei-you-ming-zi-56-10
 // 模板的实例化过程 https://cppinsights.io/
 
-#define TEST2011
+#define TEST16
 
 #ifdef TEST1
 
@@ -720,24 +720,107 @@ int main() {
 
 // https://zhuanlan.zhihu.com/p/492722317
 
-//#include <concepts>
 #include <iostream>
+#include <string>
+#include <tuple>
 
-template<typename ...Args>
 class Test
 {
 public:
+    template<typename ...Args>
     Test(Args&& ...args)
     {
+        std::cout << "=====================\n";
 
+        // 打印所有参数
+        //(std::cout << ... << args ) << std::endl;
+        //((std::cout << args << '\t'), ...);
+
+        // 获取size 1
+        constexpr int size = sizeof...(args);
+        std::cout << "size:" << size << '\t';
+
+        // 获取size 2
+        std::index_sequence_for<Args...> for_size;
+        std::cout << "size:" << for_size.size() << '\n';
     }
 };
 
+//++++++++++++++++++++++++++++++++++++++++++++
+// 类模板实参推导（CTAD） https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
+template <typename ...Args>
+struct MyStruct : Args...
+{
+    using Args::operator()...;
+};
+
+template <typename ...Args>
+MyStruct(Args...)->MyStruct<Args...>;
+
+auto MyOperator = MyStruct{
+    [](int a) {std::cout << "int\t" << a << '\n'; },
+    [](float a) {std::cout << "float\t" << a << '\n'; },
+    [](std::string a) {std::cout << "std::string\t" << a << '\n'; }
+};
+//++++++++++++++++++++++++++++++++++++++++++++
+template<typename T>
+struct MyStruct2:T
+{
+};
+
+template <typename T>
+MyStruct2(T)->MyStruct2<T>;
+
+void func()
+{
+    auto r1 = MyStruct2{ [](int) {} };
+    auto r2 = MyStruct2{ []() {} };
+    r1(0);
+    r2();
+}
+
+//++++++++++++++++++++++++++++++++++++++++++++
+struct S1 { void operator()(int); };
+struct S2 { void operator()(float) { std::cout << "float\n"; } };
+
+void S1::operator()(int) {};
+
+struct S3 :S1, S2 {
+    using S1::operator();
+    using S2::operator();
+};
+
+auto MyOperatorS3 = S3{};
+//+++++++++++++++++++++++++++++++++++++++++++++
+
 int main()
 {
-    Test(1);
-    Test<int>(1);
-    Test<int, double>(1, 1.1);
+    {
+        Test(1);
+        Test(1, 2.0f, 3.0, "123");
+        Test(3, 1.1);
+        //Test<int>(1); // error 不能包含模板参数列表
+    }
+
+    std::cout << "---------------------------\n";
+
+    {
+        MyOperator(1);
+        MyOperator(1.1f);
+        MyOperator("abcd");
+        //MyOperator(1, 1.1f); // error 没有重载operator()(int,float)
+        //MyOperator(2.2);  // error，没有重载operator()(double)
+    }
+
+    std::cout << "---------------------------\n";
+
+    {
+        //MyOperatorS3就是一个对象 调用重载函数operator()
+        MyOperatorS3(1);
+        MyOperatorS3(2.2f);
+        //MyOperatorS3(1, 1.1f); // error 没有重载operator()(int,float)
+        //MyOperatorS3(3.3); // error，没有重载operator()(double)
+    }
 }
 
 #endif // TEST16

@@ -1,17 +1,17 @@
 ﻿/*
-* 1. std::optional
-* 2. std::variant
+* 1. std::optional 可选返回值 pointer
+* 2. std::variant 值多态 union
 * 3. std::visit 可以用来访问std::variant
-* 4. std::any
+* 4. std::any 万能容器 void*
 * 5. 自定义any
 * 6. std::any存储仿函数以及模板类 std::functional
 * 7. 函数顺序执行队列  命令模式
 * 8. union 内存共享 new(p) pp;
 * 9. memcpy pod union
-* 10 aligned_union
+* 10 std::aligned_union
 */
 
-#define TEST10
+#define TEST3
 
 #ifdef TEST1
 
@@ -208,27 +208,36 @@ int main()
 #include <variant>
 #include <string>
 
+// https://blog.csdn.net/janeqi1987/article/details/100568146
+
+// 1.使用重载的Lambdas来访问
+// https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
+namespace T1
+{
+// 00_13_TEST16
+
 template<typename... Ts>
 struct overload : Ts...
 {
     using Ts::operator()...;
 };
 
+// 由传递的参数推导基准类型
 template<typename... Ts>
 overload(Ts...)->overload<Ts...>;
 
 auto twice = overload{
-        [](std::string& s) { s += s; },
-        [](auto& i) { i *= 2; },
+        [](std::string& s) { s += s; std::cout << "twice\t" << s << '\n'; },
+        [](auto& i) { i *= 2; std::cout << "twice\t" << i << '\n'; },
 };
 
-int main()
+void f1()
 {
     std::variant<int, std::string> var1(42), var3("abcde");
 
     std::visit(twice, var1);
     std::visit(twice, var3);
-    std::cout << "------------------------------\n";
+
     std::visit(overload{ // calls best matching lambda for current alternative
         [](int i) { std::cout << "int: " << i << '\n'; },
         [](const std::string& s) {
@@ -242,6 +251,81 @@ int main()
        std::cout << "string: " << s << '\n'; },
         },
         var3);
+}
+}
+
+// 2.使用函数对象访问lambda
+namespace T2
+{
+struct MyVisitor
+{
+    // 此处应该为const函数
+    void operator()(double d) const {
+        std::cout << d << '\n';
+    }
+    void operator()(int i) const {
+        std::cout << i << '\n';
+    }
+    void operator()(const std::string& s) const {
+        std::cout << s << '\n';
+    }
+};
+
+void f2()
+{
+    std::variant<int, double, std::string> var1(42), var2(3.14), var3("visit");
+
+    std::visit(MyVisitor(), var1); // calls operator() for matching int type
+
+    std::visit(MyVisitor(), var2); // calls operator() for matching double type
+
+    std::visit(MyVisitor(), var3); // calls operator() for matching std::string type
+}
+}
+
+// 3.使用泛型lambda访问std::variant
+namespace T3
+{
+void f3()
+{
+    //+++++++++++++++++++++
+    std::variant<int, double, std::string> var1(42), var2(3.14), var3("visit");
+
+    auto myLambda1 = [](const auto& val)
+    {
+        std::cout << val << std::endl;
+    };
+
+    std::visit(myLambda1, var1);
+    std::visit(myLambda1, var2);
+    std::visit(myLambda1, var3);
+    //++++++++++++++++++++++
+
+    std::visit([](auto&& x) {x += x; std::cout << x << '\n'; }, var1);
+
+    //++++++++++++++++++++++
+    auto myLambda2 = [](auto&& x) {
+        if constexpr (std::is_convertible_v<decltype(x), std::string>) {
+            std::cout << "string is:" + x << '\n';
+        }
+        else {
+            std::cout << x << "\tnot string\n";
+        } };
+    std::visit(myLambda2, var1);
+    std::visit(myLambda2, var2);
+    std::visit(myLambda2, var3);
+    //+++++++++++++++++++++++
+}
+}
+
+int main()
+{
+
+    T1::f1();
+    std::cout << "---------------------------------------\n";
+    T2::f2();
+    std::cout << "---------------------------------------\n";
+    T3::f3();
 
     return 0;
 }
