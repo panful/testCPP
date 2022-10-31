@@ -41,6 +41,7 @@ std::optional<int> asInt(const std::string& s)
 
 int main()
 {
+    // 使用解引用*获取std::optional的值
     for (const auto& s : { "42", " 077", "hello", "0x33" })
     {
         std::optional<int> oi = asInt(s);
@@ -48,6 +49,7 @@ int main()
         // std::optional<T>对bool()进行了重载，所以直接可以用在if语句中
         if (oi)
         {
+            // 如果std::optional没值，则*oi是未定义的行为
             std::cout << "convert \t'" << s << "' \t\tto int: " << *oi << "\n";
         }
         else
@@ -55,12 +57,36 @@ int main()
             std::cout << "can't convert \t'" << s << "' \tto int\n";
         }
     }
+    std::cout << "--------------------\n";
+    // 使用value获取std::optional的值
+    {
+        std::optional<int> optInt1 = 2.2; //强制将double转换为int
+        std::cout << (optInt1.has_value() ? optInt1.value() : 0) << std::endl;
+
+        std::optional<int> optInt2;
+        try {
+            std::cout << optInt2.value() << '\n'; // 此处会抛出异常
+        }
+        catch (std::bad_optional_access) {
+            std::cout << "value() throw error\n";
+        }
+    }
+    std::cout << "--------------------\n";
+    // 使用value_or获取std::optional的值
+    {
+        // value_or如果std::optional有值则返回std::optional的值，如果没值则返回参数
+        std::optional<int> optInt1 = 2;
+        std::cout << optInt1.value_or(1) << '\n';
+
+        std::optional<int> optInt2;
+        std::cout << optInt2.value_or(3) << '\n';
+    }
+
 }
 
 #endif // TEST1
 
 #ifdef TEST2
-
 
 // std::variant 和 std::any的区别就是：any可以存任意类型的值，而variant只能存储指定类型的值（模板列表中的类型）
 // std::variant类似于union TEST8
@@ -209,6 +235,7 @@ int main()
 #include <string>
 
 // https://blog.csdn.net/janeqi1987/article/details/100568146
+// https://zhuanlan.zhihu.com/p/366537214
 
 // 1.使用重载的Lambdas来访问
 // https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
@@ -219,6 +246,7 @@ namespace T1
 template<typename... Ts>
 struct overload : Ts...
 {
+    // 变长using声明 https://www.cnblogs.com/zwvista/p/9256655.html
     using Ts::operator()...;
 };
 
@@ -251,6 +279,26 @@ void f1()
        std::cout << "string: " << s << '\n'; },
         },
         var3);
+
+    // std::visit同时传入多个std::variant
+    std::variant<int, float, std::string> varA, varB;
+    varA = 3;
+    varB = "string\n";
+    std::visit(overload{
+        [](auto a,auto b) {
+            std::cout << "visit:\t" << a << '\t' << b;
+        },
+        }, varA, varB);
+
+    // std::visit返回值
+    std::variant<int> abc, def;
+    abc = 3;
+    def = 4;
+    bool testval = std::visit(overload{
+        [](int a, int b) {
+            return a < b;
+        },
+        }, abc, def);
 }
 }
 

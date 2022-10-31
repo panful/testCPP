@@ -783,9 +783,10 @@ void func()
 struct S1 { void operator()(int); };
 struct S2 { void operator()(float) { std::cout << "float\n"; } };
 
-void S1::operator()(int) {};
+void S1::operator()(int) { std::cout << "int\n"; };
 
 struct S3 :S1, S2 {
+    // 使用using和不使用结果没区别，但是vs会有警告：S3::operator()不明确
     using S1::operator();
     using S2::operator();
 };

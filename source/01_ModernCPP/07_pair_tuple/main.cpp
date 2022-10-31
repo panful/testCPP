@@ -7,7 +7,7 @@
 * 6. std::make_from_tuple
 */
 
-#define TEST5
+#define TEST4
 
 #ifdef TEST1
 
