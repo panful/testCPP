@@ -1,13 +1,13 @@
 ﻿/*
 * 1. std::tuple
-* 2. std::pair
-* 3. std::pair std::piecewise_construct 分段构造  https://www.cnblogs.com/guxuanqing/p/11396511.html
-* 4. std::apply 变参模板
+* 2. std::pair std::piecewise_construct 分段构造  https://www.cnblogs.com/guxuanqing/p/11396511.html
+* 3.
+* 4. std::apply 将std::tuple、std::pair、std::array等展开作为函数对象的参数传入
 * 5. std::integer_sequence 模板实参推导，变参模板
 * 6. std::make_from_tuple
 */
 
-#define TEST2
+#define TEST6
 
 #ifdef TEST1
 
@@ -176,6 +176,8 @@ int main()
 #include <iostream>
 #include <tuple>
 #include <utility>
+#include <array>
+#include <vector>
 
 int add(int first, int second) { return first + second; }
 
@@ -183,6 +185,8 @@ template<typename T>
 T add_generic(T first, T second) { return first + second; }
 
 auto add_lambda = [](auto first, auto second) { return first + second; };
+
+auto print_lambda = [](auto first, auto second) {std::cout << "first:" << first << "\tsecond:" << second << '\n'; };
 
 template<typename... Ts>
 std::ostream& operator<<(std::ostream& os, std::tuple<Ts...> const& theTuple)
@@ -200,20 +204,45 @@ std::ostream& operator<<(std::ostream& os, std::tuple<Ts...> const& theTuple)
     return os;
 }
 
+struct TT {
+    int sum(int a, int b, int c) {
+        return a + b + c;
+    }
+};
+
+//https://blog.csdn.net/fl2011sx/article/details/119217893?spm=1001.2014.3001.5502
+
 int main()
 {
-    // OK
+    // 将参数1和2作为add的参数传入
     std::cout << std::apply(add, std::pair(1, 2)) << '\n';
 
-    // 错误：无法推导函数类型
-    // std::cout << std::apply(add_generic, std::make_pair(2.0f, 3.0f)) << '\n'; 
+    //std::cout << std::apply(add_generic, std::make_pair(2.0f, 3.0f)) << '\n'; // error 无法推导函数类型
+    std::cout << std::apply(add_generic<float>, std::make_pair(2.0f, 3.0f)) << '\n'; // ok
+    std::cout << std::apply(add_generic<float>, std::make_pair(2.0f, 3.0)) << '\n';  // ok
 
-    // OK
-    std::cout << std::apply(add_lambda, std::pair(2.0f, 3.0f)) << '\n';
+    std::cout << std::apply(add_lambda, std::pair(2.0f, 3.0f)) << '\n'; // ok
+    std::cout << std::apply(add_lambda, std::pair(2.0f, 3.0)) << '\n';  // ok
 
-    // 进阶示例
-    std::tuple myTuple(25, "Hello", 9.31f, 'c');
-    std::cout << myTuple << '\n';
+    // 只要可以通过std::get<N>获取元素的容器都可以使用std::apply
+    std::apply(print_lambda, std::pair{ 1,2 });
+    std::apply(print_lambda, std::tuple{ 3,"abc" });
+    std::apply(print_lambda, std::array<int, 2>{4, 5});
+
+    // 非静态成员函数
+    std::tuple tu(TT(), 1, 2, 3); // 第一个成员就是调用成员
+    auto res = std::apply(&TT::sum, std::move(tu)); // 这里传成员函数指针
+    // 效果相当于std::get<0>(tu).sum(1, 2, 3)
+    std::cout << res << std::endl;
+
+    // 打印变参std::tuple
+    std::cout << std::tuple{ 25, "Hello", 9.31f, 'c' } << '\n'; // ok
+    //std::cout << std::tuple{ 25, "Hello", 9.31f, std::pair{1, 2} } << '\n'; // error，没有对 std::ostream<<std::pair
+
+    // 变参lambda
+    auto myLambda = [](auto&& ...args) {((std::cout << args << '\t'), ...); std::cout << std::endl; };
+    std::apply(myLambda, std::tuple{ 1,1.1f,"abc" });
+    std::apply(myLambda, std::tuple{ "abcd"});
 }
 
 #endif // TEST4
@@ -372,11 +401,42 @@ int main()
 
 // https://blog.csdn.net/fl2011sx/article/details/119217893?spm=1001.2014.3001.5502
 
+#include <string>
 #include <tuple>
 #include <iostream>
 
-int main()
+class Test {
+public:
+    Test(int a, double b, const std::string& c) : a_(a), b_(b), c_(c) {}
+    void show() const { std::cout << a_ << " " << b_ << " " << c_ << std::endl; }
+private:
+    int a_;
+    double b_;
+    std::string c_;
+};
+
+// 自行封装构造过程
+template <typename T, typename... Args>
+T Create(Args &&...args) {
+    return T(args...);
+}
+
+int main(int argc, const char* argv[]) 
 {
-    //auto t1 = std::make_from_tuple<int,double>(1, 1.1);
+    {
+        Test&& t1 = std::apply([](auto &&...args)->Test {return Create<Test>(args...); }, std::tuple{ 1, 2.5, "abc" });
+        Test&& t2 = std::apply([](auto &&...args)->Test {return Test{ args... }; }, std::tuple{ 2, 3.5, "xyz" });
+        t1.show(); // 打印：1 2.5 abc
+        t2.show();
+    }
+
+    // 使用std::make_from_tuple将std::tuple展开作为构造函数的参数
+    {
+        std::tuple tu(1, 2.5, "abc");
+        Test&& t = std::make_from_tuple<Test>(std::move(tu));
+        t.show();
+    }
+
+    return 0;
 }
 #endif // TEST6

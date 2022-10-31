@@ -21,6 +21,7 @@ struct MyStruct
 };
 
 // 自定义类需要实现相关的tuple_size和tuple_element和get<N>方法。
+// 详见01_07_TEST1
 class Entry {
 public:
     void Init() {
