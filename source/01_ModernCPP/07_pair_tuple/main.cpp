@@ -1,69 +1,102 @@
 ﻿/*
 * 1. std::tuple
 * 2. std::pair
-* 3. std::piecewise_construct 分段构造  https://www.cnblogs.com/guxuanqing/p/11396511.html
+* 3. std::pair std::piecewise_construct 分段构造  https://www.cnblogs.com/guxuanqing/p/11396511.html
 * 4. std::apply 变参模板
 * 5. std::integer_sequence 模板实参推导，变参模板
 * 6. std::make_from_tuple
 */
 
-#define TEST4
+#define TEST2
 
 #ifdef TEST1
 
 #include <iostream>     // std::cout
 #include <tuple>        // std::tuple, std::make_tuple, std::tie
+#include <string>
+#include <array>
 
 int main()
 {
-    int myint;
-    char mychar;
+    // 创建合并std::tuple
+    {
+        int myInt;
+        std::string myString;
+        int arr[] = { 1,2,3 };
+        std::array<int, 3> myarray{ 7,8,9 };
 
-    std::tuple<int, float, char> mytuple;
+        //1.直接定义一个tuple
+        std::tuple<int, std::string, int> mytuple1{ 1,"abc",2 };
+        //2.使用make_tuple构造tuple
+        std::tuple<int, float, std::string> mytuple2 = std::make_tuple(10, 2.6, "abc");
+        //3.自动识别tuple元素类型
+        auto mytuple3 = std::make_tuple(arr, 1, "abc");
+        auto mytuple4 = std::make_tuple(124, myarray, "abc");
+        //4.拼接tuple,可以将多个tuple连接到一起
+        auto mytuple5 = std::tuple_cat(mytuple1, mytuple2, mytuple4);
+        //5.{}构造std::tuple
+        std::tuple<int, std::string, int> mytuple6 = { 1,"aaa",2 };
 
-    mytuple = std::make_tuple(10, 2.6, 'a');  //构造tuple
+        // 交换两个std::tuple的元素（两个元组的类型必须一致）
+        mytuple1.swap(mytuple6);
 
-    std::tie(myint, std::ignore, mychar) = mytuple;   //解包tuple
+        // 修改std::tuple元素的值，std::get<N> N的值如果大于类型个数则编译失败
+        std::get<0>(mytuple1) = 99;
 
-    std::cout << "myint contains: " << myint << '\n';
-    std::cout << "mychar contains: " << mychar << '\n';
+        // 获取std::tuple对应位置元素的值
+        auto ret = std::get<0>(mytuple1);
+        std::cout << ret << '\n';
+    }
+
+    std::cout << "-----------------------\n";
+
+    // 获取std::tuple的信息
+    {
+        // 获取tuple的大小，即模板参数的个数
+        std::tuple<int, char, std::string> tuple1{ 1,'a',"sss" };
+        auto size1 = std::tuple_size<decltype(tuple1)>::value;
+        auto size2 = std::tuple_size_v<std::tuple<int, char, std::string>>;
+
+        // 获取tuple元素的类型，tuple_element的第一个参数指定要获取tuple第几个值的类型
+        // 如果第一个参数数值大于std::tuple的个数在编译期就会报错
+        // 也可以访问std::pair元素的类型，只不过第一个参数只能是1或0
+        std::tuple_element<0, decltype(tuple1)>::type myInt;
+        std::cout << typeid(myInt).name() << '\n';
+        std::cout << typeid(std::tuple_element_t<1, std::tuple<char, int, float>>).name() << '\n';
+    }
+
+    std::cout << "-----------------------\n";
+
+    // 解包
+    {
+        std::tuple<int, char, std::string> mytuple{ 1,'a',"abc" };
+
+        int myInt = 0;
+        std::string myString;
+
+        //解包，即获取tuple元素的值,myInt和myString的值为tuple元素对应位置的值
+        //std::ignore表示该位置的元素值不获取
+        std::tie(myInt, std::ignore, myString) = mytuple;
+        std::cout << myInt << '\t' << myString << '\n';
+
+        // 结构化绑定，类似解包
+        const auto& [a, b, c] = mytuple;
+        std::cout << a << '\t' << b << '\t' << c << '\n';
+    }
 
     return 0;
 }
+
 
 #endif // TEST1
 
 #ifdef TEST2
 
 #include <iostream>
-
-int main()
-{
-    std::pair p1(1, 2.2f);
-    std::pair<int, char> p2;
-    p2 = std::make_pair(2, 'c');
-
-    auto IntP1 = std::make_pair<int, int>(2, 3);
-    auto IntP2 = std::make_pair(3, 4);  //可以自动识别类型
-
-    p2.first;  // 访问p2的首个元素
-    p2.second;
-
-    auto p2First = std::get<0>(p2); //访问p2的首个元素<>内的数字指示访问第几个元素
-
-    typedef std::tuple_element<1, decltype(p2)>::type TypeChar;
-    TypeChar c; //c的类型为char
-
-    return 0;
-}
-
-#endif // TEST2
-
-#ifdef TEST3
-
-#include <iostream>
-#include <utility>
-#include <tuple>
+#include <utility>  // std::piecewise_construct
+#include <string>
+#include <map>
+#include <complex>
 
 struct Foo {
     Foo(std::tuple<int, float>)
@@ -74,14 +107,67 @@ struct Foo {
     {
         std::cout << "Constructed a Foo from an int and a float\n";
     }
+    Foo(int, float, std::string)
+    {
+        std::cout << "Constructed a Foo from int float std::string\n";
+    }
 };
 
 int main()
 {
-    std::tuple<int, float> t(1, 3.14);
-    std::pair<Foo, Foo> p1(t, t);
-    std::pair<Foo, Foo> p2(std::piecewise_construct, t, t);
+    // 构造、访问std::pair
+    {
+        std::pair p1(1, 2.2f);
+        std::pair<int, char> p2;
+        p2 = std::make_pair(2, 'c');
+
+        auto IntP1 = std::make_pair<int, int>(2, 3);
+        auto IntP2 = std::make_pair(3, 4);  //可以自动识别类型
+
+        p2.first;  // 访问p2的首个元素
+        p2.second;
+
+        auto p2First = std::get<0>(p2); //访问p2的首个元素<>内的数字指示访问第几个元素
+
+        typedef std::tuple_element<1, decltype(p2)>::type TypeChar;
+        TypeChar c; //c的类型为char
+    }
+
+    // 分段构造
+    // std::piecewise_construct就好像把std::tuple解包了一样
+    // 主要是为了消除歧义
+    {
+        std::tuple<int, float> t(1, 3.14);
+
+        std::pair<Foo, Foo> p1(t, t);
+        std::cout << "----------------\n";
+        std::pair<Foo, Foo> p2(std::piecewise_construct, t, t);
+        std::cout << "----------------\n";
+        std::pair<Foo, Foo> p3(std::piecewise_construct, std::make_tuple(1, 2.2f, ""), std::make_tuple(1, 3.3f, ""));
+        //std::pair<Foo, Foo> p4(std::make_tuple(1, 2.2f, ""), std::make_tuple(1, 3.3f, "")); // 编译错误，参数不匹配
+
+        std::map<std::string, std::complex<int>> myMap;
+        //myMap.emplace("hello", 1, 2); // error，map不能识别那个是key那个是value
+        //myMap.emplace(std::make_tuple("hello"), std::make_tuple(1, 2)); // error
+        //std::pair<std::string, std::complex<int>> scp1("hello", 1, 2);  // error
+        std::pair<std::string, std::complex<int>> scp2("hello", { 1, 2 }); // ok
+        //std::pair<std::string, std::complex<int>> scp3(std::make_tuple("hello"), std::make_tuple(1, 2)); // error
+        std::pair<std::string, std::complex<int>> scp4(std::piecewise_construct, std::make_tuple("hello"), std::make_tuple(1, 2)); // ok
+
+        //myMap.emplace("hello", { 1,2 }); // error
+        myMap.emplace(std::pair<std::string, std::complex<int>>{"hello", { 1,2 }}); // ok
+        myMap.emplace(std::piecewise_construct, std::make_tuple("hello"), std::make_tuple(1, 2)); // ok
+        myMap.emplace(scp2); // ok
+    }
+
+    return 0;
 }
+
+#endif // TEST2
+
+#ifdef TEST3
+
+
 
 #endif // TEST3
 
