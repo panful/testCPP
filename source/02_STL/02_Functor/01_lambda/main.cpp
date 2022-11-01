@@ -62,21 +62,64 @@ int main() { // c++17可编译
 struct MyStruct
 {
     int a{ 9 };
+
     int Before17GetA() {
         auto f = [this]() {
+            this->SetA();
             return a;
         };
 
         return f();
     }
     int After17GetA() {
-        auto f = [*this]() {
+        auto f1 = [*this]() {
+
+            //this->SetA(); // error，*this是一个const对象，只能调用长成员函数
+
             //return a;
             // 使用this->和不使用没区别
             return this->a;
         };
-        return f();
+
+        auto f2 = [*this]() mutable{
+            this->SetA(); // ok
+            return this->a;
+        };
+
+        return f1() == f1() ? 0 : 1;
     }
+
+    void SetA() {
+        this->a = 88;
+    }
+};
+
+class MyClass
+{
+public:
+    MyClass() throw() = default;
+    ~MyClass() throw() = default;
+
+    void TestFunc()
+    {
+        auto lambda1 = [*this]()mutable
+        {
+            this->Func1(); // ok
+            this->Func2(); // ok
+        };
+
+        auto lambda2 = [tmp = *this]()
+        {
+            tmp.Func1();
+            //tmp.Func2(); // error
+        };
+    }
+
+    void Func1() const{}
+    void Func2() {}
+
+private:
+
 };
 
 int main()
