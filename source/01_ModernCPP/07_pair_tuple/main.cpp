@@ -7,7 +7,7 @@
 * 6. std::make_from_tuple
 */
 
-#define TEST6
+#define TEST1
 
 #ifdef TEST1
 
@@ -46,6 +46,25 @@ int main()
         // 获取std::tuple对应位置元素的值
         auto ret = std::get<0>(mytuple1);
         std::cout << ret << '\n';
+    }
+
+    std::cout << "-----------------------\n";
+
+    // std::forward_as_tuple 以右值为参数时拥有右值引用数据成员，否则拥有左值引用数据成员。
+    {
+        auto t1 = std::forward_as_tuple(1, 2.2, 'c'); // {int&&, double&&, char&&}
+        auto t2 = std::make_tuple(1, 2.2, 'c');       // {int, double, char}
+
+        int a = 1; double b = 2.2; char c = 'c';
+
+        auto t3 = std::forward_as_tuple(a, b, c);     // {int&, double&, char&}
+        auto t4 = std::make_tuple(a, b, c);           // {int, double, char}
+        
+        std::get<0>(t3) = 88;
+        std::cout << a << '\n'; // a的值被修改为88，t3存储的是a的引用
+        std::cout << std::get<0>(t4) << '\n'; // 打印1，因为t4存储的是a的拷贝
+
+        std::cout << "forward_as_tuple <-> make_tuple\t" << std::is_same_v<decltype(t1), decltype(t2)> << '\n';
     }
 
     std::cout << "-----------------------\n";
