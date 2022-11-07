@@ -1,4 +1,5 @@
 ﻿/*
+0. atomic 和 锁的区别
 1. atomic 多线程累加
 2. atomic exchange
 3. future promise获取函数返回值
@@ -15,7 +16,7 @@
 14.多线程求值
 15.多线程读写文件，还有问题没修复
 16.给线程执行的函数传参
-17.
+17.std::atomic
 18.
 19.
 20.
@@ -30,7 +31,7 @@
 * 204 std::recursive_mutex 递归锁
 */
 
-#define TEST201
+#define TEST17
 
 
 #ifdef TEST0
@@ -810,6 +811,28 @@ int main()
 }
 #endif // TEST16
 
+#ifdef TEST17
+
+#include <atomic>
+#include <iostream>
+
+int main()
+{
+    std::atomic_flag aa;
+    std::atomic_int k;
+    
+    std::cout << k.load() << '\n';
+    std::cout << aa.test() << '\n';
+
+    k.store(1);
+    aa.test_and_set();
+
+    std::cout << k.load() << '\n';
+    std::cout << aa.test() << '\n';
+}
+
+
+#endif // TEST17
 
 
 

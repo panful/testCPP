@@ -20,6 +20,7 @@
 * 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
 * 20 NULL nullptr nullptr_t
 * 21 自定义智能指针的释放方法
+* 22 
 */
 
 #define TEST21
@@ -1052,19 +1053,32 @@ int main()
 #include <memory>
 #include <iostream>
 
+class Obj
+{
+public:
+    Obj() { std::cout << "=== construct ===\n"; }
+    ~Obj() { std::cout << "+++ destruct +++\n"; }
+};
+
 //自定义释放规则
 void deleteInt(int* p) {
-    delete[]p;
+    std::cout << "use func pointer delete\n";
+    delete[] p;
 }
 
 //自定义的释放规则
 struct myDel
 {
     void operator()(int* p) {
+        std::cout << "use functor delete int\n";
         delete p;
     }
-};
 
+    void operator()(Obj* p) {
+        std::cout << "use functor delete Obj\n";
+        // 此处如果没有调用delete p,那么智能指针释放的时候，它所管理的Obj对象就不会调用析构
+    }
+};
 
 int main()
 {
@@ -1080,10 +1094,12 @@ int main()
         //std::shared_ptr<int, decltype(deleteInt)> p5(new int[10](), deleteInt); // error
 
         // 使用lambda指定智能指针释放规则
-        std::shared_ptr<int> p8(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; });
-        //std::shared_ptr<int> p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // ok
+        std::shared_ptr<int> p8(new int[8](), [](int* p) {delete[] p; std::cout << "use lambda delete\n"; });
+        //std::shared_ptr<int> p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
         //auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
     }
+
+    std::cout << "-------------------\n";
 
     // std::unique_ptr只能使用函数对象的方式指定释放规则
     {
@@ -1093,6 +1109,35 @@ int main()
         //auto p3 = std::make_unique<int>(new int, myDel()); // error
         //std::unique_ptr<int, myDel> p3 = std::make_unique<int, myDel>(new int, myDel()); // error
     }
+
+    std::cout << "-------------------\n";
+
+    {
+        std::unique_ptr<Obj, myDel> p1(new Obj(), myDel());
+        std::unique_ptr<Obj, myDel> p2(new Obj());
+        std::unique_ptr<Obj> p3(new Obj());
+    }
+
+    std::cout << "-------------------\n";
+
+    {
+        std::shared_ptr<Obj> p1(new Obj(), [](Obj* p) {std::cout << "use lambda delete Obj\n"; });
+        std::shared_ptr<Obj> p2(new Obj());
+        //std::shared_ptr<Obj> p3 = p2;
+        //p3 = p1;
+
+        //std::cout << "1 count:\t" << p1.use_count() << '\n';
+        //std::cout << "2 count:\t" << p2.use_count() << '\n';
+        //std::cout << "3 count:\t" << p3.use_count() << '\n';
+    }
+
+    std::cout << "-------------------\n";
+
+    return 0;
 }
 
 #endif // TEST21
+
+#ifdef TEST22
+
+#endif // TEST22

@@ -71,10 +71,11 @@ struct MyStruct
 
         return f();
     }
+
     int After17GetA() {
         auto f1 = [*this]() {
 
-            //this->SetA(); // error，*this是一个const对象，只能调用长成员函数
+            //this->SetA(); // error，*this是一个const对象，只能调用常成员函数
 
             //return a;
             // 使用this->和不使用没区别
@@ -97,8 +98,21 @@ struct MyStruct
 class MyClass
 {
 public:
-    MyClass() throw() = default;
-    ~MyClass() throw() = default;
+    MyClass() { 
+        s = new MyStruct(); 
+    }
+    ~MyClass() {
+        if (s)
+        {
+            delete s;
+            s = nullptr;
+        }
+    }
+    // 如果捕获*this一定要实现【深拷贝】
+    MyClass(const MyClass& obj) {
+        this->s = new MyStruct();
+        this->s->a = obj.s->a;
+    }
 
     void TestFunc()
     {
@@ -106,20 +120,18 @@ public:
         {
             this->Func1(); // ok
             this->Func2(); // ok
+            std::cout << this->s->After17GetA() << '\n';
         };
 
-        auto lambda2 = [tmp = *this]()
-        {
-            tmp.Func1();
-            //tmp.Func2(); // error
-        };
+        lambda1();
     }
 
+    // 测试常成员函数和普通函数
     void Func1() const{}
     void Func2() {}
 
 private:
-
+    MyStruct* s{ nullptr };
 };
 
 int main()
@@ -127,6 +139,13 @@ int main()
     MyStruct s1;
     std::cout << s1.Before17GetA() << '\n';
     std::cout << s1.After17GetA() << '\n';
+
+    std::cout << "-----------------\n";
+
+    MyClass c1;
+    c1.TestFunc();
+
+    return 0;
 }
 
 #endif // TEST3
