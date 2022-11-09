@@ -46,5 +46,9 @@ int main() {}
 * 新增Attribute             00_17_TEST16
 * std::from_chars to_chars  02_08_TEST8
 * std::variant              01_02_TEST2
+* std::any                  01_02_TEST4
 * std::visit                01_02_TEST3
+* std::apply                01_07_TEST4
+* std::make_from_tuple      01_07_TEST6
+* std::string_view          02_08_TEST1
 */

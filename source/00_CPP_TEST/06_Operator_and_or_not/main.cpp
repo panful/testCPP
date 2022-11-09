@@ -1,5 +1,5 @@
 ﻿/*
-* 1. enum枚举的按位与或非
+* 1. enum枚举的按位与或非 00_22_TEST4
 * 2. 
 * 3. 位运算符 & | ！ >> <<
 * 4. functional头文件中的位操作函数，逻辑操作函数
@@ -9,32 +9,9 @@
 
 #ifdef TEST1
 
-enum class TEST_ENUM1 :int
-{
-    ENUM1 = 0x00,
-    ENUM2 = 0x01,
-    ENUM3 = 0x02,
-    ENUM4 = 0x04,
-};
-
-enum TEST_ENUM2 :int
-{
-    ENUM1 = 0x00,
-    ENUM2 = 0x01,
-    ENUM3 = 0x02,
-    ENUM4 = 0x04,
-};
-
-#define tt1 0x00
-#define tt2 0x01
-
 int main()
-{
-    auto ret1 = tt1 & tt2;
-    auto ret2 = TEST_ENUM2::ENUM1 | TEST_ENUM2::ENUM3;
+{}
 
-    //auto ret3 = TEST_ENUM1::ENUM1 & TEST_ENUM1::ENUM2; // 错误
-}
 #endif // TEST1
 
 #ifdef TEST2

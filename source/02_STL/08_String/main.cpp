@@ -1,12 +1,13 @@
 ﻿/*
-* 1. std::string能否被继承
+* 1. std::string_view
 * 2. 自己实现一个 std::string_view
 * 3. std::string中的字符替换
-* 4. std::string_view 字面值 原生字符串 https://segmentfault.com/a/1190000018387368
+* 4. 字面值 原生字符串 R"()" ""s ""sv
 * 5. std::string 中文字符串比较
 * 6. 字符串拼接
 * 7. std::quoted 给字符串加双引号""
 * 8. std::from_chars std::to_chars char*和数值互相转换
+* 9. std::string能否被继承
 */
 
 // std::string的实现方式以及缺点 https://www.zhihu.com/question/54664311?sort=created
@@ -14,35 +15,211 @@
 // std::string 的缺点 https://www.zhihu.com/question/35967887?sort=created
 
 
-#define TEST8
+#define TEST1
 
 #ifdef TEST1
 
-#include <iostream>
 #include <string>
+#include <string_view>
+#include <iostream>
+#include <chrono>
 
-// std::string的析构函数不是虚析构函数，所以std::string不能被继承
-
-class MyString :public std::string
+class Test
 {
 public:
-    MyString(const char* p) :
-        std::string(p)
+    Test() :
+        m_startTime(std::chrono::high_resolution_clock::now())
     {
+
+    }
+    ~Test()
+    {
+        std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime) << "\n";
     }
 
-    MyString():
-        std::string()
+    void f1(const std::string_view& str)
     {
+        auto x = str;
     }
+    void f2(std::string_view str)
+    {
+        auto x = str;
+    }
+    void f3(const std::string& str)
+    {
+        auto x = str;
+    }
+    void f4(std::string str)
+    {
+        auto x = str;
+    }
+
+private:
+    std::chrono::high_resolution_clock::time_point m_startTime;
 };
 
-int main()
-{
-    MyString myString("ss");
-    auto sz = myString.size();
+constexpr size_t count = 1'000'000;
+
+#define TEST_MICRO(f,x)   \
+{                         \
+    Test t;               \
+    auto _count = count;  \
+    while (_count-- > 0)  \
+    {                     \
+        t.f(x);           \
+    }                     \
 }
 
+#define TEST_CONSTRUCT_1(...)                   \
+{                                               \
+    Test t;                                     \
+    auto _count = count;                        \
+    while (_count-- > 0)                        \
+    {                                           \
+        std::string_view sv{ __VA_ARGS__ };     \
+    }                                           \
+}
+
+#define TEST_CONSTRUCT_2(x)                             \
+{                                                       \
+    Test t;                                             \
+    auto _count = count;                                \
+    while (_count-- > 0)                                \
+    {                                                   \
+        std::string_view sv{std::begin(x),std::end(x) };\
+    }                                                   \
+}
+
+std::string_view GetStringView() {
+    std::string str{ "this is a string" };
+    std::string_view sv{ str };
+    return sv;
+}
+
+std::string_view GetModifiedSV(const std::string_view& sv) {
+    return sv;
+}
+
+// std::string_view总结 https://segmentfault.com/a/1190000018387368
+// std::string_view仅仅用来作为函数参数，其他时候没必要使用
+
+#define TEST_PRODUCT
+
+int main() 
+{
+#ifdef TEST_PRODUCT
+
+    // 传递参数
+    // std::string_view 大约是 std::string效率的十倍
+    // 传std::string大约是其他三个(const char*,char[],"")的5-10倍
+    for (size_t i = 0; i < 10; ++i)
+    {
+        const char* szBuf = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        char szArr[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        std::string str{ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
+
+        TEST_MICRO(f1, szBuf);
+        TEST_MICRO(f2, szBuf);
+        TEST_MICRO(f3, szBuf);
+        TEST_MICRO(f4, szBuf);
+
+        std::cout << "+++++++++++++++++\n";
+
+        TEST_MICRO(f1, szArr);
+        TEST_MICRO(f2, szArr);
+        TEST_MICRO(f3, szArr);
+        TEST_MICRO(f4, szArr);
+
+        std::cout << "+++++++++++++++++\n";
+
+        TEST_MICRO(f1, str);
+        TEST_MICRO(f2, str);
+        TEST_MICRO(f3, str);
+        TEST_MICRO(f4, str);
+
+        std::cout << "+++++++++++++++++\n";
+
+        TEST_MICRO(f1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        TEST_MICRO(f2, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        TEST_MICRO(f3, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        TEST_MICRO(f4, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+        std::cout << "++++++++ " << i << i << i << " +++++++++\n";
+    }
+
+    std::cout << "=====================================================\n";
+
+    // 构造std::string_view
+    // std::string_view存储的是{数据的起始指针,数据的长度}
+    // 该数据类型的实例不会具体存储原数据，仅仅存储指向的数据的起始指针和长度，所以这个开销是非常小的。
+    for (size_t i = 0; i < 10; ++i)
+    {
+        char szBuf[]{ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
+        std::string str{ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
+
+        std::string_view sv0{ "abc" };   // 需要通过遍历获取数据的长度，时间复杂度O(n)
+        std::string_view sv1{ "abc",3 }; // 这种方式构造最快，因为数据大小不需要通过遍历再去获取
+        std::string_view sv2{ str };
+        std::string_view sv3{ szBuf };
+
+        std::string_view sv4{ std::begin(str),std::end(str) };
+        std::string_view sv5{ std::begin(szBuf),std::end(szBuf) };
+
+        // [4]最耗时；[0][3]次之；[1]耗时最少
+        TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");       // [0]
+        TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 40);   // [1]
+        TEST_CONSTRUCT_1(str);                                              // [2]
+        TEST_CONSTRUCT_1(szBuf);                                            // [3]
+
+        TEST_CONSTRUCT_2(str);                                              // [4]
+        TEST_CONSTRUCT_2(szBuf);                                            // [5]
+
+        std::cout << "++++++++ " << i << i << i << " +++++++++ \n";
+    }
+
+    std::cout << "-----------------------------------------------\n";
+
+#endif // TEST_PRODUCT
+
+    // std::string_view 和 std::string 互转
+    {
+        std::string_view sv{ "abcd1234" };
+        std::string s{ "xyz789" };
+
+        auto svTos = static_cast<std::string>(sv);
+        auto sTosv = std::string_view(s);
+    }
+
+    // std::string_view范围内的字符串可能不含有\0
+    {
+        std::string_view sv{ "abcd",2 };
+        auto str = static_cast<std::string>(sv); // ab
+        auto sz = sv.data();  // abcd 【注意】此处返回的是"abcd"而不是"ab"
+        std::cout << str << '\t' << sz << '\n';
+
+        auto lambda = [](const char* s) {
+            std::cout << s << '\n';
+        };
+
+        lambda(sv.data());
+    }
+
+    // std::string_view指向的内容的生命周期可能比其本身短
+    {
+        auto sv = GetStringView();
+        // 打印的内容是乱码
+        std::cout << "get string view : " << sv << '\n';
+    }
+
+    {
+        std::string str = "abc";
+        auto sv = GetModifiedSV(str + "xyz");
+        // 获取到的sv并不是"abcxyz"
+        std::cout << "get modified sv : " << sv << '\n';
+    }
+
+    return 0;
+}
 #endif // TEST1
 
 #ifdef TEST2
@@ -233,34 +410,91 @@ int main()
 #include <string_view>
 #include <iostream>
 
+#define PRINT(x) std::cout<<"size:"<<x.size()<<"\t"<<x<<'\n';
+
 int main()
 {
+    // 内联命名空间
     using namespace std::literals;
 
-    std::string_view s1 = "abc\0\0def";
-    std::string_view s2 = "abc\0\0def"sv;
-    std::string s3 = "abc\0\0def";
-    std::string s4 = "abc\0\0def"s;
-    std::string s41 = "abc\tdef"s;
-    std::string s5 = R"(abc\0\0def)"; // 原生字符串
-    std::string s6 = R"(abc\n\ndef)"; // 原生字符串
+    // \0表示字符串的结束
 
-    std::cout << "s1: " << s1.size() << '\t' << s1 << '\n';
-    std::cout << "s2: " << s2.size() << '\t' << s2 << '\n';
-    std::cout << "s3: " << s3.size() << '\t' << s3 << '\n';
-    std::cout << "s4: " << s4.size() << '\t' << s4 << '\n';
-    std::cout << "s5: " << s5.size() << '\t' << s5 << '\n';
-    std::cout << "s6: " << s6.size() << '\t' << s6 << '\n';
-    std::cout << "s41: " << s41.size() << '\t' << s41 << '\n';
+    {
+        std::string s1{ "abc\t123" };
+        std::string s2{ "abc\t123"s };
+        std::string s3{ "abc\0123" };
+        std::string s4{ "abc\0123"s };
 
-    auto ret = std::string("ss").compare("ss");
-    auto ret1 = std::string("ss").compare("sss");
+        PRINT(s1);
+        PRINT(s2);
+        PRINT(s3);
+        PRINT(s4);
+    }
+    std::cout << "----------------------------\n";
+    {
+        std::string s1 = "abc\t123";
+        std::string s2 = "abc\t123"s;
+        std::string s3 = "abc\0123";
+        std::string s4 = "abc\0123"s;
+        std::string s5 = "abc\0\0def";
+        std::string s6 = "abc\0\0def"s;
 
-    auto l = L"abcd1234";
-    auto u = U"1234abcd";
-    auto aa = 0.0F;
-    auto bb = u8"sss";
-    auto cc = 2l;
+        PRINT(s1);
+        PRINT(s2);
+        PRINT(s3);
+        PRINT(s4);
+        PRINT(s5);
+        PRINT(s6);
+    }
+    std::cout << "----------------------------\n";
+    {
+        std::string_view s1 = "abc\t123";
+        std::string_view s2 = "abc\t123"sv;
+        std::string_view s3 = "abc\0123";
+        std::string_view s4 = "abc\0123"sv;
+        std::string_view s5 = "abc\0\0def";
+        std::string_view s6 = "abc\0\0def"sv;
+
+        PRINT(s1);
+        PRINT(s2);
+        PRINT(s3);
+        PRINT(s4);
+        PRINT(s5);
+        PRINT(s6);
+    }
+    std::cout << "----------------------------\n";
+    {
+        std::string s1 = R"(abc\t123)";
+        std::string s2 = R"(abc\t123)";
+        std::string s3 = R"(abc\0123)";
+        std::string s4 = R"(abc\0123)";
+
+        PRINT(s1);
+        PRINT(s2);
+        PRINT(s3);
+        PRINT(s4);
+    }
+    std::cout << "----------------------------\n";
+    {
+        std::string_view s1 = R"(abc\t123)";
+        std::string_view s2 = R"(abc\t123)";
+        std::string_view s3 = R"(abc\0123)";
+        std::string_view s4 = R"(abc\0123)";
+
+        PRINT(s1);
+        PRINT(s2);
+        PRINT(s3);
+        PRINT(s4);
+    }
+
+    //auto ret = std::string("ss").compare("ss");
+    //auto ret1 = std::string("ss").compare("sss");
+
+    //auto l = L"abcd1234";
+    //auto u = U"1234abcd";
+    //auto aa = 0.0F;
+    //auto bb = u8"sss";
+    //auto cc = 2l;
 
     // https://blog.csdn.net/qq_21746331/article/details/111125583
 
@@ -471,3 +705,45 @@ int main()
 
 }
 #endif // TEST8
+
+#ifdef TEST9
+
+#include <iostream>
+#include <string>
+
+// std::string的析构函数不是虚析构函数，所以std::string不能被继承
+
+class MyString :public std::string
+{
+public:
+    MyString(const char* p) :
+        std::string(p)
+    {
+    }
+
+    MyString() :
+        std::string()
+    {
+    }
+};
+
+int main()
+{
+    //MyString myString("ssssssssssssssssssssssssssssssssssssssssssssssssss");
+    //auto sz = myString.size();
+
+    int g = 0;
+    {
+        std::string str{ "11111111111111111111111111111111111111111111111111" };
+    }
+    {
+        std::string str{ "sssss" };
+    }
+    {
+        std::string str{ "" };
+    }
+
+    int s = 0;
+}
+
+#endif // TEST9
