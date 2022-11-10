@@ -14,7 +14,7 @@
 
 // 关于流(stream)的使用可以查看 00_08
 
-#define TEST5
+#define TEST8
 
 #ifdef TEST1
 

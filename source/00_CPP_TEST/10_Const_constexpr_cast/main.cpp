@@ -6,9 +6,10 @@
 * 5. const和constexpr的区别
 * 6. constexpr修饰函数，构造函数
 * 7. C++四种类型转换  00_07_TEST8 dynamic_cast
+* 8. std::an_const
 */
 
-#define TEST5
+#define TEST7
 
 #ifdef TEST1
 
@@ -334,6 +335,8 @@ class B :public A {};
 void testFunc1() {}
 int testFunc2(int) { return 1; }
 
+#define PRINT_TYPE(x) std::cout<<#x<<'\t'<<typeid(x).name()<<'\n';
+
 int main()
 {
     // static_cast
@@ -355,10 +358,26 @@ int main()
     {
         const int cn = 0, * pcn = &cn, & rcn = cn;
         int n = 0, * pn = &n, & rn = n;
-        //auto r1 = const_cast<int>(cn);   // error <>中的类型只能是指针或引用
-        auto r2 = const_cast<int*>(pcn); // ok 可以是指针，引用
-        auto r3 = const_cast<int&>(rcn); // ok
-        auto r4 = const_cast<const int&>(n); // ok r4类型为 int&
+        //auto r1 = const_cast<int>(cn);      // error <>中的类型只能是指针或引用
+
+        auto r2 = const_cast<int*>(pcn);       // ok 删除const限定
+        auto& r3 = const_cast<int&>(rcn);      // ok r3类型为 int&
+        auto r4 = const_cast<const int*>(pn);  // ok 添加const限定
+        auto& r5 = const_cast<const int&>(n);  // ok r5类型为 const int&
+
+        // typeid无法判断非指针数据为const https://bbs.csdn.net/topics/190122047
+
+        PRINT_TYPE(cn);
+        PRINT_TYPE(pcn);
+        PRINT_TYPE(rcn);
+        PRINT_TYPE(n);
+        PRINT_TYPE(pn);
+        PRINT_TYPE(rn);
+
+        PRINT_TYPE(r2);
+        PRINT_TYPE(r3);
+        PRINT_TYPE(r4);
+        PRINT_TYPE(r5);
     }
 
     std::cout << "---------------\n";
@@ -432,7 +451,7 @@ int main()
         // {auto r8 = reinterpret_cast<FUNC>(testFunc2);}不应该被转换，函数签名不一样
     }
 
-    // dynamic_cast
+    // dynamic_cast 00_07_TEST8
     {
         A* pA = new A();
         B* pB = new B();
@@ -444,3 +463,71 @@ int main()
 }
 
 #endif // TEST7
+
+#ifdef TEST8
+
+#include <iostream>
+#include <utility>  // std::as_const
+#include <string>
+#include <functional>
+#include <format>
+
+int main()
+{
+    std::cout << std::boolalpha;
+
+    {
+        std::string str1 = "str";
+        const std::string str2 = "str";
+        auto constStr1 = std::as_const(str1);
+        auto& constStr2 = std::as_const(str1);
+        const std::string constStr3 = std::as_const(str1);
+        const std::string& constStr4 = std::as_const(str1);
+
+        std::cout << std::is_const_v<decltype(str1)> << '\n';
+        std::cout << std::is_const_v<decltype(str2)> << '\n';
+        std::cout << std::is_const_v<decltype(constStr1)> << '\n';
+        std::cout << std::is_const_v<decltype(constStr2)> << '\n';
+        std::cout << std::is_const_v<decltype(constStr3)> << '\n';
+        std::cout << std::is_const_v<decltype(constStr4)> << '\n';
+    }
+    std::cout << "----------------------\n";
+    {
+        int A1 = 2;
+        const int A2 = 2;
+        auto constA1 = std::as_const(A1);
+        auto& constA2 = std::as_const(A1);
+        const int constA3 = std::as_const(A1);
+        const int& constA4 = std::as_const(A1);
+
+        std::cout<<std::is_const_v<decltype(A1)> << '\n';
+        std::cout<<std::is_const_v<decltype(A2)> << '\n';
+        std::cout<<std::is_const_v<decltype(constA1)> << '\n';
+        std::cout<<std::is_const_v<decltype(constA2)> << '\n';
+        std::cout<<std::is_const_v<decltype(constA3)> << '\n';
+        std::cout<<std::is_const_v<decltype(constA4)> << '\n';
+    }
+    std::cout << "----------------------\n";
+    {
+        const char* name_const{ "Tom" };
+        std::cout << std::format("type of name_const is: {}\n", typeid(name_const).name());
+        std::cout << std::is_const_v<decltype(name_const)> << '\n';
+
+        auto name_remove_const = const_cast<char*>(name_const);
+        std::cout << std::format("type of name_remove_const is: {}\n", typeid(name_remove_const).name());
+        std::cout << std::is_const_v<decltype(name_remove_const)> << '\n';
+
+        auto name_add_const = const_cast<const char*>(name_remove_const);
+        std::cout << std::format("type of name_add_const is: {}\n", typeid(name_add_const).name());
+        std::cout << std::is_const_v<decltype(name_add_const)> << '\n';
+
+        std::string str{ "Hello world" };
+        const std::string& str_const_ref = std::as_const(str);
+        std::cout << std::format("type of str_const_ref is : {}\n", typeid(str_const_ref).name());
+        std::cout << std::is_const_v<decltype(str_const_ref)> << '\n';
+
+    }
+}
+
+
+#endif // TEST8
