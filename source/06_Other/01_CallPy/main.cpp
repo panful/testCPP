@@ -32,6 +32,9 @@ int main()
     if (pModule == NULL)
     {
         cout << "没找到" << endl;
+
+        Py_Finalize(); // 与初始化对应
+        return -1;
     }
     //1
     //pFunc1 = PyObject_GetAttrString(pModule, "zip_file");//这里是要调用的函数名
@@ -55,9 +58,8 @@ int main()
     cout << "res:" << res << endl;//输出结果
 
     Py_Finalize(); // 与初始化对应
-    system("pause");
-    return 0;
 
+    return 0;
 }
 #endif // TEST1
 
@@ -165,9 +167,14 @@ int main()
     }
     // 演示函数调用
     std::cout << "calling python function..." << std::endl;
-    PyObject* pFunHi = PyDict_GetItemString(pDict, "hello");
-    PyObject_CallFunction(pFunHi, NULL, NULL);
-    Py_DECREF(pFunHi);
+    std::cout << "--------------------------\n";
+
+    PyObject* pFunHi1 = PyDict_GetItemString(pDict, "hello");
+    PyObject_CallFunction(pFunHi1, NULL, NULL);
+    PyObject* pFunHi2 = PyDict_GetItemString(pDict, "world");
+    PyObject_CallFunction(pFunHi2, NULL, NULL);
+
+    //Py_DECREF(pFunHi);
 
     //PyObject* pFunc = nullptr;
     //pFunc = PyObject_GetAttrString(pModule, "Hello");  //Hello是Python文件里的函数

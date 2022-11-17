@@ -15,15 +15,15 @@
 * 14.std::shared_ptr循环引用造成内存泄漏
 * 15.函数返回局部智能指针，裸指针，局部变量
 * 16.std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
-* 17 类中new出来的成员变量内存位置 https://blog.csdn.net/qq_28584889/article/details/117037810
-* 18 堆和栈 优点缺点
+* 17 类中new出来的成员变量内存位置 C++内存模型
+* 18 堆和栈 优点缺点 https://www.zhihu.com/question/379456802/answer/1115546749
 * 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
 * 20 NULL nullptr nullptr_t
 * 21 自定义智能指针的释放方法
-* 22 
+* 22 new和delete应该一对一，越界赋值，new崩溃
 */
 
-#define TEST21
+#define TEST17
 
 #ifdef TEST1
 
@@ -915,92 +915,177 @@ int main()
 #ifdef TEST17
 
 /*
-类的成员变量并不能决定自身的存储空间位置。决定存储位置的是对象的创建方式。
 
-即：
+1.类的成员变量并不能决定自身的存储空间位置。决定存储位置的是对象的创建方式。
+即：https://blog.csdn.net/qq_28584889/article/details/117037810
 
 如果对象是函数内的非静态局部变量，则对象，对象的成员变量保存在栈区。
 如果对象是全局变量，则对象，对象的成员变量保存在静态区。
 如果对象是函数内的静态局部变量，则对象，对象的成员变量保存在静态区。
 如果对象是new出来的，则对象，对象的成员变量保存在堆区。
 下面是一个示例：当对象是new出来的时，其对象地址和成员变量、成员变量的成员变量、成员变量存储的数据都在堆区存储。
+
+2.通过内存地址判断是在堆上还是栈上：
+https://blog.csdn.net/tulingwangbo/article/details/79729548
+
+3.C++内存模型
+https://blog.csdn.net/weixin_43340455/article/details/124786128
+
+4.C++自由存储区和堆
+https://blog.csdn.net/great_emperor_/article/details/123261184
+
 */
 
-// 通过内存地址判断是在堆上还是栈上 https://blog.csdn.net/tulingwangbo/article/details/79729548
 
 #include <iostream>
 #include <memory>
-#include <cstring>
 
-struct  SQL {
-    SQL() { 
-        memset(s, 0, 128); 
-        a = 0; 
-        strcpy(s, "hello"); 
-    }
-    int a;
-    char s[128];
-};
-
-class TEST {
+class Test
+{
 public:
-    int a;
-    SQL sql_;
-};
-
-class TEST2 {
-public:
-    TEST2()
+    Test() :
+        m_c1('x'),
+        m_c2('y'),
+        m_p1(new char[3] {0}),
+        m_p2(new char[3] {0})
     {
-        a = 2;
-        p = new int(1);
-        b = 3;
     }
-    int a{ 0 };
-    int* p{ nullptr };
-    int b{ 0 };
+    ~Test()
+    {
+        if (m_p1)
+        {
+            delete[] m_p1;
+            m_p1 = nullptr;
+        }
+
+        if (m_p2)
+        {
+            delete[] m_p2;
+            m_p2 = nullptr;
+        }
+    }
+
+    char m_c1;
+    char m_c2;
+    char* m_p1;
+    char* m_p2;
 };
 
-int main() {
+#define PRINT_ADDRESS(x) printf("%p\t%s\n",x,#x);
 
-    TEST* test = nullptr;
-    std::cout << "test:\t" << test << std::endl;
-    test = new TEST();
+int main()
+{
+    {
 
-    std::cout << "test:\t" << test << std::endl; //test对象的地址
-    std::cout << "test->a:" << &(test->a) << std::endl;//test对象成员变量a的地址
-    std::cout << "test->sql_:\t" << &(test->sql_) << std::endl;
-    std::cout << "test->sql_.a:\t" << &(test->sql_.a) << std::endl;
-    std::cout << "test->sql_.s:\t" << &(test->sql_.s) << std::endl;
-    std::cout << "test->sql_.s第一个字符:\t" << &(test->sql_.s[0]) << std::endl;
+    }
+    std::cout << "=======================================\n";
+    {
+        int a{ 1 };
+        int b{ 2 };
+        char c{ 'x' };
+        char d{ 'y' };
 
-    std::cout << "---------------------------\n";
-    printf("test->sql_: %p\n", &(test->sql_));
-    printf("test->sql_.a: %p\n", &(test->sql_.a));
-    printf("test->sql_.s: %p\n", &(test->sql_.s));
-    printf("test->sql_.s第一个字符: %p\n", &(test->sql_.s[0]));
+        int* pa = new int(2);
+        int* pb = new int(3);
+        char* pc = new char('c');
+        char* pd = new char('d');
+        
+        // 栈
+        PRINT_ADDRESS(&a);
+        PRINT_ADDRESS(&b);
+        PRINT_ADDRESS(&c);
+        PRINT_ADDRESS(&d);
+        std::cout << "-----------------------\n";
+        // 堆
+        PRINT_ADDRESS(pa);
+        PRINT_ADDRESS(pb);
+        PRINT_ADDRESS(pc);
+        PRINT_ADDRESS(pd);
+    }
+    std::cout << "=======================================\n";
+    {
+        Test t;
+        char c1 = 'c';
+        char c2 = 'c';
+        char* p1 = new char[2] {0};
+        char* p2 = new char[2] {0};
 
-    delete test;
-    test = nullptr;
-    std::cout << "------------------\n";
-    TEST2 test2;
-    std::cout << &test2 << std::endl;
-    std::cout << &(test2.a) << std::endl;
-    std::cout << &(test2.p) << std::endl;
-    std::cout << &(test2.b) << std::endl;
+        // 栈
+        PRINT_ADDRESS(&t);
+        PRINT_ADDRESS(&t.m_c1);
+        PRINT_ADDRESS(&t.m_c2);
+        PRINT_ADDRESS(&c1);
+        PRINT_ADDRESS(&c2);
+        std::cout << "-----------------------\n";
+        // 堆
+        PRINT_ADDRESS(t.m_p1);
+        PRINT_ADDRESS(t.m_p2);
+        PRINT_ADDRESS(p1);
+        PRINT_ADDRESS(p2);
+    }
+    std::cout << "=======================================\n";
+    {
+        Test* t = new Test();
+        char c1 = 'c';
+        char c2 = 'c';
+        char* p1 = new char[2] {0};
+        char* p2 = new char[2] {0};
 
-    int a = 0;
-    std::cout << &a << std::endl;
+        // 堆
+        PRINT_ADDRESS(t);
+        PRINT_ADDRESS(&t->m_c1);
+        PRINT_ADDRESS(&t->m_c2);
+        PRINT_ADDRESS(t->m_p1);
+        PRINT_ADDRESS(t->m_p2);
+        PRINT_ADDRESS(p1);
+        PRINT_ADDRESS(p2);
+        std::cout << "-----------------------\n";
+        // 栈
+        PRINT_ADDRESS(&c1);
+        PRINT_ADDRESS(&c2);
+    }
+    std::cout << "=======================================\n";
+    {
+        std::unique_ptr<Test> t = std::make_unique<Test>();
+        char c1 = 'c';
+        char c2 = 'c';
+        char* p1 = new char[2] {0};
+        char* p2 = new char[2] {0};
 
-    int* p = new int(1);
-    std::cout << p << std::endl;
+        // 堆
+        PRINT_ADDRESS(t.get());
+        PRINT_ADDRESS(&t->m_c1);
+        PRINT_ADDRESS(&t->m_c2);
+        PRINT_ADDRESS(t->m_p1);
+        PRINT_ADDRESS(t->m_p2);
+        PRINT_ADDRESS(p1);
+        PRINT_ADDRESS(p2);
+        std::cout << "-----------------------\n";
+        // 栈
+        PRINT_ADDRESS(&c1);
+        PRINT_ADDRESS(&c2);
+    }
+    std::cout << "=======================================\n";
+    {
+        std::shared_ptr<Test> t = std::make_shared<Test>();
+        char c1 = 'c';
+        char c2 = 'c';
+        char* p1 = new char[2] {0};
+        char* p2 = new char[2] {0};
 
-    std::cout << "---------------\n";
-
-    std::shared_ptr<int> sp = std::make_shared<int>(1);
-    std::cout << &sp << std::endl;
-    std::cout << sp.get() << std::endl;
-
+        // 堆
+        PRINT_ADDRESS(t.get());
+        PRINT_ADDRESS(&t->m_c1);
+        PRINT_ADDRESS(&t->m_c2);
+        PRINT_ADDRESS(t->m_p1);
+        PRINT_ADDRESS(t->m_p2);
+        PRINT_ADDRESS(p1);
+        PRINT_ADDRESS(p2);
+        std::cout << "-----------------------\n";
+        // 栈
+        PRINT_ADDRESS(&c1);
+        PRINT_ADDRESS(&c2);
+    }
 
     return 0;
 }
@@ -1009,7 +1094,7 @@ int main() {
 
 #ifdef TEST18
 
-// 堆和栈 https://www.zhihu.com/question/379456802/answer/1115546749
+
 #endif // TEST18
 
 #ifdef TEST19
@@ -1139,5 +1224,54 @@ int main()
 #endif // TEST21
 
 #ifdef TEST22
+
+#include <iostream>
+#include <thread>
+
+
+int main()
+{
+    // 一个new对应一个delete
+    {
+        int* p = new int[1000] {0};
+        long long count = 1000000;
+        while (count-- > 0)
+        {
+            // 【注意】重新将new的值赋给p之前，必须释放原来的p，不然内存泄露
+            //  一个new对应一个delete
+            delete[] p;
+            p = nullptr;
+            p = new int [1000] {0};
+        }
+
+        //std::this_thread::sleep_for(std::chrono::seconds(10));
+
+        if (p)
+        {
+            delete[] p;
+            p = nullptr;
+        }
+    }
+
+    std::cout << "--------------------\n";
+
+    {
+        int* p = new int[100] {0};
+        for (size_t i = 0; i < 1000; i++)
+        {
+            auto x = p[i];
+            p[i] = (int)i; // 此处越界赋值破坏了堆，下一次new会崩溃
+        }
+
+        int* p2 = new int[100] {0};
+
+        delete[] p;
+        p = nullptr;
+
+        delete[] p2;
+        p2 = nullptr;
+    }
+
+}
 
 #endif // TEST22

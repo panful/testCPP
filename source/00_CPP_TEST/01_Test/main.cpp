@@ -11,7 +11,7 @@
 * 6. Windows下读取并修改控制台颜色
 */
 
-#define TEST7
+#define TEST2
 
 #ifdef TEST1
 
@@ -50,7 +50,7 @@ int main()
     std::cout << "C++14\n";
 #elif __cplusplus == 201703L
     std::cout << "C++17\n";
-#elif __cplusplus == 201709L
+#elif __cplusplus == 202002L
     std::cout << "C++20\n";
 #endif
 }

@@ -77,14 +77,25 @@ struct MyStruct
 
             //this->SetA(); // error，*this是一个const对象，只能调用常成员函数
 
-            //return a;
-            // 使用this->和不使用没区别
+            // C++20可以使用return this->a;
+            // C++17只能使用return a;
+
+#if __cplusplus > 201703L
             return this->a;
+#else
+            return a;
+#endif
         };
 
         auto f2 = [*this]() mutable{
+#if __cplusplus > 201703L
             this->SetA(); // ok
             return this->a;
+#else
+            SetA();
+            return a;
+#endif
+
         };
 
         return f1() == f1() ? 0 : 1;
@@ -118,9 +129,15 @@ public:
     {
         auto lambda1 = [*this]()mutable
         {
-            this->Func1(); // ok
-            this->Func2(); // ok
+#if __cplusplus > 201703L
+            this->Func1(); // ok C++20
+            this->Func2(); // ok C++20
             std::cout << this->s->After17GetA() << '\n';
+#else
+            Func2(); // C++17
+            Func1(); // C++17
+            std::cout << s->After17GetA() << '\n';
+#endif
         };
 
         lambda1();

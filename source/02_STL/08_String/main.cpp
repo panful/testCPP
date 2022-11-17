@@ -34,7 +34,11 @@ public:
     }
     ~Test()
     {
+#if __cplusplus > 201703L
         std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime) << "\n";
+#else
+        std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime).count() << "\n";
+#endif
     }
 
     void f1(const std::string_view& str)
@@ -161,19 +165,20 @@ int main()
         std::string_view sv1{ "abc",3 }; // 这种方式构造最快，因为数据大小不需要通过遍历再去获取
         std::string_view sv2{ str };
         std::string_view sv3{ szBuf };
-
+#if __cplusplus > 201703L
         std::string_view sv4{ std::begin(str),std::end(str) };
         std::string_view sv5{ std::begin(szBuf),std::end(szBuf) };
+#endif
 
         // [4]最耗时；[0][3]次之；[1]耗时最少
         TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");       // [0]
         TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 40);   // [1]
         TEST_CONSTRUCT_1(str);                                              // [2]
         TEST_CONSTRUCT_1(szBuf);                                            // [3]
-
+#if __cplusplus > 201703L
         TEST_CONSTRUCT_2(str);                                              // [4]
         TEST_CONSTRUCT_2(szBuf);                                            // [5]
-
+#endif
         std::cout << "++++++++ " << i << i << i << " +++++++++ \n";
     }
 

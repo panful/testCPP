@@ -822,13 +822,13 @@ int main()
     std::atomic_int k;
     
     std::cout << k.load() << '\n';
-    std::cout << aa.test() << '\n';
+    //std::cout << aa.test() << '\n';
 
     k.store(1);
     aa.test_and_set();
 
     std::cout << k.load() << '\n';
-    std::cout << aa.test() << '\n';
+    //std::cout << aa.test() << '\n';
 }
 
 

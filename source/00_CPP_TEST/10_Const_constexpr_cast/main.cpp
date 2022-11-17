@@ -431,7 +431,7 @@ int main()
         auto r2 = reinterpret_cast<float&>(r); // ok r2的类型为float不是float&
         //auto r3 = reinterpret_cast<float>(n);  // error
         //auto r4 = reinterpret_cast<float>(r);  // error
-        auto r5 = reinterpret_cast<float*>(r);  // ok
+        auto r5 = reinterpret_cast<float*>(&r);  // ok
         // auto ret2 = *r5; // error 运行时报错
         auto r6 = reinterpret_cast<float&>(n);  // ok
 
