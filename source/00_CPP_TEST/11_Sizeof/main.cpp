@@ -74,8 +74,10 @@ enum class A
 enum class AA {
     ENUM1 = 0x00,              // int
     ENUM2 = 0xFFF,             // int
-    ENUM3 = 0xFFFFFFFFFFFFFFF, // long long
-    ENUM4 = 0xFFFFFFFFFFFFFFFF // unsigned long long
+	
+	// 报错：枚举值超出int的范围
+    //ENUM3 = 0xFFFFFFFFFFFFFFF, // long long
+    //ENUM4 = 0xFFFFFFFFFFFFFFFF // unsigned long long
 };
 
 class B

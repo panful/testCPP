@@ -34,7 +34,7 @@ public:
     }
     ~Test()
     {
-#if __cplusplus > 201703L
+#if __cplusplus > 201703L && defined WIN32
         std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime) << "\n";
 #else
         std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime).count() << "\n";
