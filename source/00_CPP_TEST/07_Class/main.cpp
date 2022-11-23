@@ -10,6 +10,7 @@
 * 9. this指针，指针为nullptr访问成员函数
 * 10.crtp 单例基类 https://mp.weixin.qq.com/s/eai6rC0V5Ym1kgfTWl4QhQ
 * 11.深拷贝，浅拷贝
+* 12.成员函数的存储位置 00_05_TEST17 TEST9
 */
 
 #define TEST10
@@ -628,3 +629,13 @@ int main()
     return 0;
 }
 #endif // TEST11
+
+#ifdef TEST12
+
+// https://blog.csdn.net/fuzhongmin05/article/details/59112081
+// 每个对象所占用的存储空间只是该对象的数据部分（虚函数指针和虚基类指针也属于数据部分）所占用的存储空间，而不包括函数代码所占用的存储空间。
+// 类成员函数存放在代码区
+// this指针就是用来指向不同的对象
+
+#endif // TEST12
+

@@ -15,7 +15,7 @@
 * 14.std::shared_ptr循环引用造成内存泄漏
 * 15.函数返回局部智能指针，裸指针，局部变量
 * 16.std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
-* 17 类中new出来的成员变量内存位置 C++内存模型
+* 17 类中new出来的成员变量内存位置 C++内存模型 00_07_TEST12
 * 18 堆和栈 优点缺点 https://www.zhihu.com/question/379456802/answer/1115546749
 * 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
 * 20 NULL nullptr nullptr_t
@@ -23,7 +23,7 @@
 * 22 new和delete应该一对一，越界赋值，new崩溃
 */
 
-#define TEST17
+#define TEST18
 
 #ifdef TEST1
 
@@ -928,12 +928,6 @@ int main()
 2.通过内存地址判断是在堆上还是栈上：
 https://blog.csdn.net/tulingwangbo/article/details/79729548
 
-3.C++内存模型
-https://blog.csdn.net/weixin_43340455/article/details/124786128
-
-4.C++自由存储区和堆
-https://blog.csdn.net/great_emperor_/article/details/123261184
-
 */
 
 
@@ -975,9 +969,6 @@ public:
 
 int main()
 {
-    {
-
-    }
     std::cout << "=======================================\n";
     {
         int a{ 1 };
@@ -989,7 +980,7 @@ int main()
         int* pb = new int(3);
         char* pc = new char('c');
         char* pd = new char('d');
-        
+
         // 栈
         PRINT_ADDRESS(&a);
         PRINT_ADDRESS(&b);
@@ -1094,6 +1085,87 @@ int main()
 
 #ifdef TEST18
 
+/*
+3.C++内存模型
+https://blog.csdn.net/weixin_43340455/article/details/124786128
+
+4.C++自由存储区和堆
+https://blog.csdn.net/great_emperor_/article/details/123261184
+*/
+
+/*
+* 全局/静态存储区
+* 1.BSS段
+* 这个区域存放的是未曾初始化的静态变量、全局变量，但是不会存放常量，因为常量在定义的时候就一定会赋值了。未初始化的全局变量和静态变量，编译器在编译阶段都会将其默认为0
+* 2.DATA段
+* 这个区域主要用于存放编译阶段（非运行阶段时）就能确定的数据，也就是初始化的静态变量、全局变量和常量，这个区域是可读可写的。这也就是我们通常说的静态存储区
+* 
+*/
+
+#include <iostream>
+
+int g_a;
+static int g_b;
+
+int g_c = 7;
+static int g_d = 8;
+
+const int g_e = 9;
+const static int g_f = 9;
+
+const char* g_g = "abcd";
+
+#define PRINT_ADDRESS(x) printf("address : %p\tvalue : %d\t arg : %s\n", &x, x, #x);
+#define PRINT_ADDRESS_S(x) printf("address : %p\tvalue : %s\t arg : %s\n", &x, x, #x);
+
+int main()
+{
+    //int m_a;
+    static int m_b;
+
+    int m_c = 7;
+    static int m_d = 8;
+
+    const int m_e = 9;
+    const static int m_f = 9;
+
+    const char* m_g = "abcd";
+    static const char* m_h = "abcd";
+    const static char* m_i = "abcd";
+
+
+
+
+
+
+
+
+    PRINT_ADDRESS(g_a);
+    PRINT_ADDRESS(g_b);
+    PRINT_ADDRESS(m_b);
+
+    PRINT_ADDRESS(g_c);
+    PRINT_ADDRESS(g_d);
+    PRINT_ADDRESS(m_d);
+
+    PRINT_ADDRESS(g_e);
+    PRINT_ADDRESS(g_f);
+    std::cout << "------------------\n";
+    //PRINT_ADDRESS(m_a);
+
+
+    PRINT_ADDRESS(m_f);
+    std::cout << "------------------\n";
+    PRINT_ADDRESS(m_c);
+    PRINT_ADDRESS(m_e);
+    std::cout << "------------------\n";
+    PRINT_ADDRESS_S(m_g);
+    PRINT_ADDRESS_S(m_h);
+    PRINT_ADDRESS_S(m_i);
+    PRINT_ADDRESS_S(g_g);
+
+    return 0;
+}
 
 #endif // TEST18
 

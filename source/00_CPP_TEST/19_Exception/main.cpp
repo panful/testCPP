@@ -88,15 +88,61 @@ void func2()
     throw("func2");
 }
 
-// noexcept修饰的函数，如果内部抛出异常，程序直接调用abort终止运行，异常不会被捕获
+// noexcept修饰的函数，如果内部抛出异常，程序直接调用abort()终止运行，异常不会被捕获
 void func3() noexcept
 {
     std::cout << "func3\n";
     throw("func3");
 }
 
+// 参数使用true和不使用任何参数效果一样
+void func4() noexcept(true)
+{
+    std::cout << "func4\n";
+    throw("func4");
+}
+
+// 参数为false表示异常可发生也可不发生
+void func5() noexcept(false)
+{
+    std::cout << "func5\n";
+    throw("func5");
+}
+
+// 如果父类的【纯虚函数】是被标记了noexcept，那么子类必须需要标记为对应的noexcept，
+// 如果父类未标记，那么子类可标记或不标记
+class Parent
+{
+public:
+    virtual void Func1() const = 0;
+    virtual void Func2() noexcept = 0;
+};
+class Child :public Parent
+{
+public:
+    void Func1() noexcept {};
+    void Func2() noexcept override {};
+};
+
+typedef void (*FuncPointer1)();
+typedef void (*FuncPointer2)() noexcept;
+
+// c++标准库中，其对operator new或者operator new[] 的标记便是可能会抛出异常，
+// 因为可能内存不够用(即使申请的内存小于总内存，可能因为内存碎片化，已经给不出申请的内存大小了，会抛出异常)。
+// 类中的析构函数是不应该抛出异常的，因此c++对于operator delete或者operator delete[] 都是标记为不应该抛出异常的。
+
 int main()
 {
+    // 函数指针及该指针所指向的函数必须有一致的异常说明。
+    // 简单来说，如果某个函数指针指定了不抛出异常的声明，那么其只能指向不抛出异常的函数。
+    // 如果该函数指针未做声明，或者声明了可能抛出异常，那该函数指针可以指向任意函数。
+    {
+        FuncPointer1 f1 = func1;
+        FuncPointer1 f3 = func3;
+        //FuncPointer2 f2 = func2; // error FuncPointer2是noexcept，而func2可以抛出异常
+        FuncPointer2 f4 = func3;
+    }
+
     try
     {
         func1();
@@ -105,6 +151,7 @@ int main()
     {
         std::cout << "catch an exception\n";
     }
+
     std::cout << "---------------------\n";
     try
     {
@@ -114,6 +161,7 @@ int main()
     {
         std::cout << "catch an exception\n";
     }
+
     std::cout << "---------------------\n";
     try
     {
@@ -124,7 +172,27 @@ int main()
         std::cout << "catch an exception\n";
     }
 
+    std::cout << "---------------------\n";
+    try
+    {
+        //func4();
+    }
+    catch (...)
+    {
+        std::cout << "catch an exception\n";
+    }
+
+    std::cout << "---------------------\n";
+    try
+    {
+        func5();
+    }
+    catch (...)
+    {
+        std::cout << "catch an exception\n";
+    }
+
     return 0;
 }
 
-#endif // 
+#endif // TEST2
