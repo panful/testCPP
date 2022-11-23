@@ -11,9 +11,12 @@
 * 10.crtp 单例基类 https://mp.weixin.qq.com/s/eai6rC0V5Ym1kgfTWl4QhQ
 * 11.深拷贝，浅拷贝
 * 12.成员函数的存储位置 00_05_TEST17 TEST9
+* 13.explicit
 */
 
-#define TEST10
+// 02_07 构造函数、析构函数、拷贝构造函数的使用
+
+#define TEST13
 
 #ifdef TEST1
 
@@ -639,3 +642,63 @@ int main()
 
 #endif // TEST12
 
+#ifdef TEST13
+
+#include <iostream>
+
+class Test1
+{
+public:
+    Test1(int x) :
+        m_num1(x),
+        m_num2(0)
+    {}
+
+    Test1(const Test1& t):
+        m_num1(0),
+        m_num2(0)
+    {}
+private:
+    int m_num1;
+    int m_num2;
+};
+
+class Test2
+{
+public:
+    explicit Test2(int x) :
+        m_num1(x),
+        m_num2(0)
+    {}
+
+    explicit Test2(const Test2& t):
+        m_num1(0),
+        m_num2(0)
+    {}
+private:
+    int m_num1;
+    int m_num2;
+};
+
+int main()
+{
+    {
+        Test1 t1 = 1;  // 会执行隐式转换
+        Test1 t2 = t1; // 调用的是拷贝构造函数，不是operator =
+    }
+
+    {
+        //Test2 t1 = 1; // error，使用了explicit之后，不支持隐式转换
+        Test2 t2(1); // ok
+    }
+
+    {
+        Test2 t1(1);
+        //Test2 t2 = t1; // error，拷贝构造函数被声明为explicit，不能使用=调用拷贝构造函数
+        Test2 t3(t1);    // ok，只能使用这种方式调用拷贝构造函数
+    }
+
+    return 0;
+}
+
+#endif // TEST13
