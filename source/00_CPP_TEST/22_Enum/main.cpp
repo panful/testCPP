@@ -9,7 +9,7 @@
 * 7. sizeof(enum) 00_11_TEST2
 */
 
-#define TEST4
+#define TEST2
 
 #ifdef TEST1
 

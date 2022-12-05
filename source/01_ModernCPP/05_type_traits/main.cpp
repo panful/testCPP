@@ -6,13 +6,13 @@
 * 1. type_traits常用模板，类型判断
 * 2. decltype的使用
 * 3.
-* 4. 模板可变参数打印 std::index_sequence
+* 4. 模板可变参数打印 std::index_sequence  00_13_TEST16
 * 5. function_traits 获取函数返回值类型，函数参数类型及个数
 * 6. 实现编译期判断一个类是不是另一个类的子类
 * 7. std::iterator_traits，STL源码剖析，解引用，即获取指针指向值的类型
 */
 
-#define TEST6
+#define TEST4
 
 #ifdef TEST1
 
@@ -123,6 +123,7 @@ void printer(Args&&... args)
     (std::cout << ... << args) << '\n';
 }
 
+// 给指定std::vector添加任意数量元素
 template<typename T, typename... Args>
 void push_back_vec(std::vector<T>& v, Args&&... args)
 {
@@ -130,6 +131,7 @@ void push_back_vec(std::vector<T>& v, Args&&... args)
     (v.push_back(std::forward<Args>(args)), ...);
 }
 
+// 编译期交换整数的字节序
 // compile-time endianness swap based on http://stackoverflow.com/a/36937049 
 template<class T, std::size_t... N>
 constexpr T bswap_impl(T i, std::index_sequence<N...>)
@@ -146,17 +148,26 @@ constexpr U bswap(T i)
 
 int main()
 {
-    printer(1, 2, 3, "abc");
+    {
+        printer(1, 2, 3, "abc");
+    }
 
-    std::vector<int> v;
-    push_back_vec(v, 6, 2, 45, 12);
-    push_back_vec(v, 1, 2, 9);
-    for (int i : v) std::cout << i << ' ';
+    {
+        std::vector<int> v;
+        push_back_vec(v, 6, 2, 45, 12);
+        push_back_vec(v, 1, 2, 9);
+        for (int i : v) std::cout << i << ' ';
+    }
 
-    static_assert(bswap<std::uint16_t>(0x1234u) == 0x3412u);
-    //static_assert(bswap<std::uint16_t>(0x1234u) == 0x1234u);
-    static_assert(bswap<std::uint64_t>(0x0123456789abcdefULL) == 0xefcdab8967452301ULL);
+    {
+        static_assert(bswap<std::uint16_t>(0x1234u) == 0x3412u);
+        //static_assert(bswap<std::uint16_t>(0x1234u) == 0x1234u); // 静态断言失败
+        static_assert(bswap<std::uint64_t>(0x0123456789abcdefULL) == 0xefcdab8967452301ULL);
+    }
+
+    return 0;
 }
+
 #endif // TEST4
 
 #ifdef TEST5

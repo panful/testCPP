@@ -6,9 +6,10 @@
 * 4. [[deprecated]]标记该函数或类等不建议使用 [[noreturn]]标记函数不应该有返回值
 * 5. __has_include预处理表达式
 * 6. C++17新增Attribute TEST4
+* 7. 嵌套for循环 break continue
 */
 
-#define TEST6
+#define TEST7
 
 #ifdef TEST1
 
@@ -327,3 +328,53 @@ int main()
 
 
 #endif // TEST6
+
+#ifdef TEST7
+
+#include <iostream>
+
+int main()
+{
+    constexpr size_t row = 5;
+    constexpr size_t col = 5;
+    int test[row][col]{ 0 };
+    static int number = 0;
+    for (size_t i = 0; i < row; ++i)
+    {
+        for (size_t j = 0; j < col; ++j)
+        {
+            test[i][j] = number++;
+            std::cout << test[i][j] << '\t';
+        }
+        std::cout << '\n';
+    }
+    std::cout << "-------------------------------------------\n";
+
+    bool bFind{ false };
+
+    for (size_t i = 0; i < row; ++i)
+    {
+        if (bFind)
+        {
+            break;
+        }
+        for (size_t j = 0; j < col; ++j)
+        {
+            std::cout << "row: " << i << "\tcol: " << j << '\t';
+            if (test[i][j] == 12)
+            {
+                bFind = true;
+                std::cout << "success\n";
+                break; // 只能跳出一层循环
+            }
+            else
+            {
+                std::cout << "\n";
+            }
+        }
+    }
+
+}
+
+
+#endif // TEST7

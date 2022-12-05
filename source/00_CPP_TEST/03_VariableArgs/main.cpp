@@ -5,13 +5,13 @@
 * 4. 简单宏定义 #define # ## #$
 * 5. 宏定义中使用可变长参数 __VA_ARGS__
 * 6. va_list va_start va_end va_arg 可变参数
-* 7. 折叠表达式Fold Expression C++17 //https://www.cnblogs.com/GEEK-ZHAO/p/15775026.html
+* 7. std::cout打印可变参数 折叠表达式Fold Expression C++17 //https://www.cnblogs.com/GEEK-ZHAO/p/15775026.html
 * 8. C++中的变长参数深入理解 左值右值 内存池 https://www.qb5200.com/article/295128.html
 */
 
 
 
-#define TEST4
+#define TEST7
 
 #ifdef TEST1
 
@@ -186,12 +186,38 @@ int main(void)
 #ifdef TEST7
 
 #include <iostream>
+#include <type_traits>
 
 template<typename... Ts>
-void printAll(Ts&&... mXs)
+void printAll1(Ts&&... mXs)
 {
     // std::cout使用可变参数
     (std::cout << ... << mXs) << std::endl;
+}
+
+template<typename... Args>
+void printAll2(Args&& ...args)
+{
+    // 每一个参数后面都加一个制表符，最后一个参数打印完进行换行
+    ((std::cout << args << '\t'), ...) << '\n';
+}
+
+enum class MyEnumClass
+{
+    Enum1 = 0,
+    Enum2 = 1,
+    Enum3 = 2
+};
+
+template<typename... Args>
+void printAll3(MyEnumClass x = MyEnumClass::Enum1, Args&&...args)
+{
+    //((std::cout << x << args << '\t'), ...) << '\n'; // args的每个参数前都会带一个参数x
+    
+    //std::cout << "x = " << x << " +++ ";
+    ((std::cout << args << '\t'), ...) << '\n';
+
+
 }
 
 // mFn是一个函数对象，forArgs作用就是将可变参数mXs依次当作函数对象的参数执行
@@ -215,28 +241,43 @@ auto sum(T&& ...t)
 
 int main()
 {
-    printAll(3, 4.0, "5"); // 345
-    printAll(); // 空行
+    {
+        printAll1(3, 4.0, "5"); // 345
+        printAll1(); // 空行
+
+        std::cout << "******\n";
+        printAll2(1, 2.2, "abc");
+
+        std::cout << "******\n";
+        //printAll3(3, 'a', "bb", 2.2); // error 有默认值的参数必须放在形参的最后面
+        printAll3(MyEnumClass::Enum1, 3, 'a', "bb", 2.2);
+    }
 
     std::cout << "--------------------\n";
 
-    forArg([](auto x) {std::cout << x << '\n'; }, 1);
-    //forArg([](auto x) {std::cout << x << '\n'; }, 1, 2, 3); // error，参数太多
-    //forArg([](auto x) {std::cout << x << '\n'; }); // error 参数太少
+    {
+        forArg([](auto x) {std::cout << x << '\n'; }, 1);
+        //forArg([](auto x) {std::cout << x << '\n'; }, 1, 2, 3); // error，参数太多
+        //forArg([](auto x) {std::cout << x << '\n'; }); // error 参数太少
+    }
 
     std::cout << "--------------------\n";
 
-    forArgs([](auto a) {std::cout << a << '\n'; }, 3, 4.0, "5"); // 345
-    forArgs([](auto a) {std::cout << a << '\n'; }); // 空操作
+    {
+        forArgs([](auto a) {std::cout << a << '\n'; }, 3, 4.0, "5"); // 345
+        forArgs([](auto a) {std::cout << a << '\n'; }); // 空操作
+    }
 
     std::cout << "--------------------\n";
 
-    std::cout << sum(1, 2, 3) << '\n';
-    std::string s1("aa");
-    std::string s2("bb");
-    std::string s3("cc");
-    std::cout << sum(s1, s2, s3) << '\n';
-    //std::cout << sum() << '\n';
+    {
+        std::cout << sum(1, 2, 3) << '\n';
+        std::string s1("aa");
+        std::string s2("bb");
+        std::string s3("cc");
+        std::cout << sum(s1, s2, s3) << '\n';
+        //std::cout << sum() << '\n'; // error: “ + ”上的一元 fold 表达式必须具有非空扩展
+    }
 
     return 0;
 }
