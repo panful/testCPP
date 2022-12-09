@@ -508,9 +508,9 @@ int main()
 #include <list>
 #include <mutex> //condition_variable mutex
 
-//定义一个list，一个函数用来插入元素，一个函数用来取出元素
-//取出元素的前提就是list不为空。因此list插入成功后就可以使用notify_one通知取出函数可以取元素了
-//取出函数中的wait()在list为空的时候一直处于阻塞状态，
+// 定义一个list，一个函数用来插入元素，一个函数用来取出元素
+// 取出元素的前提就是list不为空。因此list插入成功后就可以使用notify_one通知取出函数可以取元素了
+// 取出函数中的wait()在list为空的时候一直处于阻塞状态，
 
 std::condition_variable cv;
 std::list<int> myList;
@@ -518,15 +518,18 @@ std::mutex m;
 
 void pushList()
 {
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 10; i++)
     {
+        //std::cout << "--- in push ---\n";
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::unique_lock<std::mutex> lock(m);  //这里的锁需要放在循环内部，不然所有push执行完之后才会pop
+        //std::this_thread::sleep_for(std::chrono::seconds(1)); // 如果在这里等待一秒，10个数据push完才会pop
 
-        std::cout << std::this_thread::get_id();
+        std::cout << std::this_thread::get_id() << '\t';
         std::cout << "push:" << i << std::endl;
-
         myList.emplace_back(i);
-        cv.notify_one();
+        cv.notify_all();
+        //cv.notify_one();
     }
 }
 
@@ -534,25 +537,29 @@ void popList()
 {
     while (true)
     {
+        //std::cout << "--- in pop ---\n";
         std::unique_lock<std::mutex> lock(m);
-        std::cout << std::this_thread::get_id();
         cv.wait(lock, []() {return !myList.empty(); });  //list为空的时候一直阻塞，即后面的代码不执行
-
+        std::cout << std::this_thread::get_id() << '\t';
         std::cout << "pop:" << myList.front() << std::endl;
         myList.pop_front();
-        lock.unlock();//锁在循环内外不影响pop，但是如果死循环且unlock()在循环外部就不会执行unlobk()
+        lock.unlock(); //锁在循环内外不影响pop，但是如果死循环且unlock()在循环外部就不会执行unlobk()
     }
 }
 
-
 int main()
 {
+    std::cout << "--------------- start--------------- \n";
+
     std::thread t1(pushList);
     std::thread t2(popList);
     t1.join();
     t2.join();
 
-    system("pause");
+    std::this_thread::sleep_for(std::chrono::seconds(12));
+    std::cout << "--------------- end--------------- \n";
+
+    return 0;
 }
 #endif // TEST11
 
@@ -822,13 +829,15 @@ int main()
     std::atomic_int k;
     
     std::cout << k.load() << '\n';
-    //std::cout << aa.test() << '\n';
+    std::cout << aa.test() << '\n';
 
     k.store(1);
     aa.test_and_set();
 
     std::cout << k.load() << '\n';
-    //std::cout << aa.test() << '\n';
+    std::cout << aa.test() << '\n';
+
+
 }
 
 
