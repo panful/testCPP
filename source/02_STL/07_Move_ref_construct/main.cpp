@@ -6,10 +6,10 @@
 * 5. 模板类重载流操作符
 * 6. 传值传引用 内置类型传值比传引用效率更高 const右值引用  std::ref https://www.cnblogs.com/QG-whz/p/5129173.html
 * 7. 深入理解std::move https://mp.weixin.qq.com/s/GYn7g073itjFVg0OupWbVw
-* 8. 
+* 8.
 */
 
-#define TEST9
+#define TEST2
 
 #ifdef TEST1
 // g++ demo.cpp -o demo.exe -std=c++0x -fno-elide-constructors
@@ -170,6 +170,13 @@ public:
         a.p = nullptr;
     }
 
+    // 这种参数没必要存在，因为对一个const对象执行std::move方法是不合理的
+    //
+    A(const A&& a) noexcept
+    {
+        std::cout << "const move construction\n";
+    }
+
     const A& operator=(const A& a) noexcept
     { // 返回常引用，因为不可能将返回值赋值给一个const A 例如{A a1;const A a2; a2 = a1 //编译报错}
       // {A a1; auto a2 = a1; //调用拷贝构造函数}
@@ -185,6 +192,11 @@ public:
         a.p = nullptr;
         return *this;
     }
+    const A& operator=(const A&& a) noexcept
+    {
+        std::cout << "const move assignment\n";
+        return *this;
+    }
 
     ~A()
     {
@@ -192,28 +204,61 @@ public:
         delete p;
         p = nullptr;
     }
+
+    void setN(int _n)
+    {
+        n = _n;
+    }
+
+private:
+    int n{ 0 };
 };
 
 int main()
 {
+
     {
         A a;                //普通构造函数
         A b(a);             //拷贝构造
         A c(std::move(a));  //移动构造，没有移动构造函数则调用拷贝构造
+    }
 
-        std::cout << "========\n";
+    std::cout << "-----------------------------\n";
 
+    {
         A aa, bb, cc;       //普通构造(3次）
         bb = std::move(aa); //移动赋值，没有移动赋值运算符则调用普通赋值
         cc = bb;            //普通赋值
-
-        std::cout << "========\n";
-
-        A dd = std::move(cc); //移动构造，没有移动构造函数则调用拷贝构造
-        A ee = dd;            //拷贝构造，注意和 {A a;a = b;}的区别，如果拷贝构造带explicit关键字，则会报错
-
-        std::cout << "========\n";
     }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        const A dd1,dd2;
+        //dd.setN(1); // error dd是const的，setN()不是const
+        A ee;
+        ee = std::move(dd1); // 会有警告：不要对常量使用std::move 调用参数为const&&的赋值操作
+        ee.setN(1);
+
+        const A ff = std::move(dd2); // 调用参数为const&&的拷贝构造函数
+    }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        A a(A()); // 啥都不调用
+        A b(A{}); // 普通构造函数 
+    }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        A cc;
+        A dd = std::move(cc); //移动构造，没有移动构造函数则调用拷贝构造
+        //A ee = dd;            //拷贝构造，注意和 {A a;a = b;}的区别，如果拷贝构造带explicit关键字，则会报错
+    }
+
+
 
     return 0;
 }

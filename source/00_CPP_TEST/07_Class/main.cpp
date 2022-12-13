@@ -12,11 +12,12 @@
 * 11.深拷贝，浅拷贝
 * 12.成员函数的存储位置 00_05_TEST17 TEST9
 * 13.explicit
+* 14.override
 */
 
-// 02_07 构造函数、析构函数、拷贝构造函数的使用
+// 02_07_TEST2 构造函数、析构函数、拷贝构造函数的使用
 
-#define TEST13
+#define TEST5
 
 #ifdef TEST1
 
@@ -207,52 +208,170 @@ int main()
 
 #include <iostream>
 
-class A
+//-------------------------------------
+class C
 {
 public:
-    A() { this->n = 9; std::cout << "AAA\n"; }
-
-    A(const A& a) { this->n = a.n; std::cout << "&AAA\n"; }
-    A& operator=(const A&) = delete;
-
-    int get() { return n; }
-    void set(int n_) { this->n = n_; }
-protected:
-    ~A() { std::cout << "~AAA\n"; }  // 基类的析构不能声明为私有的
-    //A& operator=(const A& a) { this->n = a.n; std::cout << "=AAA\n"; return *this; } // 赋值操作符，注意区分和赋值操作符重载的区别
-public:
-    //int operator=(const int& x) { return x + 1; } // 赋值操作符重载
-    //int operator+(const int& x) { return x + 1; } // 不能声明为私有和保护的，不然子类无法访问
-private:
-    int n{ 0 };
-
+    C() { std::cout << "class C construct\n"; };
+    virtual ~C() { std::cout << "class C destruct\n"; };
 };
 
-class B :
-    public A
+class D :
+    public C
 {
 public:
-    //B() { std::cout << "BBB\n"; }
-    //~B() { std::cout << "~BBB\n"; }
-    //B(const B& b) { std::cout << "&BBB\n"; }
-    //B& operator=(const B& b) { std::cout << "=BBB\n"; return *this; }// 如果基类和子类都没有重载=，编译器会自动添加这个函数
-    //B& operator= (const B&) = delete;
+    D() { std::cout << "class D construct\n"; }
+    ~D() { std::cout << "class D destruct\n"; }
+};
+//-------------------------------------
+class E
+{
+public:
+    E() { std::cout << "class E construct\n"; };
+    virtual ~E() { std::cout << "class E destruct\n"; };
+public:
+    void Func1() {}
+protected:
+    void Func2() {}
+private:
+    void Func3() {}
+};
+
+class F :
+    public E
+{
+public:
+    F() { std::cout << "class F construct\n"; }
+    ~F() { std::cout << "class F destruct\n"; }
+
+    void Func4() { this->Func1(); this->Func2(); }
+};
+//-------------------------------------
+class G
+{
+public:
+    G() { std::cout << "class G construct\n"; };
+    virtual ~G() { std::cout << "class G destruct\n"; };
+public:
+    G(const G&) { std::cout << "copy construct\n"; };
+    const G& operator=(const G&) { return *this; }
+    int operator+(int x) { return x; }
+};
+
+class H :
+    public G
+{
+public:
+    H() { std::cout << "class H construct\n"; }
+    ~H() { std::cout << "class H destruct\n"; }
+
+};
+//-------------------------------------
+class I
+{
+public:
+    I() { std::cout << "class I construct\n"; }
+    I(const I&) = delete;
+    const I& operator=(const I&) = delete;
+};
+class J :
+    public I
+{
+public:
+    J() {}
+    J(const J&) {}
+    const J& operator=(const J&) { return *this; }
+};
+//-------------------------------------
+class K
+{
+public:
+    K() { std::cout << "class K construct\n"; }
+    K(const K&) = delete;
+    const K& operator=(const K&) = delete;
+};
+class L :
+    public K
+{
+};
+//-------------------------------------
+class M
+{
+public:
+    int operator=(int n) { return n * 2; }
+    int operator=(const M&) { return 9; }
+};
+class N :
+    public M
+{
 };
 
 int main()
 {
-    B b1;
-    b1.set(1);
-    B b2;
-    std::cout << b2.get() << std::endl;
-    b2.set(2);
-    std::cout << "===============\n";
-    //b2 = b1;
-    std::cout << b2.get() << std::endl; // 1
+    {
+        // 调用顺序：
+        // 1. 父类构造
+        // 2. 子类构造
+        // 3. 子类析构
+        // 4. 父类析构
+        D d;
+    }
+    std::cout << "-----------------------------------\n";
+    {
+        F f;
+        f.Func1();
+        f.Func4();
+        //f.Func2(); // Func2只是没有权限访问（在F内部可以访问）并不是不能继承
+    }
+    std::cout << "-----------------------------------\n";
+    {
+        // operator+ 可以被继承
+        G g;
+        auto r1 = g + 1;
+        std::cout << "G: operator + \t" << r1 << '\n';
 
-    //auto ret1 = (b2 = 1);
-    //std::cout << (b2 + 1) << std::endl;  // 子类可以继承基类的operator+
+        H h;
+        auto r2 = h + 2;
+        std::cout << "H: operator + \t" << r2 << '\n';
 
+        // 赋值操作符返回的是当前对象类型时，可以继承
+        G g1, g2;
+        g1 = g2;
+        G g3(g1);
+
+        H h1, h2;
+        h1 = h2;
+        H h3(h1);
+    }
+    std::cout << "-----------------------------------\n";
+    {
+        J j1;
+        J j2;
+        j2 = j1;   // 父类赋值运算符声明为delete，子类重写了赋值运算符就可以使用
+        J j3(j1);  // 父类拷贝构造函数声明为delete，子类重写了拷贝构造函数就可以使用
+    }
+    std::cout << "-----------------------------------\n";
+    {
+        L l1;
+        //L l2(l1); // error 父类拷贝构造函数是delete，子类没有重写
+        L l3;
+        //l3 = l1;  // error 父类赋值运算符是delete，子类没有重写
+    }
+    std::cout << "-----------------------------------\n";
+    {
+        M m1, m2;
+        std::cout << (m1 = 2) << '\n';
+        std::cout << (m2 = m1) << '\n';
+
+        // 赋值操作符返回的不是当前对象类型时，不能继承
+        N n1, n2;
+        //n1 = 3; // error
+        n2 = n1;  // ok 如果父类和子类都没有重载=，编译器会自动添加这个函数
+        //std::cout << (n1 = 3) << '\n';  // error
+        //std::cout << (n2 = n1) << '\n'; // error
+    }
+
+    return 0;
 }
 
 #endif // TEST5
@@ -682,6 +801,7 @@ private:
 
 int main()
 {
+    // 构造函数使用和不使用explicit的区别
     {
         Test1 t1 = 1;  // 会执行隐式转换
         Test1 t2 = t1; // 调用的是拷贝构造函数，不是operator =
@@ -692,6 +812,7 @@ int main()
         Test2 t2(1); // ok
     }
 
+    // 拷贝构造函数使用explicit
     {
         Test2 t1(1);
         //Test2 t2 = t1; // error，拷贝构造函数被声明为explicit，不能使用=调用拷贝构造函数
