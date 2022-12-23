@@ -549,66 +549,243 @@ int main()
 #include <filesystem>
 #include <iostream>
 
-//using namespace std::filesystem;
+namespace FS = std::filesystem;
+
+// 以下结果都是在target目录下运行该程序
 
 int main()
 {
+    std::cout << std::boolalpha;
+
     // 判断目录是否存在
-    std::filesystem::path myPath1("test");
-    auto exists1 = std::filesystem::exists(myPath1);  //如果myPath目录存在则返回true
+    {
+        std::filesystem::path myPath1("test");
+        // "./test"目录存在则返回true
+        auto exists1 = std::filesystem::exists(myPath1); // false
 
-    // 判断文件是否存在
-    std::filesystem::path myFilePath1("test.bmp");
-    auto fileExits1 = std::filesystem::exists(myFilePath1);
+        // "./resource"目录是否存在
+        auto exists2 = std::filesystem::exists(std::filesystem::path("resource")); // true
+        auto exists3 = std::filesystem::exists(std::filesystem::path("C:/Users")); // true
+        auto exists4 = std::filesystem::exists(std::filesystem::path("C:/users")); // true 目录名不区分大小写
+        auto exists5 = std::filesystem::exists("C:/Program Files");                // true std::filesystem::path可以直接使用字符串
 
-    std::filesystem::path myPath2("sssssssss");
-    auto exists2 = std::filesystem::exists(myPath2);
+        std::cout << exists1 << '\t' << exists2 << '\t' << exists3 << '\t' << exists4 << '\t' << exists5 << '\n';
+    }
 
-    std::filesystem::path myPath3("***");
-    auto exists3 = std::filesystem::exists(myPath3); //false
+    // 判断文件是否存在，和判断目录是一样的
+    {
+        std::filesystem::path myPath1("01_01_File.exe");
+        auto exists1 = std::filesystem::exists(myPath1); // true
 
-    //auto create1 = std::filesystem::create_directory(myPath2);
-    auto create1 = std::filesystem::create_directories(myPath2);
-    auto create2 = std::filesystem::create_directory("C\\s");  //创建多级目录失败，必须使用create_directories
-    //auto create3 = std::filesystem::create_directories("******");  //抛出异常
-    auto is_directory1 = std::filesystem::is_directory("****");
-    auto is_directory2 = std::filesystem::is_directory("23<aa");
-    auto is_directory3 = std::filesystem::is_directory("sss?ss");
-    auto is_directory4 = std::filesystem::is_directory("x:\\sss");
-    auto is_directory5 = std::filesystem::is_directory("c:\\sss");
-    auto is_directory6 = std::filesystem::is_directory("test.jpg");
-    auto is_directory7 = std::filesystem::is_directory("C:\\Users\\yangpan\\Desktop");
+        auto exists2 = std::filesystem::exists(std::filesystem::path("AAAAAAAA")); // false
+        auto exists3 = std::filesystem::exists(std::filesystem::path("<=-.txt"));  // false '<'是特殊字符，不可能存在该文件
+        auto exists4 = std::filesystem::exists(std::filesystem::path("*.exe"));    // false '*'是特殊字符
 
-    std::filesystem::path myPath4("test.jpg");
-    auto has_name = myPath4.has_filename();
-    auto name = myPath4.filename();  //L"test.jpg"  // 文件名，包括后缀
-    auto has_extension = myPath4.has_extension();
-    auto extension = myPath4.extension();  //L".jpg" // 文件名后缀，即文件类型
-    auto has_stem = myPath4.has_stem();
-    auto stem = myPath4.stem();  //L"test"  // 文件名，不包括后缀
+        std::cout << exists1 << '\t' << exists2 << '\t' << exists3 << '\t' << exists4 << '\n';
+    }
 
-    std::filesystem::path path5("sss\\test\\fff");
-    std::filesystem::path path6("\\**ss**\\test\\fff");
-    std::filesystem::path path7("sss<rrr");
-    std::filesystem::path path8("sss\\test\\fff\\.test.txt");
-    std::filesystem::path path9("sss\\test\\fff\\");
-    std::filesystem::path path10("sss\\test\\fff\\te**st.txt");
+    // 创建目录
+    {
+        std::filesystem::path myPath1("resource");
+        auto create1 = std::filesystem::create_directory(myPath1);                                  // false，resource目录已经存在
+        auto create2 = std::filesystem::create_directory(std::filesystem::path("dir1"));            // true
+        auto create3 = std::filesystem::create_directories(std::filesystem::path("dir2"));          // true，创建多层目录，即使只有一层也可以成功
+        auto create4 = std::filesystem::create_directories(std::filesystem::path("dir3/abc/xyz"));  // true，创建多层目录
+        auto create5 = std::filesystem::create_directories(std::filesystem::path("创建的目录\\2"));  // true，注意编码格式，可能会乱码
 
-    //parent_path 返回父路径，即最后一个"\\"之前的字符串，如果没有"\\"则返回空
-    auto parPath5 = path5.parent_path(); //L"sss\\test"
-    auto parPath6 = path6.parent_path(); //L"c:\\sss\\test"
-    auto parPath7 = path7.parent_path(); //L""
-    auto parPath8 = path8.parent_path(); //L"sss\\test\\fff"
-    auto parPath9 = path9.parent_path(); //L"sss\\test\\fff"
-    auto parPath10 = path10.parent_path(); //L"sss\\test\\fff"
+        std::cout << create1 << '\t' << create2 << '\t' << create3 << '\t' << create4 << '\t' << create5 << '\n';
 
-    auto fielname5 = path5.filename();   //
-    auto fielname6 = path6.filename();   //
-    auto fielname7 = path7.filename();   //
-    auto fielname8 = path8.filename();   //
-    auto fielname9 = path9.filename();   //
-    auto fielname10 = path10.filename(); //
+        try
+        {
+            // 创建多层目录如果该目录存在则返回false
+            auto create5 = std::filesystem::create_directory(std::filesystem::path("dir3/abc/xyz"));
+            std::cout << create5 << '\n';
+        }
+        catch (...)
+        {
+            std::cout << R"(std::filesystem::create_directory(std::filesystem::path("dir3/abc/xyz"));)" << "\t\t error\n";
+        }
 
+        try
+        {
+            // 创建多层目录如果该目录不存在则抛出异常
+            std::filesystem::create_directory(std::filesystem::path("dir4/abc/xyz"));
+        }
+        catch (...)
+        {
+            std::cout << R"(std::filesystem::create_directory(std::filesystem::path("dir4/abc/xyz"));)" << "\t\t error\n";
+        }
+
+        try
+        {
+            // 含有特殊字符，抛出异常
+            std::filesystem::create_directory(std::filesystem::path("<*>"));
+        }
+        catch (...)
+        {
+            std::cout << R"(std::filesystem::create_directory(std::filesystem::path("<*>"));)" << "\t\t error\n";
+        }
+
+    }
+
+    // 判断字符串是否是一个目录，目录存在返回true，否则返回false
+    {
+        auto is_directory1 = std::filesystem::is_directory("****");             // false
+        auto is_directory2 = std::filesystem::is_directory("23<aa");            // false
+        auto is_directory3 = std::filesystem::is_directory("sss\\ss");          // false
+        auto is_directory4 = std::filesystem::is_directory("x:\\sss");          // false
+        auto is_directory5 = std::filesystem::is_directory("c:/sss");           // false
+        auto is_directory6 = std::filesystem::is_directory("test.jpg");         // false
+        auto is_directory7 = std::filesystem::is_directory("C:/Users");         // true
+        auto is_directory8 = std::filesystem::is_directory("C:\\users");        // true 不区分大小写
+        auto is_directory9 = std::filesystem::is_directory("路径/ss");          // false
+        auto is_directory10 = std::filesystem::is_directory("dir3/abc/xyz");    // true 可以判断多层目录
+
+        std::cout << is_directory1 << '\t' << is_directory2 << '\t' << is_directory3 << '\t' << is_directory4 << '\n';
+        std::cout << is_directory5 << '\t' << is_directory6 << '\t' << is_directory7 << '\t' << is_directory8 << '\n';
+        std::cout << is_directory9 << '\t' << is_directory10 << '\n';
+
+        try
+        {
+            // 由于编码的原因可能会抛出异常
+            auto is_directory = std::filesystem::is_directory("创建的目录");
+            std::cout << R"(std::filesystem::is_directory("创建的目录");)" << "\t\t yes\n";
+        }
+        catch (...)
+        {
+            std::cout << R"(std::filesystem::is_directory("创建的目录");)" << "\t\t error\n";
+        }
+    }
+
+    // 提取文件名
+    {
+        {
+            std::filesystem::path myPath("test.jpg");
+
+            auto has_filename = myPath.has_filename();
+            auto filename = myPath.filename();     // L"test.jpg" 文件名，包括后缀
+
+            auto has_extension = myPath.has_extension();
+            auto extension = myPath.extension();   // L".jpg" 文件名后缀，即文件类型
+
+            auto has_stem = myPath.has_stem();
+            auto stem = myPath.stem();             // L"test" 文件名，不包括后缀
+        }
+
+        {
+            std::filesystem::path myPath("C:/abc");
+
+            auto has_filename = myPath.has_filename();
+            auto filename = myPath.filename();     // L"abc" 文件名，包括后缀
+
+            auto has_extension = myPath.has_extension();
+            auto extension = myPath.extension();   // L"" 文件名后缀，此处为空
+
+            auto has_stem = myPath.has_stem();
+            auto stem = myPath.stem();             // L"abc" 文件名，不包括后缀
+        }
+    }
+    std::cout << "-----------------------------------------------------\n";
+    {
+        // parent_path      文件所在目录，即最后一个"/"之前的字符串，如果没有"/"则返回空
+        // filename         文件名，包括文件类型，即最后一个"/"之后的字符串，如果没有"/"则返回整个字符串
+        // extension        文件类型 即最后一个"."之后的字符串，如果没有"."则返回空
+        // stem             文件名，不包括文件类型
+        // relative_path    相对路径，除过根目录之外的字符串，包括文件名
+
+        {
+            std::filesystem::path path1("C:/ABC/xyz/test.txt");
+
+            auto has_extension = path1.has_extension();
+            auto extension = path1.extension();
+
+            auto has_filename = path1.has_filename();
+            auto filename = path1.filename();
+
+            auto has_parent_path = path1.has_parent_path();
+            auto parent_path = path1.parent_path();
+
+            auto has_relative_path = path1.has_relative_path();
+            auto relative_path = path1.relative_path();
+
+            auto has_root_directory = path1.has_root_directory();
+            auto root_directory = path1.root_directory();
+
+            auto has_root_name = path1.has_root_name();
+            auto root_name = path1.root_name();
+
+            auto has_root_path = path1.has_root_path();
+            auto root_path = path1.root_path();
+
+            auto has_stem = path1.has_stem();
+            auto stem = path1.stem();
+
+            std::cout << "path: " << path1 << '\n';
+            std::cout << "---has_extension: " << has_extension << '\n' << "extension" << extension << '\n';
+            std::cout << "---has_filename: " << has_filename << '\n' << "filename" << filename << '\n';
+            std::cout << "---has_parent_path: " << has_parent_path << '\n' << "parent_path" << parent_path << '\n';
+            std::cout << "---has_relative_path: " << has_relative_path << '\n' << "relative_path" << relative_path << '\n';
+            std::cout << "---has_root_directory: " << has_root_directory << '\n' << "root_directory" << root_directory << '\n';
+            std::cout << "---has_root_name: " << has_root_name << '\n' << "root_name" << root_name << '\n';
+            std::cout << "---has_root_path: " << has_root_path << '\n' << "root_path" << root_path << '\n';
+            std::cout << "---has_stem: " << has_stem << '\n' << "stem" << stem << '\n';
+
+        }
+        std::cout << "--------------------------------------\n";
+        {
+            std::filesystem::path path1("./XXX/test.txt");
+
+            auto has_extension = path1.has_extension();
+            auto extension = path1.extension();
+
+            auto has_filename = path1.has_filename();
+            auto filename = path1.filename();
+
+            auto has_parent_path = path1.has_parent_path();
+            auto parent_path = path1.parent_path();
+
+            auto has_relative_path = path1.has_relative_path();
+            auto relative_path = path1.relative_path();
+
+            auto has_root_directory = path1.has_root_directory();
+            auto root_directory = path1.root_directory();
+
+            auto has_root_name = path1.has_root_name();
+            auto root_name = path1.root_name();
+
+            auto has_root_path = path1.has_root_path();
+            auto root_path = path1.root_path();
+
+            auto has_stem = path1.has_stem();
+            auto stem = path1.stem();
+
+            std::cout << "path: " << path1 << '\n';
+            std::cout << "---has_extension: " << has_extension << '\n' << "extension" << extension << '\n';
+            std::cout << "---has_filename: " << has_filename << '\n' << "filename" << filename << '\n';
+            std::cout << "---has_parent_path: " << has_parent_path << '\n' << "parent_path" << parent_path << '\n';
+            std::cout << "---has_relative_path: " << has_relative_path << '\n' << "relative_path" << relative_path << '\n';
+            std::cout << "---has_root_directory: " << has_root_directory << '\n' << "root_directory" << root_directory << '\n';
+            std::cout << "---has_root_name: " << has_root_name << '\n' << "root_name" << root_name << '\n';
+            std::cout << "---has_root_path: " << has_root_path << '\n' << "root_path" << root_path << '\n';
+            std::cout << "---has_stem: " << has_stem << '\n' << "stem" << stem << '\n';
+        }
+    }
+
+    {
+        std::filesystem::path path1("C:/ABC/xyz/test.txt");
+
+        path1.replace_extension("aaa"); // 将文件类型改为aaa即"txt"改为"aaa"
+        path1.replace_filename("aaa");  // 会将文件名包括后缀一起替换为"aaa"
+        path1.remove_filename();
+
+        auto is_absolute = path1.is_absolute();
+        auto is_relative = path1.is_relative();
+        auto lexically_normal = path1.lexically_normal();
+        auto lexically_proximate = path1.lexically_proximate("nnn");
+        auto lexically_relative = path1.lexically_relative("mmm");
+    }
+
+    return 0;
 }
 #endif // TEST8
 
