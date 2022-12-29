@@ -10,7 +10,7 @@
 * 09. 类模板的继承
 * 10. 别名模板
 * 11. 模板形参使用非类型
-* 12. 模板实参，通用引用和右值引用，引用折叠
+* 12. 模板实参，通用引用（万能引用）和右值引用，引用折叠
 * 13. 模板实参传入C风格数组
 * 14. 类模板的自动类型推导
 * 15. C++20自动类型推导
@@ -578,7 +578,7 @@ void funcValue(T param) { }
 template <typename T>
 void funcReference(T& param) { }
 
-// 此处的"&&"是通用引用不是右值引用
+// 此处的"&&"是通用引用（万能引用）不是右值引用
 template <typename T>
 void funcUniversalReference(T&& param) { }
 

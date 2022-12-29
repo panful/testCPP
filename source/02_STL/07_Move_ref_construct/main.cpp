@@ -1,15 +1,15 @@
 ﻿/*
 * 1. 函数返回对象，std::move，编译器优化，参数为常引用和引用
 * 2. 普通构造，移动构造，拷贝构造，移动赋值，拷贝赋值
-* 3. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递1
-* 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递2  引用塌缩  https://www.qb5200.com/article/295128.html
-* 5. 模板类重载流操作符
+* 3. 模板函数不要使用值传递
+* 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递  引用塌缩  https://www.qb5200.com/article/295128.html
+* 5. 
 * 6. 传值传引用 内置类型传值比传引用效率更高 const右值引用  std::ref https://www.cnblogs.com/QG-whz/p/5129173.html
 * 7. 深入理解std::move https://mp.weixin.qq.com/s/GYn7g073itjFVg0OupWbVw
 * 8.
 */
 
-#define TEST2
+#define TEST4
 
 #ifdef TEST1
 // g++ demo.cpp -o demo.exe -std=c++0x -fno-elide-constructors
@@ -284,8 +284,9 @@ void Func2(T& t)
     std::cout << "222\n";
 }
 
-// 如果T没有拷贝构造函数就会崩溃 原因看TEST4
-// 函数执行完，会调用一次t的析构函数，main函数结束的时候也会调用析构，导致析构了两次，程序崩溃
+// 如果T没有拷贝构造函数就会崩溃，因为值传递会有一次参数拷贝，参数拷贝时需要有拷贝构造函数
+// 函数执行完，会调用一次t的析构函数，main函数结束的时候也会调用析构，如果参数对应的类没有拷贝构造函数
+// 就只new了一次，但是析构两次调用两次delete就会崩溃
 template<typename T>
 void Func3(T t)
 {
@@ -332,8 +333,12 @@ int main()
     A a;
     Func1(a);
     Func2(a);
+    // 执行函数Func3函数体之前会调用拷贝构造函数
     Func3(a);
+    // 执行完Func3之后，就会调用一次析构函数
     Func4(a);
+
+    return 0;
 }
 #endif // TEST3
 
@@ -347,7 +352,7 @@ int main()
 template<class T>
 T* Test1(T arg)
 {
-    return new T(arg); // new 出来的没有delete就会少一次析构
+    return new T(arg); // new 出来的没有delete就会少一次析构，new调用的拷贝构造函数
 }
 
 // 左值引用，不能传常参数等右值
@@ -364,7 +369,8 @@ T* Test3(const T& arg)
     return new T(arg);
 }
 
-// 右值引用，可以解决参数完美转发的问题
+// 万能引用，可以解决参数完美转发的问题 关于万能引用请看00_13_TEST12
+// 引用塌缩
 template<class T>
 T* Test4(T&& arg)
 {
@@ -390,76 +396,46 @@ public:
 
 int main()
 {
-    std::cout << "   ***   \n";
+    std::cout << "0-------------------\n";
     {
         A a;
         auto ret = Test1(a);
-        //delete ret;
+        //delete ret; // 此处如果不delete就会少一次析构，后面的例子也一样
         //ret = nullptr;
     }
-    std::cout << "================\n";
+    std::cout << "1-------------------\n";
     {
         A a;
         auto ret = Test2(a);
     }
-    std::cout << "================\n";
+    std::cout << "2-------------------\n";
     {
         A a;
         auto ret = Test3(a);
     }
-    std::cout << "================\n";
+    std::cout << "3-------------------\n";
     {
         A a;
         //auto ret1 = Test4(a); // 参数类型错误
         auto ret2 = Test4(std::move(a));
     }
-    std::cout << "================\n";
+    std::cout << "4-------------------\n";
     {
         auto ret = Test4(A());
     }
-    std::cout << "   ***   \n";
+    std::cout << "5-------------------\n";
+
+    return 0;
 }
 
 #endif // TEST4
 
-#ifdef TEST5
 
-#include <iostream>
-
-class A
-{
-public:
-    // 1
-    friend std::ostream& operator<<(std::ostream& out, A& a)
-    {
-        out << "AAA";
-        return out;
-    }
-
-    // 2
-    //friend std::ostream& operator<<(std::ostream& out, A& a);
-
-    // 3 error
-    //std::ostream& operator<< (std::ostream& out) { out << "test" << std::endl; return out; }
-    // 4 error
-    //std::ostream& operator<< (std::ostream& out,A& a) { out << "test" << std::endl; return out; }
-};
-
-// 2
-//std::ostream& operator<< (std::ostream& out, A& a)
-//{
-//    out << "test";
-//    return out;
-//}
-
-int main()
-{
-    A a;
-    std::cout << a;
-}
-#endif // TEST5
 
 #ifdef TEST6
+
+// 什么时候用值传递，什么时候用引用传递
+// https://cplusplus.com/articles/z6vU7k9E/
 
 #include <iostream>
 
