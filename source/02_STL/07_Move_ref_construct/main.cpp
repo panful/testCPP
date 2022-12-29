@@ -192,6 +192,8 @@ public:
         a.p = nullptr;
         return *this;
     }
+
+    // 这种形参没必要，因为对一个const对象执行std::move方法是不合理的
     const A& operator=(const A&& a) noexcept
     {
         std::cout << "const move assignment\n";
