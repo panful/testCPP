@@ -13,11 +13,12 @@
 * 12.成员函数的存储位置 00_05_TEST17 TEST9
 * 13.explicit
 * 14.override
+* 15.using 在类继承时的使用 变长using声明
 */
 
 // 02_07_TEST2 构造函数、析构函数、拷贝构造函数的使用
 
-#define TEST5
+#define TEST14
 
 #ifdef TEST1
 
@@ -43,7 +44,7 @@ class E :
     public D
 {
 public:
-    void test() override{}
+    void test() override {}
 };
 
 int main()
@@ -167,7 +168,7 @@ int main()
     // 构造：B C A，按照Test构造函数的函数体顺序执行
 
     // 析构：C B A，按照声明的顺序逆序执行
-    Test t; 
+    Test t;
 }
 
 #endif // TEST3
@@ -380,7 +381,7 @@ int main()
 
 /*
 * 如何安全地使用delete
-* 
+*
 * 确保对象是new出来的，对象是分配在heap上的 查看05_Pointer placement new
 * 确保delete完后不会用该对象调用其他（非静态）成员函数
 * 确保delete完后不能访问对象的任何部分
@@ -406,7 +407,7 @@ public:
 class A
 {
 public:
-    A() 
+    A()
     {
         m_int = 99;
         m_test = std::make_unique<Test>();
@@ -569,18 +570,18 @@ int main()
 class Test
 {
 public:
-    static void f1() 
-    { 
+    static void f1()
+    {
         std::cout << y << std::endl;
     }
 
-    static void f2() 
+    static void f2()
     {
         // 静态函数不能调用非静态成员变量
         // 因为调用静态函数并不会实例化对象，即非静态成员变量不会初始化，是一个非法值
 
         //std::cout << x << std::endl; 
-    } 
+    }
 
     void f3()
     {
@@ -588,7 +589,7 @@ public:
         std::cout << x << std::endl;
     }
 
-    void f4() 
+    void f4()
     {
         // 非静态函数可以调用静态成员变量
         // 因为静态成员变量程序启动时就会初始化，所有实例公用一个静态成员变量
@@ -596,7 +597,7 @@ public:
         std::cout << y << std::endl;
     }
 
-    void f5(int _x) 
+    void f5(int _x)
     {
         // 如果f5的参数为'int x'，那么还没执行'this->x = x;'之前，成员变量就已经被设置为了5
         this->x = _x;
@@ -773,7 +774,7 @@ public:
         m_num2(0)
     {}
 
-    Test1(const Test1& t):
+    Test1(const Test1& t) :
         m_num1(0),
         m_num2(0)
     {}
@@ -790,7 +791,7 @@ public:
         m_num2(0)
     {}
 
-    explicit Test2(const Test2& t):
+    explicit Test2(const Test2& t) :
         m_num1(0),
         m_num2(0)
     {}
@@ -823,3 +824,141 @@ int main()
 }
 
 #endif // TEST13
+
+#ifdef TEST14
+int main() {}
+#endif // TEST14
+
+#ifdef TEST15
+
+// https://www.cnblogs.com/zwvista/p/9256655.html
+
+#include <iostream>
+
+struct A {
+    void f(int) { std::cout << "A::f(int)\n"; }
+};
+
+struct B {
+    void f(double) { std::cout << "B::f(double)\n"; }
+};
+
+struct S1 : A {
+    // 类S1继承了基类的f(int)函数
+};
+
+struct S2 : A {
+    // 类S2继承了基类的f(int)函数
+    // 但是类S2定义了同名成员函数f(double)
+    // 子类S2中的f(double)函数【覆盖】了基类同名成员函数
+    void f(double) { std::cout << "S2::f(double)\n"; }
+};
+
+struct S3 : A {
+    // 类S3继承了基类的f(int)函数
+    // 类A定义了同名成员函数f(double)
+    // 类S3通过using声明将基类的f(int)函数引入了类S3的作用域
+    // 类S3的成员函数f(double)和基类同名成员函数f(int)形成了【重载】关系
+    using A::f;
+    void f(double) { std::cout << "S3::f(double)\n"; }
+};
+
+struct S4 :A, B {
+    // 类S4继承了类A和类B的同名成员函数f，两者形成【竞争】关系
+    // 实例调用时不能确定使用哪一个就会报错
+};
+
+struct S5 :A, B {
+    // 类S5同时继承了类A和类B的同名成员函数f
+    // 类S5通过using声明将基类A和基类B的同名成员函数f都引入自己的作用域。
+    // 基类A和基类B的同名成员函数在类S5中形成【重载】关系。
+    using A::f;
+    using B::f;
+};
+
+struct S6 :A, B {
+    // [0]和[1]是等价的 在 C++17 中多个 using 声明可以通过逗号连接起来，合成一个 using 声明。
+    //using A::f; using B::f;  // [0]
+    using A::f, B::f;          // [1] C++17
+};
+
+namespace {
+    template <typename ...Args>
+    struct S7 :Args...{
+        using Args::operator()...;
+    };
+
+#if __cplusplus < 202002L
+    // 这是一个自动推断向导，用于帮助编译器根据 S7 构造器【参数的类型】来推导 S7 的模板参数类型。
+    // 这个自动推断向导告诉编译器，如果 S7 构造器所有参数的类型的集合为Args，那么 S7 的模板参数类型就是 Args 所包含的所有类型。
+    // 例如  S7 {1, 2.2, 3.3f} 的类型就是 S7<int, double, float>
+    // C++20不需要这个，编译器就可以推导出模板参数类型
+    template<typename ...Args>
+    S7(Args...) -> S7<Args...>;
+#endif
+
+    // S7 类的实例 s7 的构造器包含2个lambda参数，也可以看作2个各自包含一个 operator() 的函数对象。
+    // 根据 S7 类的定义，s7 对象将继承这2个lambda（函数对象）的 operator() ，也就是说这2个lambda的 operator() 即函数体在 s7 对象内部形成重载关系。
+    // 根据 S7 类的自动推断向导，s7 对象的类型为overloaded<T1, T2>，其中T1, T2为2个lambda参数的类型。
+    S7 s7{
+        [](double) {std::cout << "lambda (double)\n"; } ,
+        [](int) {std::cout << "lambda (int)\n"; }
+    };
+}
+
+int main()
+{
+    {
+        S1 s;
+        s.f(1); // A::f(int)
+    }
+    std::cout << "----------------------\n";
+    {
+        S2 s;
+        s.f(1);   // S2::f(double)
+        s.f(2.2); // S2::f(double)
+    }
+    std::cout << "----------------------\n";
+    {
+        S3 s;
+        s.f(1);    // A::f(int)
+        s.f(2.2);  // S3::f(double)
+    }
+    std::cout << "----------------------\n";
+    {
+        // 调用的f函数不明确，编译器报错
+        S4 s;
+        //s.f(1);   // error
+        //s.f(2.2); // error
+    }
+    std::cout << "----------------------\n";
+    {
+        S5 s;
+        s.f(1);   // A::f(int)
+        s.f(2.2); // B::f(double)
+    }
+    std::cout << "----------------------\n";
+    {
+        S6 s;
+        s.f(1);   // A::f(int)
+        s.f(2.2); // B::f(double)
+    }
+    std::cout << "----------------------\n";
+    {
+        // s7定义在局部，MSVC会抛出栈损坏的异常，g++不会，具体原因未知
+        //S7 s7{
+        //    [](double) {std::cout << "lambda (double)\n"; } ,
+        //    [](int) {std::cout << "lambda (int)\n"; }
+        //};
+
+        s7(1);    // lambda (int)
+        s7(2.2);  // lambda (double)
+        s7(3.3f); // lambda (double)
+        s7(4L);   // lambda (int)
+        //s7("abc");  // error 参数不匹配
+    }
+
+    return 0;
+}
+
+#endif // TEST15

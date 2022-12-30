@@ -827,17 +827,23 @@ int main()
 {
     std::atomic_flag aa;
     std::atomic_int k;
-    
+
     std::cout << k.load() << '\n';
+
+#if __cplusplus >= 202002L
     std::cout << aa.test() << '\n';
+#endif
 
     k.store(1);
     aa.test_and_set();
 
     std::cout << k.load() << '\n';
+
+#if __cplusplus >= 202002L
     std::cout << aa.test() << '\n';
+#endif
 
-
+    return 0;
 }
 
 

@@ -234,19 +234,18 @@ int main()
 #include <variant>
 #include <string>
 
-// https://blog.csdn.net/janeqi1987/article/details/100568146
-// https://zhuanlan.zhihu.com/p/366537214
+// C++17之std::visit https://blog.csdn.net/janeqi1987/article/details/100568146
+// 如何优雅的使用 std::variant 与 std::optional https://zhuanlan.zhihu.com/p/366537214
 
 // 1.使用重载的Lambdas来访问
 // https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
 namespace T1
 {
-// 00_13_TEST16
-
+// 00_13_TEST16 类模板构造函数可变参数
+// 00_07_TEST15 变长using声明 
 template<typename... Ts>
 struct overload : Ts...
 {
-    // 变长using声明 https://www.cnblogs.com/zwvista/p/9256655.html
     using Ts::operator()...;
 };
 
@@ -368,7 +367,6 @@ void f3()
 
 int main()
 {
-
     T1::f1();
     std::cout << "---------------------------------------\n";
     T2::f2();

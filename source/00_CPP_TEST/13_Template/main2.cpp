@@ -755,7 +755,7 @@ struct MyStruct : Args...
 };
 
 template <typename ...Args>
-MyStruct(Args...)->MyStruct<Args...>;
+MyStruct(Args...) -> MyStruct<Args...>;
 
 auto MyOperator = MyStruct{
     [](int a) {std::cout << "int\t" << a << '\n'; },
@@ -764,12 +764,12 @@ auto MyOperator = MyStruct{
 };
 //++++++++++++++++++++++++++++++++++++++++++++
 template<typename T>
-struct MyStruct2:T
+struct MyStruct2 :T
 {
 };
 
 template <typename T>
-MyStruct2(T)->MyStruct2<T>;
+MyStruct2(T) -> MyStruct2<T>;
 
 void func()
 {
