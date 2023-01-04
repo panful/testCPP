@@ -140,24 +140,20 @@ int* Func()
     return nullptr;
 }
 
-std::map<int, int> myMap;
+std::map<int, int> myMap{ {0,0}, {1,1}, {2,2}, {3,3} };
 
 int main()
 {
-    if (int i = 0; true)
+    if (bool b = false; true)
     {
+        // 不对b变量进行判断，判断的是后面的true，因此可以进入
         std::cout << "true1\n";
     }
 
-    if (auto it = myMap.find(1); 1 == 1)
+    if (auto count = myMap.count(0) ; auto val = myMap.at(0))
     {
-        if (it == myMap.end())
-            std::cout << "true2\n";
-    }
-
-    if (auto ret = Func(); ret == nullptr)
-    {
-        std::cout << "true3\n";
+        // count为1，val为0，只对后面的val判断，所以不会进来
+        std::cout << "true 2\t" << val << '\n';
     }
 
     if (auto ret = Func(); ret != nullptr)
