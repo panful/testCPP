@@ -270,6 +270,9 @@ int main()
 
 #ifdef TEST5
 
+// linux下使用-std=c++17还是报错：undefined reference to `std::filesystem***
+// 添加选项 -lstdc++fs 即 g++ main.cpp -std=c++17 -lstdc++fs
+
 #include <iostream>
 #include <filesystem>
 #include <fstream>
