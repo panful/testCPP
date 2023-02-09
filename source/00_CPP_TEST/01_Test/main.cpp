@@ -1,8 +1,4 @@
-﻿
-
-
-
-/*
+﻿/*
 * 1. main函数中的 argc argv
 * 2. 查看C++版本
 * 3. 宏定义函数
@@ -43,7 +39,12 @@ int main(int argc, char** argv)
 // g++ 指定c++标准: g++ -std=c++17 main.cpp -o o
 int main()
 {
-    std::cout << "stl:" << __cplusplus << std::endl;
+#ifdef __GNUC__
+    std::cout<<"the platform is linux\n";
+#endif
+
+    std::cout << "__cplusplus: " << __cplusplus << std::endl;
+    
 #if __cplusplus == 201103L
     std::cout << "C++11\n";
 #elif __cplusplus == 201402L
@@ -53,6 +54,8 @@ int main()
 #elif __cplusplus == 202002L
     std::cout << "C++20\n";
 #endif
+
+    return 0;
 }
 
 #endif // TEST2
@@ -220,5 +223,3 @@ int main()
 {
 }
 #endif // TEST7
-
-
