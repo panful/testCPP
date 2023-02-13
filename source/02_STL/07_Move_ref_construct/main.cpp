@@ -9,10 +9,10 @@
 * 8.
 */
 
-#define TEST4
+#define TEST1
 
 #ifdef TEST1
-// g++ demo.cpp -o demo.exe -std=c++0x -fno-elide-constructors
+// g++ demo.cpp -o out -std=c++11 -fno-elide-constructors
 
 #include <iostream>
 #include <type_traits>
@@ -54,6 +54,8 @@ Test GetTestObj2()
 
 Test GetTestObj3()
 {
+    // https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-return-ref-ref
+    // 不要返回&&
     // vs2019: 普通构造 + 移动构造  111 + 666
     // g++取消优化: 111 666 666
     // g++默认: 111 666
