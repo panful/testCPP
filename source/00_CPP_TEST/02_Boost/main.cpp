@@ -1,5 +1,5 @@
 ﻿/*
-* 1. boost::array
+* 1. boost版本 boost::array
 * 2. boost::process 启动进程杀掉进程
 * 3. sml State Machine Libray 状态机 https://github.com/boost-ext/sml 
 * 4. mpl Meta Programming 元编程
@@ -7,20 +7,30 @@
 * 6. boost::pfr 反射
 */
 
-#define TEST6
+#define TEST1
 
 #ifdef TEST1
 
 #include <boost/array.hpp>
+#include <boost/version.hpp>
 #include <iostream>
 
 int main()
 {
+    // boost版本
+    std::cout << "Using Boost "
+            << BOOST_VERSION / 100000     << "."  // major version
+            << BOOST_VERSION / 100 % 1000 << "."  // minor version
+            << BOOST_VERSION % 100                // patch level
+            << std::endl;
+
+    std::cout<<"-------------------\n";
+
+    // boost::array测试
     boost::array<int, 2> test{ 11,22 };
+    std::cout << "test boost::array\t" << test.at(0) << ',' << test[1] << '\n';
 
-    std::cout << test.at(0) << ',' << test[1] << '\n';
-
-    system("pause");
+    return 0;
 }
 
 #endif // TEST1
@@ -532,10 +542,10 @@ struct some_person {
 int main() {
     some_person val{ "Edgar Allan Poe", 1809 };
 
-    std::cout << boost::pfr::get<0>(val)                // No macro!
-        << " was born in " << boost::pfr::get<1>(val);  // Works with any aggregate initializables!
+    std::cout << boost::pfr::get<0>(val)                                // No macro!
+        << " was born in " << boost::pfr::get<1>(val) << std::endl;     // Works with any aggregate initializables!
 
-    std::cout << boost::pfr::io(val);                   // Outputs: {"Edgar Allan Poe", 1809}
+    std::cout << boost::pfr::io(val) << std::endl;                      // Outputs: {"Edgar Allan Poe", 1809}
 }
 
 #endif // TEST6

@@ -11,10 +11,10 @@ find_package(Boost COMPONENTS thread filesystem locale system)
 if(BOOST_FOUND)
     message("-------------------boost found---------------")
     message("---------------------------------------------")
-    message("Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
-    message("Boost_LIBRARIES = ${Boost_LIBRARIES}.")
-    message("Boost_LIB_VERSION = ${Boost_LIB_VERSION}.")
-    message("Boost_LIBRARY_DIRS = ${Boost_LIBRARY_DIRS}.")
+    message("Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
+    message("Boost_LIBRARIES = ${Boost_LIBRARIES}")
+    message("Boost_LIB_VERSION = ${Boost_LIB_VERSION}")
+    message("Boost_LIBRARY_DIRS = ${Boost_LIBRARY_DIRS}")
     message("---------------------------------------------")
 else()
     message("-------------------boost not found---------------")
@@ -22,10 +22,10 @@ else()
 endif()
 
 #设置不适用系统的的boost的库
-set(BOOST_NO_SYSTEM_PATHS ON)
+#set(BOOST_NO_SYSTEM_PATHS ON)
 
 #设置使用静态的boost库
-set(Boost_USE_STATIC_LIBS ON)
+#set(Boost_USE_STATIC_LIBS ON)
 
 add_executable (${target_name} "main.cpp")
 
