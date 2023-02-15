@@ -2,8 +2,12 @@
 * 1. set_difference set_symmetric_difference set_union set_intersection set_difference
 * 2. std::transform std::for_each std::for_each
 * 3. std::exchange
+* 4. std::reduce
+* 5. 
 * 6. for_each transform中使用lambda
 */
+
+// c++并行算法 openmp tbb mkl opencl => 06_02
 
 #define TEST3
 

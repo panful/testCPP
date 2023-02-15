@@ -39,8 +39,10 @@ int main(int argc, char** argv)
 // g++ 指定c++标准: g++ -std=c++17 main.cpp -o o
 int main()
 {
-#ifdef __GNUC__
+#if defined __GNUC__
     std::cout<<"the platform is linux\n";
+#elif defined _WIN32
+    std::cout << "the platform is windows\n";
 #endif
 
     std::cout << "__cplusplus: " << __cplusplus << std::endl;

@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-set(target_name "06_02_MPI")
+set(target_name "06_02_02_MPI")
 
 if(WIN32)
     set(MPI_DIR "C:/Program Files (x86)/Microsoft SDKs/MPI")
@@ -16,5 +16,5 @@ if(MPI_CXX_FOUND)
 
     install(TARGETS ${target_name} RUNTIME DESTINATION ./)
 else()
-	message("===== MPI was not found =====")
+    message("===== MPI was not found =====")
 endif()
