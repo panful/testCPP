@@ -1,9 +1,9 @@
 ﻿set(target_name "00_02_boost_test")
 
 #指定boost根目录
-#if(WIN32)
-#    set(BOOST_ROOT "C:/Boost")
-#endif()
+if(WIN32)
+    set(BOOST_ROOT "C:/Boost")
+endif()
 
 #查找boost库
 find_package(Boost COMPONENTS thread filesystem locale system)
@@ -34,4 +34,4 @@ include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 target_link_libraries (${target_name} ${Boost_LIBRARIES})
 
-install(TARGETS ${target_name} RUNTIME DESTINATION ./)
+install(TARGETS ${target_name} RUNTIME DESTINATION .)

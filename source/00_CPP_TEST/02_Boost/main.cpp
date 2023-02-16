@@ -5,9 +5,10 @@
 * 4. mpl Meta Programming 元编程
 * 5. boost::lexical_cast 数值与字符串转换，c++流也可以，不过没有错误检查
 * 6. boost::pfr 反射
+* 7. boost::type_index
 */
 
-#define TEST1
+#define TEST7
 
 #ifdef TEST1
 
@@ -549,3 +550,37 @@ int main() {
 }
 
 #endif // TEST6
+
+#ifdef TEST7
+
+#include <boost/type_index.hpp>
+#include <iostream>
+#include <string>
+#include <vector>
+
+template <typename T>
+void PrintType()
+{
+    using boost::typeindex::type_id_with_cvr;
+    using boost::typeindex::type_id;
+    std::cout << "boost pretty name:\t" << type_id_with_cvr<T>().pretty_name() << '\n';
+    std::cout << "boost name:\t" << type_id<T>().name() << '\n';
+    //std::cout << "boost raw name"type_id<T>().raw_name() << '\n';
+    std::cout << "std name:\t" << typeid(T).name() << '\n';
+    std::cout << "std raw name:\t" << typeid(T).raw_name() << '\n';
+    std::cout << "-----------------------------------------\n";
+}
+
+int main()
+{
+    PrintType<std::vector<int>>();
+    PrintType<std::string>();
+    PrintType<int>();
+
+    const int& a = 1;
+    PrintType<decltype(a)>();
+
+
+    return 0;
+}
+#endif // TEST7
