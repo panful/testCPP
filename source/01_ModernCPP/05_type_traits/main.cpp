@@ -12,7 +12,7 @@
 * 7. std::iterator_traits，STL源码剖析，解引用，即获取指针指向值的类型
 */
 
-#define TEST4
+#define TEST2
 
 #ifdef TEST1
 
@@ -44,6 +44,7 @@ int main()
 // 不光变量有类型，函数有类型，表达式也有类型
 
 #include <iostream>
+#include <vector>
 
 int TestFunc(int, int&, int*) { std::cout << "The function TestFunc is called\n"; return 0; }
 class TestClass {};
@@ -85,8 +86,8 @@ int main()
         decltype(TestFunc)* z; // z是一个函数指针，和func,x类型一样, int(*z)(int,int&,int*);
 
         int a = 1, & b = a, * c = &a;
-        decltype(TestFunc(a, b, c)) w;   // int w;  TestFunc函数返回值为int型的右值，此处不会调用函数TetFunc
-        decltype((TestFunc(a, b, c))) v; // int v;  表达式(TestFunc(a,b,c))函数返回值为int型的右值
+        decltype(TestFunc(a, b, c)) w;   // int w;  TestFunc函数返回值为int型的右值，此处不会调用函数TestFunc
+        decltype((TestFunc(a, b, c))) v; // int v;  表达式(TestFunc(a,b,c))函数返回值为int型的右值，此处也不会调用TestFunc
     }
 
     // class object
@@ -99,6 +100,17 @@ int main()
         decltype(t) x;       // TestClass x;
         decltype((t)) y = x; // TestClass &y;
     }
+
+    // auto
+    {
+        // Effective Modern C++ 条款3
+        std::vector<int> vec{ 1,2,3,4,5 };
+        decltype(vec[0]) v0 = vec[0];   // v0类型为 int&
+        decltype(auto) v1 = vec[1];     // v1类型为 int&
+        auto v2 = vec[2];               // v2类型为 int
+    }
+
+    return 0;
 }
 
 #endif // TEST2
