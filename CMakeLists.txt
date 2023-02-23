@@ -10,7 +10,10 @@ set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/target)
 
 # 设置编译选项
 if(WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus /utf-8 /EHsc")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /Zc:__cplusplus /utf-8 /EHsc")
+else()
+# 开启所有警告，关闭未使用的变量警告
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable")
 endif(WIN32)
 
 add_subdirectory("source")

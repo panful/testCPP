@@ -3,6 +3,14 @@
 * 2. noexcept
 */
 
+//
+// vs中EHa/EHs/EHsc的区别 https://blog.csdn.net/dan452819043/article/details/115340141
+// /EHa能让catch(…)捕获结构化异常，能保证结构化异常或者C++异常发生的时候局部对象的析构函数被调用，而且假设extern "C"函数可能会抛出C++异常。
+// /EHs无法让catch(…)捕获结构化异常，而且只能保证C++异常抛出的时候局部对象的析构函数被调用，而且假设extern "C"函数可能会抛出C++异常。
+// /EHsc无法让catch(…)捕获结构化异常，而且只能保证C++异常抛出的时候局部对象的析构函数被调用，而且假设extern "C"函数不会抛出C++异常。
+//
+// CMake中通过 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}/EHsc")设置编译选项
+//
 #define TEST2
 
 #ifdef TEST1
@@ -75,6 +83,10 @@ int main()
 
 #ifdef TEST2
 
+// 关闭函数使用了noexpect内部还抛出异常触发的警告
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wterminate"
+
 #include <iostream>
 
 void func1()
@@ -89,6 +101,7 @@ void func2()
 }
 
 // noexcept修饰的函数，如果内部抛出异常，程序直接调用abort()终止运行，异常不会被捕获
+// 如果函数声明为noexcept，但是函数内部还抛出了异常编译器会有警告（使用#pragma可以关闭该警告）
 void func3() noexcept
 {
     std::cout << "func3\n";
@@ -194,5 +207,7 @@ int main()
 
     return 0;
 }
+
+#pragma GCC diagnostic pop
 
 #endif // TEST2

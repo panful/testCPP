@@ -247,10 +247,10 @@ int main()
         while (length1 > 0)
         {
             char* char8 = new char[buf_size + 1](); // 注意此处申请的大小
-            int sendSize = buf_size;
+            //int sendSize = buf_size;
             if (length1 < 5)
             {
-                sendSize = length1;
+                //sendSize = length1;
                 length1 = 0;
             }
             else
