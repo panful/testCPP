@@ -14,6 +14,18 @@
 #ifdef TEST1
 // g++ demo.cpp -o out -std=c++11 -fno-elide-constructors
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+// 关闭警告:
+// parentheses were disambiguated as a function declaration
+// 括号作为函数声明已消除歧义
+#pragma GCC diagnostic ignored "-Wvexing-parse"
+// 关闭警告:
+// moving a local object in a return statement prevents copy elision
+// 在return语句中移动本地对象可防止复制省略
+#pragma GCC diagnostic ignored "-Wpessimizing-move"
+#endif // __GNUC__
+
 #include <iostream>
 #include <type_traits>
 #include <functional>
@@ -141,6 +153,10 @@ int main()
 
     return 0;
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif // __GNUC__
 
 #endif // TEST1
 

@@ -33,7 +33,7 @@ int main()
         auto mytuple3 = std::make_tuple(arr, 1, "abc");
         auto mytuple4 = std::make_tuple(124, myarray, "abc");
         //4.拼接tuple,可以将多个tuple连接到一起
-        auto mytuple5 = std::tuple_cat(mytuple1, mytuple2, mytuple4);
+        auto mytuple5 = std::tuple_cat(mytuple1, mytuple2, mytuple3, mytuple4);
         //5.{}构造std::tuple
         std::tuple<int, std::string, int> mytuple6 = { 1,"aaa",2 };
 

@@ -240,17 +240,17 @@ int main()
     {
         const char* char6 = "1234567890abc";
         const int buf_size = 5;
-        int length1 = strlen(char6);
+        size_t length1 = strlen(char6);
         char* char7 = new char[length1]();
-        int length2 = strlen(char7);
+        size_t length2 = strlen(char7);
 
         while (length1 > 0)
         {
             char* char8 = new char[buf_size + 1](); // 注意此处申请的大小
-            int sendSize = buf_size;
+            //int sendSize = buf_size;
             if (length1 < 5)
             {
-                sendSize = length1;
+                //sendSize = length1;
                 length1 = 0;
             }
             else

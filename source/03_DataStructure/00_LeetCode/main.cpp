@@ -542,7 +542,7 @@ public:
     }
 };
 
-int fib(int x)
+int fib(size_t x)
 {
     if (x < 2)
         return x;

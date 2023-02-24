@@ -95,9 +95,9 @@ struct MyStruct
             SetA();
             return a;
 #endif
-
         };
-
+        
+        f2();
         return f1() == f1() ? 0 : 1;
     }
 

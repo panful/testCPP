@@ -44,10 +44,12 @@ public:
     void f1(const std::string_view& str)
     {
         auto x = str;
+        std::cout << x << '\n';
     }
     void f2(std::string_view str)
     {
         auto x = str;
+        std::cout << x << '\n';
     }
     void f3(const std::string& str)
     {
@@ -193,6 +195,7 @@ int main()
 
         auto svTos = static_cast<std::string>(sv);
         auto sTosv = std::string_view(s);
+        std::cout <<"string_view <=> string\n" << svTos <<'\n' << sTosv << '\n';
     }
 
     // std::string_view范围内的字符串可能不含有\0

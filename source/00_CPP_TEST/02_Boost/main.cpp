@@ -567,7 +567,10 @@ void PrintType()
     std::cout << "boost name:\t" << type_id<T>().name() << '\n';
     //std::cout << "boost raw name"type_id<T>().raw_name() << '\n';
     std::cout << "std name:\t" << typeid(T).name() << '\n';
+#if defined __WIN32
+    // gcc没有这个函数
     std::cout << "std raw name:\t" << typeid(T).raw_name() << '\n';
+#endif
     std::cout << "-----------------------------------------\n";
 }
 
