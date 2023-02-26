@@ -9,18 +9,16 @@
 8. extern template，代码暂时编译不过去
 9. 模板显示实例化
 10.通过模板自定义一个栈
-11.C++20 concept
+11.
 12.变参模板 std::integer_sequence  01_07  https://blog.csdn.net/baidu_41388533/article/details/109716432
 */
 
-// 
 
-// 使用C++11模板SFINAE特性重写序列化与反序列化 https://blog.csdn.net/witton/article/details/109599530
 
 // 预处理 -> 编译 -> 汇编 -> 链接
 //
 
-#define TEST2111
+#define TEST2
 
 #ifdef TEST1
 
@@ -61,10 +59,6 @@ int main()
     return 0;
 }
 #endif // TEST2
-
-
-
-
 
 #ifdef TEST3
 
@@ -430,8 +424,4 @@ int main()
 }
 #endif // TEST10
 
-#ifdef TEST11
-
-// https://zhuanlan.zhihu.com/p/266086040
-#endif // TEST11
 
