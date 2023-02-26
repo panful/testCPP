@@ -1,0 +1,22 @@
+﻿# https://blog.csdn.net/chongbin007/article/details/125173376
+
+BasedOnStyle: WebKit
+Language: Cpp
+
+# 不使用制表符
+UseTab: Never
+
+# 缩进宽度
+IndentWidth: 4
+
+BreakBeforeBraces: Custom
+# 大括号换行，只有当BreakBeforeBraces设置为Custom时才有效
+BraceWrapping:
+  AfterControlStatement:    true
+  AfterFunction:            true
+  AfterClass:               true
+  AfterStruct:              true
+
+# 尾随的注释对齐
+AlignTrailingComments: true
+
