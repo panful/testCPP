@@ -3,7 +3,7 @@
 add_subdirectory("01_Test")
 add_subdirectory("02_Boost")
 add_subdirectory("03_VariableArgs")
-add_subdirectory("04_Thread")
+add_subdirectory("04_Thread_atomic_mutex")
 add_subdirectory("05_Pointer")
 add_subdirectory("06_Operator_and_or_not")
 add_subdirectory("07_Class")
