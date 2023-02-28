@@ -303,6 +303,9 @@ int main(int argc, char** argv)
         // 则获取的是aa，并不是aa/bb/cc/file_name或aa/bb/cc
         // Windows和Linux结果一样，也就是getcwd获取的也是工作目录
         std::cout << "getcwd:" << getcwd(0, 0) << '\n';
+
+        // @note getcwd(0,0)会有内存泄漏
+        // char* path[512]{0}; getcwd(path,512);不会有内存泄漏
     }
 
     std::cout << "----------------------------------------\n";
