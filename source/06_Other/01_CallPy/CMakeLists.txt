@@ -11,6 +11,13 @@ set(target_name "06_01_CallPy")
 find_package(Python3 COMPONENTS Interpreter Development)
 
 if(Python3_FOUND)
+    message("-------------------python3 found-------------------")
+    #message("_Python3_EXECUTABLE: ${_Python3_EXECUTABLE}")
+    #message("_Python3_INCLUDE_DIR: ${_Python3_INCLUDE_DIR}")
+    #message("_Python3_LIBRARY_DEBUG: ${_Python3_LIBRARY_DEBUG}")
+    #message("_Python3_LIBRARY_RELEASE: ${_Python3_LIBRARY_RELEASE}")
+    #message("_Python3_NumPy_INCLUDE_DIR: ${_Python3_NumPy_INCLUDE_DIR}")
+
     add_executable (${target_name} "main.cpp")
 
     target_include_directories(${target_name} PRIVATE ${Python3_INCLUDE_DIRS})
