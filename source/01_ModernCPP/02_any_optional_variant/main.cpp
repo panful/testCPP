@@ -760,8 +760,32 @@ union Vec3 {
     }
 };
 
-union MyU {
-    int s;
+template <typename T>
+struct Vec3Data
+{
+    T x, y, z;
+};
+
+template <typename T>
+struct Vec3Struct
+{
+    Vec3Struct(const T& v1, const T& v2, const T& v3)
+        : data(v1, v2, v3)
+    {
+    }
+
+    T& x = data.x;
+    T& y = data.y;
+    T& z = data.z;
+    T& r = data.x;
+    T& g = data.y;
+    T& b = data.z;
+    T& s = data.x;
+    T& t = data.y;
+    T& p = data.z;
+
+private:
+    Vec3Data<T> data;
 };
 }
 
@@ -823,13 +847,37 @@ int main()
 
     std::cout << "---------------------------------\n";
 
+    // union同一个数据有多个变量名
     {
         Vec3 v1 { 1, 2, 3 };
         Vec3 v2 { 1.f, 2.f, 3.f };
 
+        std::cout << std::dec << "sizeof: " << sizeof(Vec3<int>) << '\t' << sizeof(v1) << '\n';
+
         // 编译失败，因为union中不能有非pod类型
         // std::string str = "test";
         // Vec3 v3 { str, str, str };
+
+        std::cout << v1.x << '\t' << v1.y << '\t' << v1.z << '\n'
+                  << v1.r << '\t' << v1.g << '\t' << v1.b << '\n'
+                  << v1.s << '\t' << v1.t << '\t' << v1.p << '\n';
+    }
+
+    std::cout << "---------------------------------\n";
+
+    // struct同一个数据有多个变量名
+    {
+        Vec3Struct v1 { 1, 2, 3 };
+
+        std::cout << std::dec << "sizeof: " << sizeof(Vec3Struct<int>) << '\t' << sizeof(v1) << '\n';
+
+        std::cout << v1.x << '\t' << v1.y << '\t' << v1.z << '\n'
+                  << v1.r << '\t' << v1.g << '\t' << v1.b << '\n'
+                  << v1.s << '\t' << v1.t << '\t' << v1.p << '\n';
+
+        v1.x = 4;
+        v1.y = 5;
+        v1.z = 6;
 
         std::cout << v1.x << '\t' << v1.y << '\t' << v1.z << '\n'
                   << v1.r << '\t' << v1.g << '\t' << v1.b << '\n'
