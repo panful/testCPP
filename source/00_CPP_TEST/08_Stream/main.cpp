@@ -3,7 +3,7 @@
 2. 设置流的精度，格式
 3. 将vector bool int float 空char* 等写入流，从流中读取这些类型
 4. char*分割  strcat strcpy memcpy
-5. std::fill std::copy std::fill_n
+5. std::fill std::fill_n std::copy std::copy_n std::copy_if std::copy_backward
 6. stringstream常用函数 seekg tellg seekp tellp getline get put write read gcount
 7. 超大文件
 */
@@ -13,8 +13,7 @@
 
 // c++的缺陷和思考 https://blog.csdn.net/fl2011sx?type=blog
 
-#define TEST4
-
+#define TEST5
 
 #ifdef TEST1
 
@@ -24,22 +23,21 @@
 int main()
 {
 
-    //std::stringstream ss;
-    //ss << "ss\n";
-    //char ch[] = "pp";
-    //ss.put('c');
-    //std::cout << ss.str();
-    //std::string s;
-    //ss >> s;
+    // std::stringstream ss;
+    // ss << "ss\n";
+    // char ch[] = "pp";
+    // ss.put('c');
+    // std::cout << ss.str();
+    // std::string s;
+    // ss >> s;
 
-
-    //string与各种内置类型数据之间的转换
-    //int转string
+    // string与各种内置类型数据之间的转换
+    // int转string
     std::stringstream ss0;
     int int1 = 100;
     ss0 << int1;
     std::string str1 = ss0.str();
-    //string转int
+    // string转int
     std::stringstream ss1;
     std::string str2 = "666";
     int int2;
@@ -55,20 +53,15 @@ int main()
     std::string s;
     std::getline(std::cin, s);
 
+    // std::stringstream ss2;
+    // char ch[] = "char";
+    // ss1 << ch << std::endl;
+    // ss1.put('a');
+    // ss1.put('b');
+    // ss1 << "def" << std::endl;
 
-
-    //std::stringstream ss2;
-    //char ch[] = "char";
-    //ss1 << ch << std::endl;
-    //ss1.put('a');
-    //ss1.put('b');
-    //ss1 << "def" << std::endl;
-
-    //auto r1 = ss1.str();  //r1类型为std::string
-    //std::cout << r1;
-
-
-
+    // auto r1 = ss1.str();  //r1类型为std::string
+    // std::cout << r1;
 
     system("pause");
     return 0;
@@ -96,9 +89,9 @@ int main()
     std::cout << std::scientific << f4 << std::endl;
 
     std::cout << "--------\n";
-    std::cout.precision(2); //精度为2，小数点后的数字个数 std::setprecision()也可以设置精度
-    std::cout.fill(0);  //以0填充
-    std::cout.setf(std::ios::right); //右对齐
+    std::cout.precision(2);          // 精度为2，小数点后的数字个数 std::setprecision()也可以设置精度
+    std::cout.fill(0);               // 以0填充
+    std::cout.setf(std::ios::right); // 右对齐
 
     std::cout << std::fixed << f2 << std::endl;
     std::cout << std::scientific << f2 << std::endl;
@@ -107,40 +100,31 @@ int main()
     std::cout << std::fixed << f4 << std::endl;
     std::cout << std::scientific << f4 << std::endl;
 
-
-
-
-
     std::stringstream ss1;
     ss1 << "sss";
     auto ret1 = ss1.str();
 
-
     std::stringstream ss2;
-    //清除默认精度
-    //ss2.precision(std::numeric_limits<double>::digits10);
+    // 清除默认精度
+    // ss2.precision(std::numeric_limits<double>::digits10);
     float f1 = -0.123456789f;
     ss2 << f1;
-    auto ret2 = ss2.str();  //"-0.123457"
+    auto ret2 = ss2.str(); //"-0.123457"
 
     std::stringstream ss3;
     ss3.precision(2);
     ss3 << f1;
     auto ret3 = ss3.str();
 
-
-
     int test = 0;
-
 }
-
 
 #endif // TEST2
 
 #ifdef TEST3
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -157,12 +141,12 @@ int main()
         std::stringstream ss1;
 
         double id = 5.5;
-        ss1.write(reinterpret_cast<char*>(&id), sizeof(double)); //前8个字节写入id
-        ss1.write(reinterpret_cast<char*>(vec1.data()), sizeof(float) * vec1.size()); //接着id写入实际的vector<float>数据
+        ss1.write(reinterpret_cast<char*>(&id), sizeof(double));                      // 前8个字节写入id
+        ss1.write(reinterpret_cast<char*>(vec1.data()), sizeof(float) * vec1.size()); // 接着id写入实际的vector<float>数据
 
-        char buf1[10]{ 0 };
-        char buf2[50]{ 0 };
-        ss1.read(buf1, sizeof(double)); // 读取id
+        char buf1[10] { 0 };
+        char buf2[50] { 0 };
+        ss1.read(buf1, sizeof(double));              // 读取id
         ss1.read(buf2, sizeof(float) * vec1.size()); // 读取vector<float>数据
         auto ret1 = reinterpret_cast<double*>(buf1);
         auto ret2 = reinterpret_cast<float*>(buf2);
@@ -171,10 +155,10 @@ int main()
     // 流中存储 vector<vector<int>>
     {
         std::vector<std::vector<int>> vec2;
-        vec2.emplace_back(std::vector<int>{ 1, 2, 3 });
-        vec2.emplace_back(std::vector<int>{ 4, 5, 6 });
-        vec2.emplace_back(std::vector<int>{ 7, 8, 9 });
-        vec2.emplace_back(std::vector<int>{ 10, 11, 12 });
+        vec2.emplace_back(std::vector<int> { 1, 2, 3 });
+        vec2.emplace_back(std::vector<int> { 4, 5, 6 });
+        vec2.emplace_back(std::vector<int> { 7, 8, 9 });
+        vec2.emplace_back(std::vector<int> { 10, 11, 12 });
 
         // 复合vector返回的是内层的指针
         std::vector<int>* data = vec2.data();
@@ -188,7 +172,7 @@ int main()
             ss2.write(reinterpret_cast<char*>(elem.data()), sizeof(int) * elem.size());
         }
 
-        char buf[100]{ 0 };
+        char buf[100] { 0 };
         ss2.read(buf, sizeof(int) * (size));
         auto ret1 = reinterpret_cast<int*>(buf);
     }
@@ -196,16 +180,16 @@ int main()
     // 流中存储bool int复合数据
     {
         bool b1 = true;
-        bool b[4] = { true,false,false,true };
-        int arr[4] = { 5,6,7,8 };
+        bool b[4] = { true, false, false, true };
+        int arr[4] = { 5, 6, 7, 8 };
         std::stringstream ss;
         ss.write(reinterpret_cast<char*>(&b1), sizeof(bool));
         ss.write(reinterpret_cast<char*>(arr), sizeof(int) * 4);
         ss.write(reinterpret_cast<char*>(b), sizeof(bool) * 4);
 
-        char buf1[10]{ 0 };
-        char buf2[50]{ 0 };
-        char buf3[10]{ 0 };
+        char buf1[10] { 0 };
+        char buf2[50] { 0 };
+        char buf3[10] { 0 };
 
         ss.read(buf1, 1);
         ss.read(buf2, sizeof(int) * 4);
@@ -235,7 +219,7 @@ int main()
 
 int main()
 {
-    //void *memcpy(void *str1, const void *str2, size_t n) 从存储区 str2 复制 n 个字节到存储区 str1。
+    // void *memcpy(void *str1, const void *str2, size_t n) 从存储区 str2 复制 n 个字节到存储区 str1。
 
     {
         const char* char6 = "1234567890abc";
@@ -247,13 +231,12 @@ int main()
         while (length1 > 0)
         {
             char* char8 = new char[buf_size + 1](); // 注意此处申请的大小
-            //int sendSize = buf_size;
+            // int sendSize = buf_size;
             if (length1 < 5)
             {
-                //sendSize = length1;
+                // sendSize = length1;
                 length1 = 0;
-            }
-            else
+            } else
             {
                 length1 -= buf_size;
             }
@@ -268,13 +251,13 @@ int main()
         const char* buf1 = "123456789";
         auto len1 = strlen(buf1);
 
-        char buf2[20]{ 0 };
+        char buf2[20] { 0 };
         memcpy(buf2, buf1, 15);
         buf1 += 5;
         auto len2 = strlen(buf2);
 
-        char buf3[10]{ 0 };
-        memcpy(buf3, buf1, 15);   // 不会报错
+        char buf3[10] { 0 };
+        memcpy(buf3, buf1, 15); // 不会报错
         auto len3 = strlen(buf3);
     }
 
@@ -282,7 +265,7 @@ int main()
         const char* buf1 = "123abc";
         char* buf2 = new char[1]();
         auto s1 = strlen(buf2);
-        //char* buf2 = nullptr;
+        // char* buf2 = nullptr;
         strcat(buf2, buf1);
         const char* buf3 = "xyz";
         strcat(buf2, buf3);
@@ -297,21 +280,21 @@ int main()
         int b = 88;
         int c = 77;
 
-        int buf[]{ 99,88,77 };
+        int buf[] { 99, 88, 77 };
         char* buf1 = reinterpret_cast<char*>(buf);
         char* buf5 = new char[100]();
         const char* buf6 = "abc";
         strcat(buf5, buf1);
         strcat(buf5, buf6);
 
-        //char* buf1 = new char[100]();
-        //strcat(buf1, reinterpret_cast<char*>(&a));
-        //strcat(buf1, reinterpret_cast<char*>(&b));
-        //strcat(buf1, reinterpret_cast<char*>(&c));
+        // char* buf1 = new char[100]();
+        // strcat(buf1, reinterpret_cast<char*>(&a));
+        // strcat(buf1, reinterpret_cast<char*>(&b));
+        // strcat(buf1, reinterpret_cast<char*>(&c));
 
-        //strncat(buf1, reinterpret_cast<char*>(&a), 4);
-        //strncat(buf1, reinterpret_cast<char*>(&b), 4);
-        //strncat(buf1, reinterpret_cast<char*>(&c), 4);
+        // strncat(buf1, reinterpret_cast<char*>(&a), 4);
+        // strncat(buf1, reinterpret_cast<char*>(&b), 4);
+        // strncat(buf1, reinterpret_cast<char*>(&c), 4);
 
         auto buf2 = reinterpret_cast<int*>(buf1);
 
@@ -322,43 +305,40 @@ int main()
         int t = 0;
     }
 
+    // char char1[] = "123456";
+    // char char2[] = "abcdefgh";
+    // char buffer[1024] = { 0 };
+    // auto ret5 = strncpy_s(buffer, char1, 3);
 
-    //char char1[] = "123456";
-    //char char2[] = "abcdefgh";
-    //char buffer[1024] = { 0 };
-    //auto ret5 = strncpy_s(buffer, char1, 3);
+    // const char* char3 = "123456abcdef";
+    // char char4[100] = { 0 };
 
-    //const char* char3 = "123456abcdef";
-    //char char4[100] = { 0 };
-
-    //const char* char5 = "1234567890";
+    // const char* char5 = "1234567890";
 
     ////char* strncpy(char* dest, const char* src, size_t n)
     ////    把 src 所指向的字符串复制到 dest，最多复制 n 个字符。
-    //strncpy_s(char4, char5, 5);
-    //char5 += 5;
+    // strncpy_s(char4, char5, 5);
+    // char5 += 5;
 
     ////char* strncat(char* dest, const char* src, size_t n)
     ////    把 src 所指向的字符串追加到 dest 所指向的字符串的结尾，直到 n 字符长度为止。
-    //char dest[1024]{ 0 };
-    //strcat_s(dest, char1);
-    //strcat_s(dest, char2);
+    // char dest[1024]{ 0 };
+    // strcat_s(dest, char1);
+    // strcat_s(dest, char2);
 
-    //auto ret6 = char3[0];
-    //auto ret7 = char3[3];
-    //auto len3 = strlen(char3);
-    //auto len4 = sizeof(char3);
-    //auto len5 = sizeof(char4);
+    // auto ret6 = char3[0];
+    // auto ret7 = char3[3];
+    // auto len3 = strlen(char3);
+    // auto len4 = sizeof(char3);
+    // auto len5 = sizeof(char4);
 
+    // auto ret1 = char1;
+    // auto ret2 = char2;
+    // auto ret3 = char1[0];
+    // auto ret4 = char1[1];
 
-
-    //auto ret1 = char1;
-    //auto ret2 = char2;
-    //auto ret3 = char1[0];
-    //auto ret4 = char1[1];
-
-    //auto len1 = strlen(char1);
-    //auto len2 = strlen(char2);
+    // auto len1 = strlen(char1);
+    // auto len2 = strlen(char2);
 
     return 0;
 }
@@ -367,43 +347,165 @@ int main()
 
 #ifdef TEST5
 
-#include <iostream>
 #include <algorithm>
+#include <array>
+#include <iostream>
 #include <iterator>
+#include <vector>
 
 int main()
 {
-    const char* c1 = "abcd1234efgh5678";
-    char* c2 = new char[16]();
-    char c3[] = "abcd1234";
-    char c4[10] = { 0 };
-    // 只有c3和c4这种数组可以用std::begin和std::end，c1和c2不行
+    // 字符串数组使用std::fill std::copy
+    {
+        const char* c1 = "abcd1234efgh5678";
+        char* c2 = new char[16]();
+        char c3[] = "abcd1234";
+        char c4[10] = { 0 };
+        char c5[10] = { 0 };
 
-    std::fill(std::begin(c4), std::end(c4), 'a');
-    std::copy(std::begin(c3), std::end(c3), c4);
+        // 只有c3和c4这种数组可以用std::begin和std::end，c1和c2不行
 
+        // 使用'a'填充c4数组，注意字符串最后一个为 '/0'
+        std::fill(std::begin(c4), std::end(c4) - 1, 'a');
+
+        // 将c3的内容拷贝到c5，如果目标的大小不足将会崩溃
+        std::copy(std::cbegin(c3), std::cend(c3), c5);
+
+        std::cout << c4 << '\n'
+                  << c5 << '\n';
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    // 使用std::copy拷贝数据到void*
+    {
+        std::array<int, 5> source { 1, 2, 3, 4, 5 };
+        int* ptrInt = new int[5]();
+        void* ptrVoid = reinterpret_cast<void*>(ptrInt);
+
+        std::copy(source.cbegin(), source.cend(), static_cast<int*>(ptrVoid));
+
+        for (size_t i = 0; i < 5; i++)
+        {
+            std ::cout << ptrInt[i] << '\t';
+        }
+        std::cout << '\n';
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        std::array<int, 5> source { 1, 2, 3, 4, 5 };
+        std::vector<int> dest1;
+        std::vector<int> dest2(5);
+
+        std::copy(source.cbegin(), source.cend(), std::back_inserter(dest1));
+        // 需要提前分配内存，即设置dest2的大小
+        std::copy(source.cbegin(), source.cend(), dest2.begin());
+
+        auto printElem = [](auto&& container) {
+            std::for_each(container.begin(), container.end(), [](auto&& val) {
+                std::cout << val << '\t';
+            });
+            std::cout << '\n';
+        };
+        printElem(dest1);
+        printElem(dest2);
+    }
+
+    // 用来打印元素
+    auto printElem = [](auto&& container) {
+        std::for_each(container.begin(), container.end(), [](auto&& val) {
+            std::cout << val << '\t';
+        });
+        std::cout << '\n';
+    };
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        std::array<int, 9> source { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        std::vector<int> dest;
+
+        // 将source的偶数元素拷贝到dest
+        std::copy_if(source.cbegin(), source.cend(), std::back_inserter(dest), [](auto&& val) {
+            if (val % 2 == 0)
+                return true;
+            else
+                return false;
+        });
+
+        printElem(dest);
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        std::array<int, 9> source { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        std::vector<int> dest;
+
+        // 将source的偶数元素拷贝到dest
+        std::copy_if(source.cbegin(), source.cend(), std::back_inserter(dest), [](auto&& val) {
+            if (val % 2 == 0)
+                return true;
+            else
+                return false;
+        });
+
+        printElem(dest);
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        std::array<int, 9> source { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        std::vector<int> dest;
+
+        // 将source的前5个元素拷贝到dest
+        std::copy_n(source.begin(), 5, std::back_inserter(dest));
+
+        printElem(dest);
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        std::array<int, 9> source { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        std::vector<int> dest(15);
+        std::vector<int> dest2(10);
+
+        // 需要给dest提前分配好内存
+        // 将source的first到last复制（或移动）到dest的d_last-(last-first)
+        std::copy_backward(source.cbegin(), source.cend(), dest.end());
+        std::move_backward(source.cbegin(), source.cend(), dest2.end());
+
+        printElem(source);
+        printElem(dest);
+        printElem(dest2);
+    }
+
+    return 0;
 }
 
 #endif // TEST5
 
 #ifdef TEST6
 
-#include <sstream>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 int main()
 {
     // read write
     // 写int数组到sstream，从sstream读int数组
     {
-        int c1[] = { 1,2,3,4,5,6 };
+        int c1[] = { 1, 2, 3, 4, 5, 6 };
         std::stringstream ss;
         ss.write((char*)(c1), 100);
         char* buf = new char[100]();
         ss.read(buf, 100);
         auto ret = (int*)(buf);
-
     }
 
     // seekg:seek get 设置流读指针的位置 适用于 istream stream等
@@ -418,23 +520,23 @@ int main()
 
         std::ostringstream oss;
         oss << "12345abcde";
-        long pos1 = oss.tellp();       // 获取输出流的写指针位置
-        oss.seekp(0L, std::ios::beg);  // 将输出流的写指针设置到起始
+        long pos1 = oss.tellp();      // 获取输出流的写指针位置
+        oss.seekp(0L, std::ios::beg); // 将输出流的写指针设置到起始
         long pos2 = oss.tellp();
-        oss.seekp(0L, std::ios::end);  // 将输出流的写指针设置到末尾
-        long pos3 = oss.tellp();       // 相当于求输出流的长度
+        oss.seekp(0L, std::ios::end); // 将输出流的写指针设置到末尾
+        long pos3 = oss.tellp();      // 相当于求输出流的长度
 
-        char buffer[11]{ 0 };
+        char buffer[11] { 0 };
         std::string str1, str2, str3;
         std::istringstream iss("abcde12345");
         long pos4 = iss.tellg(); // 0
-        iss >> str1; // "abcde12345"
+        iss >> str1;             // "abcde12345"
         iss.seekg(3, std::ios::beg);
         long pos5 = iss.tellg(); // 3
-        iss >> str2; // "de12345"
+        iss >> str2;             // "de12345"
         iss.seekg(-7, std::ios::end);
         long pos6 = iss.tellg(); // 3
-        iss >> str3; // "de12345"
+        iss >> str3;             // "de12345"
         long pos7 = iss.tellg(); // -1
     }
 
@@ -443,7 +545,7 @@ int main()
         std::ostringstream oss;
         std::istringstream iss("abcde\n12345\n---");
 
-        char buf1[50]{ 0 };
+        char buf1[50] { 0 };
         iss.getline(buf1, 20); // 只能获取第一个换行符之前的内容
 
         std::string str;
@@ -477,7 +579,6 @@ int main()
         iss.ignore(2, '\n');
         long pos3 = iss.tellg(); // 6
         auto ret3 = iss.str();   // "abcde\n12345\n---"
-
     }
 
     // get
@@ -486,16 +587,19 @@ int main()
         std::stringstream ss;
         ss << c1;
 
-        char* c4 = new char[5];   //"1234"
+        char* c4 = new char[5]; //"1234"
         ss.get(c4, 5);
-        char* c5 = new char[5];   //"567"
+        char* c5 = new char[5]; //"567"
         ss.get(c5, 4);
         char* c6 = new char[5](); //"890a"
         ss.get(c6, 5);
 
-        delete[] c4; c4 = nullptr;
-        delete[] c5; c5 = nullptr;
-        delete[] c6; c6 = nullptr;
+        delete[] c4;
+        c4 = nullptr;
+        delete[] c5;
+        c5 = nullptr;
+        delete[] c6;
+        c6 = nullptr;
     }
 
     // read函数读取字节数
@@ -505,14 +609,17 @@ int main()
         ss << c1;
         char* c2 = new char[5](); // "1234"
         ss.read(c2, 4);
-        char* c3 = new char[5];   // "56789   "   error
+        char* c3 = new char[5]; // "56789   "   error
         ss.read(c3, 5);
         char* c4 = new char[5](); // "0abcd   "   error
         ss.read(c4, 5);
 
-        delete[] c2; c2 = nullptr;
-        delete[] c3; c3 = nullptr;
-        delete[] c4; c3 = nullptr;
+        delete[] c2;
+        c2 = nullptr;
+        delete[] c3;
+        c3 = nullptr;
+        delete[] c4;
+        c3 = nullptr;
     }
 
     // 使用sstream合并char*
@@ -528,16 +635,16 @@ int main()
 
     // 将文件读到stringstream
     {
-        std::ifstream ifs("test.txt"/*, std::ifstream::binary*/);
+        std::ifstream ifs("test.txt" /*, std::ifstream::binary*/);
         std::stringstream ss;
         ss << ifs.rdbuf();
         ifs.close();
 
-        //auto str = ss.str();
-        //auto len = str.length();
-        //auto ret1 = str[3830000];
-        //auto ret2 = str[3830001];
-        //auto ret3 = str[3830002];
+        // auto str = ss.str();
+        // auto len = str.length();
+        // auto ret1 = str[3830000];
+        // auto ret2 = str[3830001];
+        // auto ret3 = str[3830002];
     }
 
     // 将文件读到stringstream
@@ -548,7 +655,7 @@ int main()
         ifs.seekg(0, ifs.beg);
         char* buffer = new char[length]();
         ifs.read(buffer, length);
-        std::stringstream ss(buffer);  // 缓冲区会被复制，内存使用加倍
+        std::stringstream ss(buffer); // 缓冲区会被复制，内存使用加倍
         auto ret = ss.str();
         ifs.close();
     }
@@ -568,16 +675,15 @@ int main()
             {
                 char* buffer = new char[1025]();
                 ss.read(buffer, 1024);
-                //ss2 << buffer;
-                // 用 <<写的文件有问题，暂时不知道为啥
+                // ss2 << buffer;
+                //  用 <<写的文件有问题，暂时不知道为啥
                 ss2.write(buffer, 1024);
                 length -= 1024;
-            }
-            else
+            } else
             {
                 char* buffer = new char[length + 1]();
                 ss.read(buffer, length);
-                //ss2 << buffer;
+                // ss2 << buffer;
                 ss2.write(buffer, length);
                 length = 0;
             }
@@ -605,7 +711,7 @@ int main()
                 ifs.read(buffer, bufferSize);
                 // gcount返回实际读取到的字符数，最大读取bufferSize个字符，但实际流中可能没有这么多字符
                 readLen = ifs.gcount();
-                //std::cout << readLen << std::endl;
+                // std::cout << readLen << std::endl;
                 haveRead += readLen;
             }
         }
@@ -620,8 +726,8 @@ int main()
 
 #ifdef TEST7
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 int main()
