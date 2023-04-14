@@ -1,5 +1,4 @@
-﻿# https://blog.csdn.net/chongbin007/article/details/125173376
-
+﻿
 BasedOnStyle: WebKit
 Language: Cpp
 
@@ -16,7 +15,13 @@ BraceWrapping:
   AfterFunction:            true
   AfterClass:               true
   AfterStruct:              true
+  AfterEnum:                true
+  BeforeCatch:              true  # catch 新起一行
+  BeforeElse:               true  # else  新起一行
+  AfterCaseLabel:           true  # case  新起一行
 
 # 尾随的注释对齐
 AlignTrailingComments: true
 
+# AlignConsecutiveAssignments: true  # 对齐连续的多行赋值
+# PointerAlignment: Right # 指针的*紧靠变量名
