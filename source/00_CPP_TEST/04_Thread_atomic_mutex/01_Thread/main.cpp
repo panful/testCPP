@@ -447,7 +447,7 @@ int main()
     std::cout << "------------------------------------------\n";
 
     // std::future.wait_for()
-    // 标准库关于 std::future.wait_for()返回值定义
+    // 标准库关于 std::future.wait_for()返回值定义（共享状态可以理解为一个共享的区域）
     // enum class future_status {
     //     ready,   // 共享状态就绪，即std::future中的数据已经可以使用
     //     timeout, // 共享状态在经过指定的等待时间内仍未就绪
@@ -472,7 +472,7 @@ int main()
 
     std::cout << "------------------------------------------\n";
 
-    // std::future.valid()返回true表示当前处于共享状态，即可以使用get()获取值
+    // std::future.valid()返回true表示当前的共享状态可用（共享的区域存在），即可以使用get() wait()等函数
     {
         std::cout << std::boolalpha;
 
@@ -481,11 +481,13 @@ int main()
         std::future<void> f;
         std::cout << f.valid() << '\n';
 
-        // 将std::promise返回值赋值给std::future
-        // std::future将变为共享状态
+        // 将std::promise返回值赋值给std::future将变为共享状态，
+        // 否则std::future处于非共享状态，调用get() wait()等函数时将会抛出异常
         f = p.get_future();
         std::cout << f.valid() << '\n';
 
+        // 让状态处于就绪状态，即使用wait()不会继续阻塞，可以使用get()获取值，
+        // 就好像发送了一个准备就绪的信号
         p.set_value();
         std::cout << f.valid() << '\n';
 
@@ -525,39 +527,6 @@ int main()
 
 #endif // TEST15
 
-#ifdef TEST151
-
-#include <future>
-#include <iostream>
-#include <thread>
-#include <vector>
-
-int main()
-{
-    std::promise<void> p;
-    std::future<void> f;
-    std::vector<size_t> result;
-
-    std::thread t([&result, &p]() {
-        for (size_t i = 0; i < 10; i++)
-        {
-            result.emplace_back(i);
-        }
-        p.set_value();
-    });
-
-    f.wait();
-
-    for (auto&& elem : result)
-    {
-        std::cout << elem << '\t';
-    }
-    std::cout << '\n';
-    t.join();
-    return 0;
-}
-
-#endif // TEST15
 
 //-------------------------------
 
