@@ -9,7 +9,9 @@
 12. std::packaged_task + std::future 获取线程执行结果
 13. 使用lambda获取线程的执行结果
 14. std::promise 在指定时间再设置线程任务执行需要的数据
-15. std::future常用函数的
+15. std::future 常用函数的使用
+16. std::promise.set_value_at_thread_exit 线程退出时才将状态设置为就绪
+17. std::packaged_task 常用函数的使用
 ------------------------------------------------
 21. std::async 创建策略的区别，获取线程的执行结果
 22. std::async 线程池机制，接收返回值
@@ -18,7 +20,7 @@
 
 */
 
-#define TEST15
+#define TEST17
 
 #ifdef TEST01
 
@@ -250,8 +252,6 @@ void Add(int x, int y, std::promise<int>& promiseObj)
     promiseObj.set_value(value);
 }
 
-// std::promise 作用就是用来包装一个值，将数据和 std::future 绑定起来
-
 int main()
 {
     std::cout << "main thread id: " << std::this_thread::get_id() << '\n';
@@ -303,8 +303,6 @@ int Add(int a, int b)
     std::this_thread::sleep_for(std::chrono::seconds(3));
     return a + b;
 }
-
-// std::packaged_task 用来包装一个调用对象，将函数和 std::future 绑定起来，方便异步调用
 
 int main()
 {
@@ -527,6 +525,134 @@ int main()
 
 #endif // TEST15
 
+#ifdef TEST16
+
+#include "myUtility.hpp"
+#include <future>
+#include <thread>
+
+int main()
+{
+    {
+        std::promise<int> p;
+        std::future<int> f = p.get_future();
+
+        p.set_value(1);
+        std::cout << f.get() << '\n';
+
+        // std::promise不能多次使用set_value()否则会崩溃
+        try
+        {
+            p.set_value(2);
+            std::cout << f.get() << '\n';
+        }
+        catch (...)
+        {
+            std::cout << "wrong of set_value()\n";
+        }
+    }
+
+    {
+        MyUtility::ConsumeTime ct;
+        using namespace std::chrono_literals;
+        std::promise<int> p;
+        std::future<int> f = p.get_future();
+
+        std::thread([&p] {
+            std::this_thread::sleep_for(2s);
+
+            // 在当前线程退出的时候再将状态设置为就绪
+            p.set_value_at_thread_exit(9);
+
+            // 执行完set_value()就会将状态设置为就绪
+            // p.set_value(9);
+            std::this_thread::sleep_for(2s);
+        }).detach();
+
+        std::cout << "Waiting...\n"
+                  << std::flush;
+
+        // set_value_at_thread_exit需要4s
+        // set_value只需2秒
+        f.wait();
+        ct.ConsumeTimeByNow();
+
+        std::cout << "Done!\nResult is: "
+                  << f.get() << '\n';
+    }
+}
+
+#endif // TEST16
+
+#ifdef TEST17
+
+#include "myUtility.hpp"
+#include <future>
+#include <thread>
+
+int main()
+{
+    std::cout << std::boolalpha;
+    std::cout << "thread id: " << std::this_thread::get_id() << '\n';
+    auto worker = [](int n) { std::cout << "thread id: " << std::this_thread::get_id() << '\n';return 2 * n; };
+
+    // valid用于检查std::packaged_task对象是否拥有合法函数
+    // 只有当valid返回ture时，才能使用operator()等执行任务的函数
+    {
+        std::packaged_task<int(int)> pt;
+        std::cout << "valid: " << pt.valid() << '\n';
+    }
+
+    std::cout << "-------------------\n";
+
+    {
+        std::packaged_task<int(int)> pt(worker);
+        std::cout << "valid: " << pt.valid() << '\n';
+        std::future<int> f = pt.get_future();
+        std::thread(std::move(pt), 2).join();
+        std::cout << f.get() << '\n';
+    }
+
+    std::cout << "-------------------\n";
+
+    // operator()用来在当前线程执行任务
+    {
+        std::packaged_task<int(int)> pt(worker);
+        std::future<int> f = pt.get_future();
+        pt(3);
+        std::cout << f.get() << '\n';
+    }
+
+    std::cout << "-------------------\n";
+
+    // reset()重置状态，抛弃先前执行的结果。构造共享状态。
+    // 等价于 std::packaged_task pt = std::packaged_task(std::move(f)) ，其中 f 是存储的任务。
+    {
+        std::packaged_task<int(int)> pt(worker);
+        std::future<int> f = pt.get_future();
+
+        pt(3);
+        std::cout << f.get() << '\n';
+
+        std::cout << "valid: " << pt.valid() << '\n';
+        pt.reset();
+        std::cout << "valid: " << pt.valid() << '\n';
+
+        // 如果没有重置状态不能多次执行任务
+        pt(4);
+        std::cout << pt.get_future().get() << '\n';
+    }
+
+    std::cout << "-------------------\n";
+
+    // std::packaged_task.make_ready_at_thread_exit()立即执行任务，但是线程退出时才将状态设置为就绪
+    // MSVC一直抛出异常，不知道啥原因
+    // https://zh.cppreference.com/w/cpp/thread/packaged_task
+
+    return 0;
+}
+
+#endif // TEST17
 
 //-------------------------------
 
