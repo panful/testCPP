@@ -9,6 +9,7 @@
 12. std::packaged_task + std::future 获取线程执行结果
 13. 使用lambda获取线程的执行结果
 14. std::promise 在指定时间再设置线程任务执行需要的数据
+15. std::future常用函数的
 ------------------------------------------------
 21. std::async 创建策略的区别，获取线程的执行结果
 22. std::async 线程池机制，接收返回值
@@ -17,7 +18,7 @@
 
 */
 
-#define TEST14
+#define TEST15
 
 #ifdef TEST01
 
@@ -226,6 +227,9 @@ int main()
 #endif // TEST04
 
 //-------------------------------
+// std::future 用于访问异步操作的结果，而 std::promise 和 std::packaged_task 在 future 高一层，它们内部都有一个 future，
+// promise 包装的是一个值，packaged_task 包装的是一个函数。
+// 当需要获取线程中的某个值，可以使用std::promise，当需要获取线程函数返回值，可以使用std::packaged_task。
 
 #ifdef TEST11
 
@@ -411,6 +415,149 @@ int main()
     return 0;
 }
 #endif // TEST14
+
+#ifdef TEST15
+
+#include "myUtility.hpp"
+#include <chrono>
+#include <future>
+#include <thread>
+#include <vector>
+
+int main()
+{
+    // std::future.wait()
+    {
+        MyUtility::ConsumeTime ct;
+        std::future<int> result_future = std::async(std::launch::async, []() {
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            return 9;
+        });
+        ct.ConsumeTimeByNow();
+
+        result_future.wait();
+        ct.ConsumeTimeByNow();
+
+        auto result_number = result_future.get();
+        ct.ConsumeTimeByNow();
+
+        std::cout << result_number << '\n';
+    }
+
+    std::cout << "------------------------------------------\n";
+
+    // std::future.wait_for()
+    // 标准库关于 std::future.wait_for()返回值定义
+    // enum class future_status {
+    //     ready,   // 共享状态就绪，即std::future中的数据已经可以使用
+    //     timeout, // 共享状态在经过指定的等待时间内仍未就绪
+    //     deferred // 共享状态持有的函数正在延迟运行，结果将仅在显式请求时计算 具体可以查看std::async(std::launch::deferred,...)
+    // };
+    {
+        MyUtility::ConsumeTime ct;
+        std::future<int> result_future = std::async(std::launch::async, []() {
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            return 9;
+        });
+        ct.ConsumeTimeByNow();
+
+        auto wait_status = result_future.wait_for(std::chrono::seconds(2));
+        ct.ConsumeTimeByNow();
+
+        auto result_number = result_future.get();
+        ct.ConsumeTimeByNow();
+
+        std::cout << "future status: " << static_cast<int>(wait_status) << "\tresult: " << result_number << '\n';
+    }
+
+    std::cout << "------------------------------------------\n";
+
+    // std::future.valid()返回true表示当前处于共享状态，即可以使用get()获取值
+    {
+        std::cout << std::boolalpha;
+
+        std::promise<void> p;
+
+        std::future<void> f;
+        std::cout << f.valid() << '\n';
+
+        // 将std::promise返回值赋值给std::future
+        // std::future将变为共享状态
+        f = p.get_future();
+        std::cout << f.valid() << '\n';
+
+        p.set_value();
+        std::cout << f.valid() << '\n';
+
+        // 调用get()后会释放共享状态，即valid()返回false
+        f.get();
+        std::cout << f.valid() << '\n';
+    }
+
+    std::cout << "------------------------------------------\n";
+
+    // std::shared_future
+    {
+        std::vector<std::shared_future<int>> futures;
+
+        std::promise<int> p1;
+        std::promise<int> p2;
+        auto f1 = p1.get_future();
+        auto f2 = p2.get_future();
+
+        // 将std::future保存到容器需要使用std::future.share()
+        // 在std::future上调用share()后，共享状态将变为false
+        // 可以理解为：以std::shared_future<T>(std:move(std::future))构造
+        futures.emplace_back(f1.share());
+        futures.emplace_back(f2.share());
+
+        p1.set_value(1);
+        p2.set_value(2);
+
+        std::cout << f1.valid() << '\t' << f2.valid() << '\n'
+                  << futures.at(0).valid() << '\t' << futures.at(1).valid() << '\n'
+                  << futures.at(0).get() << '\t' << futures.at(1).get() << '\n'
+                  << futures.at(0).valid() << '\t' << futures.at(1).valid() << '\n';
+    }
+
+    return 0;
+}
+
+#endif // TEST15
+
+#ifdef TEST151
+
+#include <future>
+#include <iostream>
+#include <thread>
+#include <vector>
+
+int main()
+{
+    std::promise<void> p;
+    std::future<void> f;
+    std::vector<size_t> result;
+
+    std::thread t([&result, &p]() {
+        for (size_t i = 0; i < 10; i++)
+        {
+            result.emplace_back(i);
+        }
+        p.set_value();
+    });
+
+    f.wait();
+
+    for (auto&& elem : result)
+    {
+        std::cout << elem << '\t';
+    }
+    std::cout << '\n';
+    t.join();
+    return 0;
+}
+
+#endif // TEST15
 
 //-------------------------------
 
