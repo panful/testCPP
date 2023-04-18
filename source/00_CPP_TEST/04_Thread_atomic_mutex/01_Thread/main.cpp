@@ -20,7 +20,7 @@
 
 */
 
-#define TEST17
+#define TEST31
 
 #ifdef TEST01
 
@@ -784,10 +784,13 @@ private:
             std::cout << "--- while ---\n";
 
             std::unique_lock<std::mutex> lock(m_mutex);
-            // 当lambda表达式返回true时会一直阻塞，阻塞并不会占用cpu
+            // 当lambda表达式返回false时会一直阻塞，阻塞并不会占用cpu
             // 当调用std::condition_variable::notify_all或notify_one时，会执行一次lambda，
-            // 如果返回false停止阻塞执行后面代码，返回true则继续阻塞
-            m_cv.wait(lock, [this]() { std::cout << "wait\n"; return !m_list.empty(); });
+            // 如果lambda返回true停止阻塞执行后面代码，返回false则继续阻塞
+            m_cv.wait(lock, [this]() {
+                std::cout << "lambda result: " << !m_list.empty() << "\twait\n";
+                return !m_list.empty();
+            });
 
             auto element = m_list.front();
             m_list.pop_front();
