@@ -22,6 +22,7 @@ public:
         std::cout << "consume time: " << ut.count() << '\n';
     }
 
+    // 主动获取开始到现在花费的时间
     void ConsumeTimeByNow()
     {
         auto now = std::chrono::high_resolution_clock::now();
