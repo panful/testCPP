@@ -4,14 +4,14 @@
  * 03 std::recursive_mutex 递归锁
  * 04 std::shared_lock 读写锁
  * 05 std::shared_lock 读写锁
- * 
- * 
+ *
+ *
  * 07 std::timed_mutex 超时锁
  *
  * 09 自旋锁
  */
 
-#define TEST43
+#define TEST1
 
 #ifdef TEST1
 
@@ -49,6 +49,22 @@ void workerWithMutex()
     m.unlock();
 }
 
+void workerWithMutex2()
+{
+    // 只有被lock() 和 unlock() 包裹的代码段只被一个线程执行，其他代码段仍然会并行执行
+
+    auto id = std::this_thread::get_id();
+    m.lock();
+    std::cout << "-----------------\n";
+    std::cout << id << "\t111111\n";
+    std::cout << id << "\t222222\n";
+    std::cout << id << "\t333333\n";
+    m.unlock();
+    std::cout << id << "\t444444\n";
+    std::cout << id << "\t555555\n";
+    std::cout << id << "\t666666\n";
+}
+
 int main()
 {
     constexpr size_t threadsNum { 10 };
@@ -60,6 +76,23 @@ int main()
         for (size_t i = 0; i < threadsNum; i++)
         {
             threads.emplace_back(std::thread(workerWithMutex));
+        }
+
+        for (auto&& t : threads)
+        {
+            t.join();
+        }
+    }
+
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++\n";
+
+    // 使用互斥锁
+    {
+        std::vector<std::thread> threads;
+
+        for (size_t i = 0; i < threadsNum; i++)
+        {
+            threads.emplace_back(std::thread(workerWithMutex2));
         }
 
         for (auto&& t : threads)

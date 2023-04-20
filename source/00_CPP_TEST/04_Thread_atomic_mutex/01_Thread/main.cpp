@@ -748,6 +748,11 @@ int main()
 
 //-------------------------------
 
+// 虚假唤醒（更准确的说法应该是第一种）：
+// 1. 由notify_all唤醒之后却得不到需要的数据，notify_all会唤醒所有线程，但是只能有一个线程使用数据
+// 2. 有的系统会出于某种原因唤醒正在阻塞队列的线程，这时候消费者线程也是得不到需要的数据的(因为不是由生产者线程唤醒)。
+// 解决虚假唤醒的方法：提前while判断队列是否为空，为空则继续等待，建议使用wait的lambda判断
+
 #ifdef TEST31
 
 #include <iostream>
@@ -768,10 +773,10 @@ public:
 
     void AddElement(int e)
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        // std::lock_guard<std::mutex> lock(m_mutex);
         std::cout << "add element: " << e << '\n';
         m_list.emplace_back(e);
-        m_cv.notify_all();
+        m_cv.notify_one();
     }
 
 private:

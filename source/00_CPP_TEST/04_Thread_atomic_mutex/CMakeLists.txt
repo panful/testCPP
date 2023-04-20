@@ -1,4 +1,5 @@
-﻿add_subdirectory("01_Thread")
+﻿add_subdirectory("00_Timer")
+add_subdirectory("01_Thread")
 add_subdirectory("02_Atomic")
 add_subdirectory("03_Mutex")
 add_subdirectory("05_ThreadPool")
