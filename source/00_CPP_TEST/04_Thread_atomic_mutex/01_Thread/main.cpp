@@ -12,6 +12,7 @@
 15. std::future 常用函数的使用
 16. std::promise.set_value_at_thread_exit 线程退出时才将状态设置为就绪
 17. std::packaged_task 常用函数的使用
+18. std::promise 实现定时器
 ------------------------------------------------
 21. std::async 创建策略的区别，获取线程的执行结果
 22. std::async 线程池机制，接收返回值
@@ -20,7 +21,7 @@
 
 */
 
-#define TEST31
+#define TEST18
 
 #ifdef TEST01
 
@@ -653,6 +654,47 @@ int main()
 }
 
 #endif // TEST17
+
+#ifdef TEST18
+
+#include <chrono>
+#include <future>
+#include <iostream>
+#include <thread>
+
+void f1()
+{
+    std::cout << std::this_thread::get_id() << "\tthis is f1()\n";
+}
+
+void f2(std::future<void> futureObj, std::function<void()> f)
+{
+    // 定时器，每隔1s执行一次f()
+    while (futureObj.wait_for(std::chrono::seconds(1)) == std::future_status::timeout)
+    {
+        f();
+    }
+}
+
+int main()
+{
+    std::cout << std::this_thread::get_id() << '\n';
+    
+    std::promise<void> promiseObj;
+    std::future<void> futureObj = promiseObj.get_future();
+
+    std::thread t(f2, std::move(futureObj), f1);
+
+    // 不阻塞主线程，可以做一些其他事情
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    // 给线程t发送信号退出while循环，即停止定时器
+    promiseObj.set_value();
+    t.join();
+
+    return 0;
+}
+#endif // TEST18
 
 //-------------------------------
 
