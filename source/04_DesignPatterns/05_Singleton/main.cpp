@@ -68,7 +68,7 @@ int main()
     std::vector<std::thread> threads;
 
     constexpr size_t numOfThreads { 1000 };
-    for (auto i = 0; i < numOfThreads; i++)
+    for (size_t i = 0; i < numOfThreads; i++)
     {
         // new Singleton()只会被调用一次
         std::thread t([]() { Singleton::GetInstance(); });
