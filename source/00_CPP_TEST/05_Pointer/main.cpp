@@ -1,34 +1,35 @@
 ﻿/*
-* 1. std::unique_ptr reset release 换绑其他指针，容器中保存unique_ptr
-* 2. 局部作用域创建shared_ptr unique_ptr
-* 3. 局部作用域创建的shared_ptr存储在容器中，在其他作用域将容器元素设置为nullptr
-* 4. new 和 delete 作用域
-* 5. std::unique_ptr reset和release的区别，释放指针对象
-* 6. 智能指针离开作用域前throw也会释放
-* 7. weak_ptr判断是否有效
-* 8. std::shared_ptr在多个类中使用时声明的位置，以及配合weak_ptr使用
-* 9. 智能指针的get()函数并不会使引用计数加1，所以如果智能指针已经释放，之前使用get()返回的裸指针也会被释放
-* 10.std::shared_ptr reset() 主动释放 std::shared_ptr没有release()函数
-* 11.没有默认构造函数（无参构造函数）也可以使用智能指针
-* 12.weak_ptr除过解决循环引用，还可以解决悬空指针的问题 https://blog.csdn.net/whahu1989/article/details/122443129
-* 13.placement new 进程间共享内存 https://www.jianshu.com/p/342e69e3b9d6
-* 14.std::shared_ptr循环引用造成内存泄漏
-* 15.函数返回局部智能指针，裸指针，局部变量
-* 16.std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
-* 17 类中new出来的成员变量内存位置 C++内存模型 00_07_TEST12
-* 18 堆和栈 优点缺点 https://www.zhihu.com/question/379456802/answer/1115546749
-* 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
-* 20 NULL nullptr nullptr_t
-* 21 自定义智能指针的释放方法
-* 22 new和delete应该一对一，越界赋值，new崩溃
-*/
+ * 1. std::unique_ptr reset release 换绑其他指针，容器中保存unique_ptr
+ * 2. 局部作用域创建shared_ptr unique_ptr
+ * 3. 局部作用域创建的shared_ptr存储在容器中，在其他作用域将容器元素设置为nullptr
+ * 4. new 和 delete 作用域
+ * 5. std::unique_ptr reset和release的区别，释放指针对象
+ * 6. 智能指针离开作用域前throw也会释放
+ * 7. weak_ptr判断是否有效
+ * 8. std::shared_ptr在多个类中使用时声明的位置，以及配合weak_ptr使用
+ * 9. 智能指针的get()函数并不会使引用计数加1，所以如果智能指针已经释放，之前使用get()返回的裸指针也会被释放
+ * 10.std::shared_ptr reset() 主动释放 std::shared_ptr没有release()函数
+ * 11.没有默认构造函数（无参构造函数）也可以使用智能指针
+ * 12.weak_ptr除过解决循环引用，还可以解决悬空指针的问题 https://blog.csdn.net/whahu1989/article/details/122443129
+ * 13.placement new 进程间共享内存 https://www.jianshu.com/p/342e69e3b9d6
+ * 14.std::shared_ptr循环引用造成内存泄漏
+ * 15.函数返回局部智能指针，裸指针，局部变量
+ * 16.std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
+ * 17 类中new出来的成员变量内存位置 C++内存模型 00_07_TEST12
+ * 18 堆和栈 优点缺点 https://www.zhihu.com/question/379456802/answer/1115546749
+ * 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
+ * 20 NULL nullptr nullptr_t
+ * 21 自定义智能指针的释放方法
+ * 22 new和delete应该一对一，越界赋值，new崩溃
+ * 23 operator new
+ */
 
-#define TEST18
+#define TEST23
 
 #ifdef TEST1
 
-#include <memory>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 class A
@@ -42,11 +43,10 @@ int main()
     std::cout << "start\n";
     {
         std::unique_ptr<A> a1;
-        //a1.reset(std::make_unique<A>());  // 错误
-        //a1.reset(new A); 正确，但不建议这样使用，new对应一个delete
-        a1.reset(std::make_unique<A>().release());  // 此处的release并不调用析构函数
+        // a1.reset(std::make_unique<A>());  // 错误
+        // a1.reset(new A); 正确，但不建议这样使用，new对应一个delete
+        a1.reset(std::make_unique<A>().release()); // 此处的release并不调用析构函数
     }
-
 
     // release的作用
     {
@@ -55,7 +55,7 @@ int main()
         {
             std::cout << "success\n";
         }
-        auto p = u1.release(); //release只是释放控制权，会将控制的指针返回，并不销毁
+        auto p = u1.release(); // release只是释放控制权，会将控制的指针返回，并不销毁
         if (u1 == nullptr)
         {
             std::cout << "nullptr\n";
@@ -72,12 +72,12 @@ int main()
     std::vector<std::unique_ptr<A>> vecA;
     {
         auto a = std::make_unique<A>();
-        //vecA.emplace_back(a);  // 报错：尝试引用已删除的函数
+        // vecA.emplace_back(a);  // 报错：尝试引用已删除的函数
 
         // 正确用法
-        vecA.emplace_back(a.release());  // 使用release返回裸指针，然后插入vector
+        vecA.emplace_back(a.release());           // 使用release返回裸指针，然后插入vector
         vecA.emplace_back(std::make_unique<A>()); // 直接在vector上构造unique_ptr
-        vecA.emplace_back(std::move(a)); // 使用移动语义将unique_ptr插入vector
+        vecA.emplace_back(std::move(a));          // 使用移动语义将unique_ptr插入vector
     }
 
     std::cout << "end\n";
@@ -102,8 +102,9 @@ public:
     {
         return a;
     }
+
 private:
-    int a{ 3 };
+    int a { 3 };
 };
 
 class Test
@@ -150,9 +151,9 @@ int main()
 
 #ifdef TEST3
 
+#include <array>
 #include <iostream>
 #include <memory>
-#include <array>
 
 class A
 {
@@ -222,8 +223,8 @@ int main()
 
 #ifdef TEST5
 
-#include <memory>
 #include <iostream>
+#include <memory>
 
 class A
 {
@@ -235,9 +236,13 @@ public:
 class B
 {
 public:
-    B() { std::cout << "construct B\n"; a = std::make_unique<A>(); }
+    B()
+    {
+        std::cout << "construct B\n";
+        a = std::make_unique<A>();
+    }
     ~B() { std::cout << "destruct B\n"; }
-    std::unique_ptr<A> a{ nullptr };
+    std::unique_ptr<A> a { nullptr };
 };
 
 int main()
@@ -247,14 +252,14 @@ int main()
         std::unique_ptr<B> b = std::make_unique<B>();
         // 1
         auto x = b.release(); // 调用release后不调用A的析构函数，release只是放弃控制权
-        //delete x; // 调用A和B的析构函数
-        //x = nullptr;
+        // delete x; // 调用A和B的析构函数
+        // x = nullptr;
 
         // 2
-        //b = nullptr;  // A和B都成功释放
+        // b = nullptr;  // A和B都成功释放
 
         // 3
-        //b.reset();   // A和B都成功释放
+        // b.reset();   // A和B都成功释放
 
         std::cout << "222\n";
     }
@@ -295,13 +300,12 @@ int main()
 
 #ifdef TEST7
 
+#include <iostream>
 #include <memory>
 #include <vector>
-#include <iostream>
 
 int main()
 {
-
 
     return 0;
 }
@@ -344,7 +348,7 @@ public:
         m_a = a;
     }
 
-    std::shared_ptr<A> m_a{ nullptr };
+    std::shared_ptr<A> m_a { nullptr };
 };
 
 class C
@@ -354,7 +358,7 @@ public:
     {
         std::cout << "CCCCC\n";
         m_b = std::make_shared<B>();
-        //m_a = std::make_shared<A>();
+        // m_a = std::make_shared<A>();
         auto pa = std::make_shared<A>();
         m_a = pa;
         m_b->SetA(pa);
@@ -365,14 +369,15 @@ public:
         std::cout << m_a.use_count() << "\tC A\n";
         std::cout << m_b.use_count() << "\tC B\n";
     }
+
 private:
     // std::shared_ptr<A> m_a和std::shared_ptr<B> m_b这两个成员的声明顺序不一样，打印的结果也不一样（即使都会成功析构）
     // 合理的用法是，此处的m_a应该声明为std::weak_ptr，且std::weak_ptr应该在类C，而不是类B
     // 因为如果将std::shared_ptr<A>放在C中，B中的是std::weak_ptr<A>，且c中的m_a声明在m_b之后，就会先析构A，导致B的m_a无效
     // 如果还需要在B中的析构函数中使用m_a就会出问题
 
-    //std::shared_ptr<A> m_a{ nullptr }; 
-    std::shared_ptr<B> m_b{ nullptr };
+    // std::shared_ptr<A> m_a{ nullptr };
+    std::shared_ptr<B> m_b { nullptr };
 
     // m_a在类C中的声明顺序无所谓，它只是弱指针，析构时不会使A的引用计数减一也不会调用A的析构
     std::weak_ptr<A> m_a;
@@ -388,7 +393,6 @@ int main()
     }
     std::cout << "**********\n";
 }
-
 
 #endif // TEST8
 
@@ -412,8 +416,9 @@ public:
     {
         return m_int;
     }
+
 private:
-    int m_int{ 0 };
+    int m_int { 0 };
 };
 
 class B
@@ -429,7 +434,7 @@ public:
     }
 
 private:
-    A* m_a{ nullptr };
+    A* m_a { nullptr };
 };
 
 int main()
@@ -461,13 +466,12 @@ int main()
     }
 }
 
-
 #endif // TEST9
 
 #ifdef TEST10
 
-#include <memory>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 class A
@@ -491,7 +495,7 @@ int main()
         std::cout << pa.use_count() << '\n';
 
         // shared_ptr没有release函数
-        pa.reset(); //不会调用析构函数
+        pa.reset(); // 不会调用析构函数
 
         std::cout << "11111111111\n";
     }
@@ -500,7 +504,7 @@ int main()
         auto pa = std::make_shared<A>();
         std::weak_ptr<A> wa = pa;
         std::cout << wa.use_count() << '\n';
-        //wa.lock().reset();
+        // wa.lock().reset();
         pa.reset(); // 只有pa引用了智能指针，所以此处会调用析构函数
         std::cout << "222222222222\n";
     }
@@ -537,6 +541,7 @@ class A
 public:
     A(int _a) { std::cout << " === construct\n"; }
     ~A() { std::cout << "*** destruct\n"; }
+
 private:
 };
 
@@ -545,9 +550,9 @@ int main()
     std::unique_ptr<A> ua1;
     std::shared_ptr<A> sa1;
     auto ua = std::make_unique<A>(1);
-    //auto ua = std::make_unique<A>(); // error 必须有参数
+    // auto ua = std::make_unique<A>(); // error 必须有参数
     auto sa = std::make_shared<A>(1);
-    //auto sa = std::make_shared<A>(1);
+    // auto sa = std::make_shared<A>(1);
 }
 
 #endif // TEST11
@@ -566,7 +571,6 @@ int main()
         delete p1;
         // 对p1进行delete后，p1和p2都是野指针（悬空指针），指向未知的内存
         std::cout << *p1 << '\t' << *p2 << '\t';
-
     }
     std::cout << "------------------------\n";
 
@@ -577,7 +581,7 @@ int main()
         delete p1;
         p1 = nullptr;
         // delete p1之后，再将p1置为nullptr，如果再对nullptr解引用就会中断
-        //std::cout << *p1 << '\t' << *p2 << '\t';
+        // std::cout << *p1 << '\t' << *p2 << '\t';
     }
     std::cout << "------------------------\n";
 
@@ -626,11 +630,11 @@ int main()
     std::cout << "-----------------------------\n";
 
     // 22222222222
-    //代码中weak1先是和sptr指向相同的内存空间，后面sptr释放了那段内存空间然后指向新的内存空间，
-    //此时通过weak1的expired()方法就可以知道本来指向的那段内存空间已经被释放。因为不增加引用计数，所以不会影响内存的释放。非常方便。
+    // 代码中weak1先是和sptr指向相同的内存空间，后面sptr释放了那段内存空间然后指向新的内存空间，
+    // 此时通过weak1的expired()方法就可以知道本来指向的那段内存空间已经被释放。因为不增加引用计数，所以不会影响内存的释放。非常方便。
 
-    //以往使用老的方法，判断一个指针是否是NULL，但是如果这段内存已经被释放却没有赋一个NULL，
-    //那么就会引发未知错误，这需要程序员手动赋值，而且出问题还很难排查。有了weak_ptr，就方便多了，直接使用其expired()方法看下就行了。
+    // 以往使用老的方法，判断一个指针是否是NULL，但是如果这段内存已经被释放却没有赋一个NULL，
+    // 那么就会引发未知错误，这需要程序员手动赋值，而且出问题还很难排查。有了weak_ptr，就方便多了，直接使用其expired()方法看下就行了。
     {
         // OLD, problem with dangling pointer
         // PROBLEM: ref will point to undefined data!
@@ -695,12 +699,12 @@ int main()
 {
     int* p1 = new int(2);
     int* p2 = new int;
-    int* p3 = new (p1)int; // p3和p1指向的是同一块内存，因此对p3和p1解引用得到的值相同
-    *p3 = 5; // p3和p1解引用得到的值都是5
+    int* p3 = new (p1) int; // p3和p1指向的是同一块内存，因此对p3和p1解引用得到的值相同
+    *p3 = 5;                // p3和p1解引用得到的值都是5
 
-    int* p4 = new (reinterpret_cast<int*>(0x000001e570616340))int;  //可以运行，但是最好不要这样使用
-    //int* p5 = new (reinterpret_cast<int*>(0x000001e570616341))int(5); // 错误，不能修改该内存地址对应的值
-    int* p5 = new (reinterpret_cast<int*>(0x000001e570616341))int;
+    int* p4 = new (reinterpret_cast<int*>(0x000001e570616340)) int; // 可以运行，但是最好不要这样使用
+    // int* p5 = new (reinterpret_cast<int*>(0x000001e570616341))int(5); // 错误，不能修改该内存地址对应的值
+    int* p5 = new (reinterpret_cast<int*>(0x000001e570616341)) int;
 }
 
 #endif // TEST13
@@ -719,7 +723,7 @@ public:
     ~A() { std::cout << "~A\n"; }
 
     std::weak_ptr<B> _b; // 用weak_ptr替换share_ptr，避免循环引用造成内存泄漏
-    //std::shared_ptr<B> _b;
+    // std::shared_ptr<B> _b;
 };
 
 class B
@@ -729,9 +733,8 @@ public:
     ~B() { std::cout << "~B\n"; }
 
     std::weak_ptr<A> _a;
-    //std::shared_ptr<A> _a;
+    // std::shared_ptr<A> _a;
 };
-
 
 int main()
 {
@@ -741,7 +744,7 @@ int main()
     pa->_b = pb;
     pb->_a = pa;
 
-    //auto ret = pa->_b.lock();  // weak_ptr必须使用lock()函数转为shared_ptr才能使用
+    // auto ret = pa->_b.lock();  // weak_ptr必须使用lock()函数转为shared_ptr才能使用
 
     // 如果类A和类B中都定义了一个对方的shared_ptr，此处引用计数就会输出为2，导致内存泄漏
     std::cout << "A use count:" << pa.use_count() << std::endl;
@@ -758,8 +761,8 @@ int main()
 class Test
 {
 public:
-    int m_a{ 999 };
-    int* m_p{ nullptr };
+    int m_a { 999 };
+    int* m_p { nullptr };
     ~Test() { std::cout << "~Test\n"; }
 };
 
@@ -779,14 +782,14 @@ std::unique_ptr<Test> create2()
 {
     // p是一个对象（值），函数外可以正常访问
     auto p = std::make_unique<Test>();
-    //auto p = std::make_shared<Test>();
+    // auto p = std::make_shared<Test>();
     return p;
 }
 
 int* create3()
 {
     // arr是一个栈内存的指针（局部数组变量）。函数返回后，指向栈区的指针就会释放内存，函数外不可以正常访问
-    int arr[3]{ 1,2,3 };
+    int arr[3] { 1, 2, 3 };
     return arr;
 }
 
@@ -800,7 +803,7 @@ int* create4()
 Test create5()
 {
     // 异常
-    int arr[]{ 1,2,3 };
+    int arr[] { 1, 2, 3 };
     Test t;
     t.m_p = arr;
     return t;
@@ -809,7 +812,7 @@ Test create5()
 Test create6()
 {
     // 异常
-    int arr[]{ 1,2,3 };
+    int arr[] { 1, 2, 3 };
     Test t;
     t.m_p = arr;
     return std::move(t);
@@ -818,11 +821,11 @@ Test create6()
 Test& create7()
 {
     // 异常
-    int arr[]{ 1,2,3 };
+    int arr[] { 1, 2, 3 };
     Test t;
     t.m_p = arr;
     return t;
-    //return std::ref(t);
+    // return std::ref(t);
 }
 
 Test create8()
@@ -845,28 +848,28 @@ int main()
 
     {
         auto ret = create1();
-        std::cout << "smart_point.get()" << ret->m_a << "\n"; //异常值
+        std::cout << "smart_point.get()" << ret->m_a << "\n"; // 异常值
     }
 
     std::cout << "========\n";
 
     {
         auto ret = create2();
-        std::cout << "smart_point" << ret->m_a << "\n";//正常值
+        std::cout << "smart_point" << ret->m_a << "\n"; // 正常值
     }
 
     std::cout << "=======\n";
 
     {
         auto ret = create3();
-        std::cout << "stack" << ret[0] << "," << ret[1] << "," << ret[2] << "\n"; //异常值
+        std::cout << "stack" << ret[0] << "," << ret[1] << "," << ret[2] << "\n"; // 异常值
     }
 
     std::cout << "=======\n";
 
     {
         auto ret = create4();
-        std::cout << "heap" << ret[0] << "," << ret[1] << "," << ret[2] << "\n"; //正常值
+        std::cout << "heap" << ret[0] << "," << ret[1] << "," << ret[2] << "\n"; // 正常值
     }
 
     std::cout << "=======\n";
@@ -901,14 +904,12 @@ int main()
             std::cout << "Object" << ret.m_a << "," << ret.m_p[0] << "," << ret.m_p[1] << "," << ret.m_p[2] << "\n";
     }
 
-
     return 0;
 }
 
 #endif // TEST15
 
 #ifdef TEST16
-
 
 #endif // TEST16
 
@@ -930,18 +931,17 @@ https://blog.csdn.net/tulingwangbo/article/details/79729548
 
 */
 
-
 #include <iostream>
 #include <memory>
 
 class Test
 {
 public:
-    Test() :
-        m_c1('x'),
-        m_c2('y'),
-        m_p1(new char[3] {0}),
-        m_p2(new char[3] {0})
+    Test()
+        : m_c1('x')
+        , m_c2('y')
+        , m_p1(new char[3] { 0 })
+        , m_p2(new char[3] { 0 })
     {
     }
     ~Test()
@@ -965,16 +965,16 @@ public:
     char* m_p2;
 };
 
-#define PRINT_ADDRESS(x) printf("%p\t%s\n",x,#x);
+#define PRINT_ADDRESS(x) printf("%p\t%s\n", x, #x);
 
 int main()
 {
     std::cout << "=======================================\n";
     {
-        int a{ 1 };
-        int b{ 2 };
-        char c{ 'x' };
-        char d{ 'y' };
+        int a { 1 };
+        int b { 2 };
+        char c { 'x' };
+        char d { 'y' };
 
         int* pa = new int(2);
         int* pb = new int(3);
@@ -998,8 +998,8 @@ int main()
         Test t;
         char c1 = 'c';
         char c2 = 'c';
-        char* p1 = new char[2] {0};
-        char* p2 = new char[2] {0};
+        char* p1 = new char[2] { 0 };
+        char* p2 = new char[2] { 0 };
 
         // 栈
         PRINT_ADDRESS(&t);
@@ -1019,8 +1019,8 @@ int main()
         Test* t = new Test();
         char c1 = 'c';
         char c2 = 'c';
-        char* p1 = new char[2] {0};
-        char* p2 = new char[2] {0};
+        char* p1 = new char[2] { 0 };
+        char* p2 = new char[2] { 0 };
 
         // 堆
         PRINT_ADDRESS(t);
@@ -1040,8 +1040,8 @@ int main()
         std::unique_ptr<Test> t = std::make_unique<Test>();
         char c1 = 'c';
         char c2 = 'c';
-        char* p1 = new char[2] {0};
-        char* p2 = new char[2] {0};
+        char* p1 = new char[2] { 0 };
+        char* p2 = new char[2] { 0 };
 
         // 堆
         PRINT_ADDRESS(t.get());
@@ -1061,8 +1061,8 @@ int main()
         std::shared_ptr<Test> t = std::make_shared<Test>();
         char c1 = 'c';
         char c2 = 'c';
-        char* p1 = new char[2] {0};
-        char* p2 = new char[2] {0};
+        char* p1 = new char[2] { 0 };
+        char* p2 = new char[2] { 0 };
 
         // 堆
         PRINT_ADDRESS(t.get());
@@ -1094,13 +1094,13 @@ https://blog.csdn.net/great_emperor_/article/details/123261184
 */
 
 /*
-* 全局/静态存储区
-* 1.BSS段
-* 这个区域存放的是未曾初始化的静态变量、全局变量，但是不会存放常量，因为常量在定义的时候就一定会赋值了。未初始化的全局变量和静态变量，编译器在编译阶段都会将其默认为0
-* 2.DATA段
-* 这个区域主要用于存放编译阶段（非运行阶段时）就能确定的数据，也就是初始化的静态变量、全局变量和常量，这个区域是可读可写的。这也就是我们通常说的静态存储区
-* 
-*/
+ * 全局/静态存储区
+ * 1.BSS段
+ * 这个区域存放的是未曾初始化的静态变量、全局变量，但是不会存放常量，因为常量在定义的时候就一定会赋值了。未初始化的全局变量和静态变量，编译器在编译阶段都会将其默认为0
+ * 2.DATA段
+ * 这个区域主要用于存放编译阶段（非运行阶段时）就能确定的数据，也就是初始化的静态变量、全局变量和常量，这个区域是可读可写的。这也就是我们通常说的静态存储区
+ *
+ */
 
 #include <iostream>
 
@@ -1120,7 +1120,7 @@ const char* g_g = "abcd";
 
 int main()
 {
-    //int m_a;
+    // int m_a;
     static int m_b;
 
     int m_c = 7;
@@ -1133,13 +1133,6 @@ int main()
     static const char* m_h = "abcd";
     const static char* m_i = "abcd";
 
-
-
-
-
-
-
-
     PRINT_ADDRESS(g_a);
     PRINT_ADDRESS(g_b);
     PRINT_ADDRESS(m_b);
@@ -1151,8 +1144,7 @@ int main()
     PRINT_ADDRESS(g_e);
     PRINT_ADDRESS(g_f);
     std::cout << "------------------\n";
-    //PRINT_ADDRESS(m_a);
-
+    // PRINT_ADDRESS(m_a);
 
     PRINT_ADDRESS(m_f);
     std::cout << "------------------\n";
@@ -1171,7 +1163,6 @@ int main()
 
 #ifdef TEST19
 
-
 #endif // TEST19
 
 #ifdef TEST20
@@ -1188,27 +1179,27 @@ void func(int)
 }
 
 /*
-* NULL只是一个宏，有如下定义
-* #define NULL 0
-*/
+ * NULL只是一个宏，有如下定义
+ * #define NULL 0
+ */
 
 int main()
 {
-    func(0);  // 2
-    func(NULL);  // 2
-    func(nullptr); // 1
+    func(0);                           // 2
+    func(NULL);                        // 2
+    func(nullptr);                     // 1
     func(static_cast<void*>(nullptr)); // 1
 
     // nullptr_t 是一个类型（指针空值类型），nullptr是nullptr_t类型的一个实例对象
     nullptr_t s = 0; // 必须初始化
-    func(s); // 1
+    func(s);         // 1
 }
 #endif // TEST20
 
 #ifdef TEST21
 
-#include <memory>
 #include <iostream>
+#include <memory>
 
 class Obj
 {
@@ -1217,21 +1208,24 @@ public:
     ~Obj() { std::cout << "+++ destruct +++\n"; }
 };
 
-//自定义释放规则
-void deleteInt(int* p) {
+// 自定义释放规则
+void deleteInt(int* p)
+{
     std::cout << "use func pointer delete\n";
     delete[] p;
 }
 
-//自定义的释放规则
+// 自定义的释放规则
 struct myDel
 {
-    void operator()(int* p) {
+    void operator()(int* p)
+    {
         std::cout << "use functor delete int\n";
         delete p;
     }
 
-    void operator()(Obj* p) {
+    void operator()(Obj* p)
+    {
         std::cout << "use functor delete Obj\n";
         // 此处如果没有调用delete p,那么智能指针释放的时候，它所管理的Obj对象就不会调用析构
     }
@@ -1246,14 +1240,14 @@ int main()
 
         // 初始化智能指针，并自定义释放规则
         std::shared_ptr<int> p7(new int[10](), deleteInt);
-        //std::shared_ptr<int> p5(new int[10](), myDel()); // error
-        //std::shared_ptr<int, myDel> p5(new int[10](), myDel()); // error
-        //std::shared_ptr<int, decltype(deleteInt)> p5(new int[10](), deleteInt); // error
+        // std::shared_ptr<int> p5(new int[10](), myDel()); // error
+        // std::shared_ptr<int, myDel> p5(new int[10](), myDel()); // error
+        // std::shared_ptr<int, decltype(deleteInt)> p5(new int[10](), deleteInt); // error
 
         // 使用lambda指定智能指针释放规则
         std::shared_ptr<int> p8(new int[8](), [](int* p) {delete[] p; std::cout << "use lambda delete\n"; });
-        //std::shared_ptr<int> p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
-        //auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
+        // std::shared_ptr<int> p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
+        // auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
     }
 
     std::cout << "-------------------\n";
@@ -1262,9 +1256,9 @@ int main()
     {
         std::unique_ptr<int, myDel> p1(new int);
         std::unique_ptr<int, myDel> p2(new int, myDel());
-        //auto p3 = std::make_unique<int, myDel>(new int, myDel()); // error
-        //auto p3 = std::make_unique<int>(new int, myDel()); // error
-        //std::unique_ptr<int, myDel> p3 = std::make_unique<int, myDel>(new int, myDel()); // error
+        // auto p3 = std::make_unique<int, myDel>(new int, myDel()); // error
+        // auto p3 = std::make_unique<int>(new int, myDel()); // error
+        // std::unique_ptr<int, myDel> p3 = std::make_unique<int, myDel>(new int, myDel()); // error
     }
 
     std::cout << "-------------------\n";
@@ -1278,14 +1272,14 @@ int main()
     std::cout << "-------------------\n";
 
     {
-        std::shared_ptr<Obj> p1(new Obj(), [](Obj* p) {std::cout << "use lambda delete Obj\n"; });
+        std::shared_ptr<Obj> p1(new Obj(), [](Obj* p) { std::cout << "use lambda delete Obj\n"; });
         std::shared_ptr<Obj> p2(new Obj());
-        //std::shared_ptr<Obj> p3 = p2;
-        //p3 = p1;
+        // std::shared_ptr<Obj> p3 = p2;
+        // p3 = p1;
 
-        //std::cout << "1 count:\t" << p1.use_count() << '\n';
-        //std::cout << "2 count:\t" << p2.use_count() << '\n';
-        //std::cout << "3 count:\t" << p3.use_count() << '\n';
+        // std::cout << "1 count:\t" << p1.use_count() << '\n';
+        // std::cout << "2 count:\t" << p2.use_count() << '\n';
+        // std::cout << "3 count:\t" << p3.use_count() << '\n';
     }
 
     std::cout << "-------------------\n";
@@ -1300,12 +1294,11 @@ int main()
 #include <iostream>
 #include <thread>
 
-
 int main()
 {
     // 一个new对应一个delete
     {
-        int* p = new int[1000] {0};
+        int* p = new int[1000] { 0 };
         long long count = 1000000;
         while (count-- > 0)
         {
@@ -1313,10 +1306,10 @@ int main()
             //  一个new对应一个delete
             delete[] p;
             p = nullptr;
-            p = new int [1000] {0};
+            p = new int[1000] { 0 };
         }
 
-        //std::this_thread::sleep_for(std::chrono::seconds(10));
+        // std::this_thread::sleep_for(std::chrono::seconds(10));
 
         if (p)
         {
@@ -1328,14 +1321,14 @@ int main()
     std::cout << "--------------------\n";
 
     {
-        int* p = new int[100] {0};
+        int* p = new int[100] { 0 };
         for (size_t i = 0; i < 1000; i++)
         {
             auto x = p[i];
             p[i] = (int)i; // 此处越界赋值破坏了堆，下一次new会崩溃
         }
 
-        int* p2 = new int[100] {0};
+        int* p2 = new int[100] { 0 };
 
         delete[] p;
         p = nullptr;
@@ -1343,7 +1336,49 @@ int main()
         delete[] p2;
         p2 = nullptr;
     }
-
 }
 
 #endif // TEST22
+
+#ifdef TEST23
+
+#include <iostream>
+
+void* operator new(size_t size)
+{
+    std::cout << "Allocing " << size << " bytes\n";
+    return malloc(size);
+}
+void operator delete(void* memory, size_t size)
+{
+    std::cout << "Free " << size << " bytes\n";
+    free(memory);
+}
+struct Entity
+{
+    int x, y, z;
+};
+
+int main()
+{
+    {
+        std::string name = "abcd";
+    }
+
+    std::cout << "---------------------\n";
+
+    {
+        std::string name = "01234567890123456789";
+    }
+
+    std::cout << "---------------------\n";
+
+    {
+        Entity* e = new Entity();
+        delete e;
+    }
+
+    return 0;
+}
+
+#endif // TEST23
