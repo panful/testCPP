@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. C++读写文件 https://www.cnblogs.com/mmmmmmmmm/p/14136211.html
 * 2. C风格读写文件
 * 3. std::local std::format 本地化库 中文路径 编码转换 utf-8 unicode

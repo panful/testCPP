@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. std::sort使用lambda
 * 2. constexpr lambda表达式
 * 3. lambda捕获*this

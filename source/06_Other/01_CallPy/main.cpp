@@ -1,4 +1,4 @@
-﻿
+
 /*
 * 1.
 */
@@ -182,7 +182,7 @@ int main()
     //PyObject* pv = PyObject_GetAttrString(pModule, "_add");
     //if (!pv || !PyCallable_Check(pv))
     //{
-    //	std::cout << "Can't find function(_add)" << std::endl;
+    //    std::cout << "Can't find function(_add)" << std::endl;
     //}
     //std::cout << "Get function succeed." << std::endl;
 
@@ -201,9 +201,9 @@ int main()
     //PyObject* pRet = PyObject_CallObject(pv, args);
     //if (pRet)
     //{
-    //	//将返回值转换成Long型
-    //	long result = PyLong_AsLong(pRet);
-    //	std::cout << "result:" << result << std::endl;
+    //    //将返回值转换成Long型
+    //    long result = PyLong_AsLong(pRet);
+    //    std::cout << "result:" << result << std::endl;
     //}
     Py_Finalize();
 

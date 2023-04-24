@@ -1,4 +1,4 @@
-﻿///-------------------------------------------------------
+///-------------------------------------------------------
 ///  @file      Service.hpp
 ///  @brief     内核通信机制服务类 
 ///  @version   V1.0
@@ -79,24 +79,24 @@ private:
     // {
         // return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
     // }
-	// template <typename _Func, typename ..._Args>
-	// bool _RegisterMethod(std::false_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
-	// {
-		// return ImpRegisterMethod(interfaceName,std::move(func));
-	// }
-	
-	 template <typename _Func, typename ..._Args>
-	 bool _RegisterMethod(bool tf, const std::string& interfaceName, _Func&& func, _Args&& ...args)
-	 {
-		 if(tf)
-		 {
-			 return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
-		 }
-		 else
-		 {
-			 return ImpRegisterMethod(interfaceName,std::move(func));
-		 }
-	 }
+    // template <typename _Func, typename ..._Args>
+    // bool _RegisterMethod(std::false_type, const std::string& interfaceName, _Func&& func, _Args&& ...args)
+    // {
+        // return ImpRegisterMethod(interfaceName,std::move(func));
+    // }
+    
+     template <typename _Func, typename ..._Args>
+     bool _RegisterMethod(bool tf, const std::string& interfaceName, _Func&& func, _Args&& ...args)
+     {
+         if(tf)
+         {
+             return ImpRegisterMethod(interfaceName, std::forward<_Func>(func));
+         }
+         else
+         {
+             return ImpRegisterMethod(interfaceName,std::move(func));
+         }
+     }
 
     bool ImpRegisterMethod(const std::string& interfaceName, Func func)
     {

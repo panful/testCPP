@@ -1,4 +1,4 @@
-﻿#ifndef _SERVER_SOCKET_H_
+#ifndef _SERVER_SOCKET_H_
 #define _SERVER_SOCKET_H_
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS

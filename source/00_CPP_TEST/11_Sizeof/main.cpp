@@ -1,4 +1,4 @@
-﻿// alignof
+// alignof
 // alignas
 
 /*

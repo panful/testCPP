@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 1. std::unique_ptr reset release 换绑其他指针，容器中保存unique_ptr
  * 2. 局部作用域创建shared_ptr unique_ptr
  * 3. 局部作用域创建的shared_ptr存储在容器中，在其他作用域将容器元素设置为nullptr

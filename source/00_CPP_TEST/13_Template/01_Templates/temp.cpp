@@ -1,4 +1,4 @@
-﻿#include "temp.h"
+#include "temp.h"
 
 template<typename T>
 T AddFunc(T&& t1, T&& t2)

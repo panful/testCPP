@@ -1,4 +1,4 @@
-﻿//class MyClass {
+//class MyClass {
 //public:
 //    void func1();
 //

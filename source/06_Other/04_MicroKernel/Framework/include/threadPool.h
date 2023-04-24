@@ -1,4 +1,4 @@
-﻿
+
 
 //#include <functional>
 #include <type_traits> // std::is_invocable c++17 std::invoke_result_t
@@ -96,7 +96,7 @@ namespace common
         }
 #endif
     };
-	
+    
 class ThreadPool
 {
 public:

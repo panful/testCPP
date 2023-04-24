@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 1. std::optional 可选返回值 pointer
  * 2. std::variant 值多态 union
  * 3. std::visit 可以用来访问std::variant

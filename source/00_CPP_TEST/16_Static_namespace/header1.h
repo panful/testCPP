@@ -1,4 +1,4 @@
-﻿namespace
+namespace
 {
     int anonymousInt = 9;
 }

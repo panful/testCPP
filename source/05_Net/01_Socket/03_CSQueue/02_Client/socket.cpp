@@ -1,4 +1,4 @@
-﻿#include "socket.h"
+#include "socket.h"
 
 #include <mutex>
 #include <iostream>

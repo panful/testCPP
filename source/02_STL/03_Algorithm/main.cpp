@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. set_difference set_symmetric_difference set_union set_intersection set_difference
 * 2. std::transform std::for_each std::for_each
 * 3. std::exchange

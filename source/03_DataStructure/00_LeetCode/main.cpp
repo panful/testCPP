@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1.
 * 2. https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/
 * 3.
@@ -258,7 +258,7 @@ public:
         {
             //if (r - l + 1 > res.size())
             //{
-            //	res = s.substr(l, r - l + 1);
+            //    res = s.substr(l, r - l + 1);
             //}
             l--;
             r++;

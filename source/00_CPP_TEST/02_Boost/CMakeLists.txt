@@ -1,4 +1,4 @@
-﻿set(target_name "00_02_boost_test")
+set(target_name "00_02_boost_test")
 
 #指定boost根目录
 if(WIN32)

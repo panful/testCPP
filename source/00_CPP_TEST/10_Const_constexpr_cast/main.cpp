@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. const和constexpr关键字修饰指针时在不同位置的作用
 * 2. 常量字符串 string string_view
 * 3. const对象不能调用那些成员函数

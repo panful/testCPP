@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 def myAdd(a,b):
-	return a+b
+    return a+b
 
 print(myAdd(5,6))
 

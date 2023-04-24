@@ -1,4 +1,4 @@
-﻿/*
+/*
 1. 串口服务器 https://bbs.csdn.net/topics/392291851?page=1 socket: remote end point
 2. 端口复用 http://www.cppblog.com/zhangyq/archive/2018/12/11/216112.html
 3. tcp

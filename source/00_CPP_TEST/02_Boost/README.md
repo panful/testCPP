@@ -1,4 +1,4 @@
-﻿## Linux安装Boost
+## Linux安装Boost
 
 ### 1.查看Boost版本
 

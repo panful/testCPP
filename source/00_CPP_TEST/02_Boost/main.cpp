@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. boost版本 boost::array
 * 2. boost::process 启动进程杀掉进程
 * 3. sml State Machine Libray 状态机 https://github.com/boost-ext/sml 

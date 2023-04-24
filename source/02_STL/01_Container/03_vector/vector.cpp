@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. vector reserve() 初始化与否导致的巨大性能差异
 * 2. emplace_back push_back
 * 3. vector扩容机制

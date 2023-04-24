@@ -1,4 +1,4 @@
-﻿set(target_name "00_13_01_Templates")
+set(target_name "00_13_01_Templates")
 
 set(CMAKE_CXX_STANDARD 17)
 

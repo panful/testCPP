@@ -6,26 +6,26 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 int main(){
-    //´´½¨Ì×½Ó×Ö
+    //åˆ›å»ºå¥—æ¥å­—
     int serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    //½«Ì×½Ó×ÖºÍIP¡¢¶Ë¿Ú°ó¶¨
+    //å°†å¥—æ¥å­—å’ŒIPã€ç«¯å£ç»‘å®š
     struct sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));  //Ã¿¸ö×Ö½Ú¶¼ÓÃ0Ìî³ä
-    serv_addr.sin_family = AF_INET;  //Ê¹ÓÃIPv4µØÖ·
-    serv_addr.sin_addr.s_addr = inet_addr("10.133.61.129");  //¾ßÌåµÄIPµØÖ·
-    serv_addr.sin_port = htons(1234);  //¶Ë¿Ú
+    memset(&serv_addr, 0, sizeof(serv_addr));  //æ¯ä¸ªå­—èŠ‚éƒ½ç”¨0å¡«å……
+    serv_addr.sin_family = AF_INET;  //ä½¿ç”¨IPv4åœ°å€
+    serv_addr.sin_addr.s_addr = inet_addr("10.133.61.129");  //å…·ä½“çš„IPåœ°å€
+    serv_addr.sin_port = htons(1234);  //ç«¯å£
     bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-    //½øÈë¼àÌı×´Ì¬£¬µÈ´ıÓÃ»§·¢ÆğÇëÇó
+    //è¿›å…¥ç›‘å¬çŠ¶æ€ï¼Œç­‰å¾…ç”¨æˆ·å‘èµ·è¯·æ±‚
     listen(serv_sock, 20);
-    //½ÓÊÕ¿Í»§¶ËÇëÇó
+    //æ¥æ”¶å®¢æˆ·ç«¯è¯·æ±‚
     struct sockaddr_in clnt_addr;
     socklen_t clnt_addr_size = sizeof(clnt_addr);
     int clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);
-    //Ïò¿Í»§¶Ë·¢ËÍÊı¾İ
+    //å‘å®¢æˆ·ç«¯å‘é€æ•°æ®
     char str[] = "http://c.biancheng.net/socket/";
     write(clnt_sock, str, sizeof(str));
    
-    //¹Ø±ÕÌ×½Ó×Ö
+    //å…³é—­å¥—æ¥å­—
     close(clnt_sock);
     close(serv_sock);
     return 0;

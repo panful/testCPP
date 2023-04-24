@@ -5,23 +5,23 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 int main(){
-    //´´½¨Ì×½Ó×Ö
+    //åˆ›å»ºå¥—æ¥å­—
     int sock = socket(AF_INET, SOCK_STREAM, 0);
-    //Ïò·şÎñÆ÷£¨ÌØ¶¨µÄIPºÍ¶Ë¿Ú£©·¢ÆğÇëÇó
+    //å‘æœåŠ¡å™¨ï¼ˆç‰¹å®šçš„IPå’Œç«¯å£ï¼‰å‘èµ·è¯·æ±‚
     struct sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));  //Ã¿¸ö×Ö½Ú¶¼ÓÃ0Ìî³ä
-    serv_addr.sin_family = AF_INET;  //Ê¹ÓÃIPv4µØÖ·
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");  //¾ßÌåµÄIPµØÖ·
-    serv_addr.sin_port = htons(1234);  //¶Ë¿Ú
+    memset(&serv_addr, 0, sizeof(serv_addr));  //æ¯ä¸ªå­—èŠ‚éƒ½ç”¨0å¡«å……
+    serv_addr.sin_family = AF_INET;  //ä½¿ç”¨IPv4åœ°å€
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");  //å…·ä½“çš„IPåœ°å€
+    serv_addr.sin_port = htons(1234);  //ç«¯å£
     connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
    
-    //¶ÁÈ¡·şÎñÆ÷´«»ØµÄÊı¾İ
+    //è¯»å–æœåŠ¡å™¨ä¼ å›çš„æ•°æ®
     char buffer[40];
     read(sock, buffer, sizeof(buffer)-1);
    
     printf("Message form server: %s\n", buffer);
    
-    //¹Ø±ÕÌ×½Ó×Ö
+    //å…³é—­å¥—æ¥å­—
     close(sock);
     return 0;
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 1. stack 栈
  * 2. deque 双端队列 double ended queue
  * 3. priority_queue 优先级队列

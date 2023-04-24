@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1.测试MPI
 * 2.MPI_Send MPI_Recv
 * 3.MPI是多进程不是多线程

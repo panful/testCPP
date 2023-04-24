@@ -1,4 +1,4 @@
-﻿/*
+/*
 1. 标准库hash函数
 2. std::function 指向成员函数
 3. std::mem_fn 从成员指针创建出函数对象,有点类似function，bind

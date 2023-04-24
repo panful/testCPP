@@ -1,4 +1,4 @@
-﻿#include "contextHub.h"
+#include "contextHub.h"
 #include <iostream>
 #include <string>
 
@@ -12,7 +12,7 @@ int main(int argc, char** argv)
     // 注册服务
     {
         auto pService = Framework::ContextHub::GetInstance()->GetService<void()>();
-		auto str = std::string("func_name");
+        auto str = std::string("func_name");
         pService->RegisterMethod(str, func);
     }
 

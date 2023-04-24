@@ -1,4 +1,4 @@
-﻿/*
+/*
 * 1. 结构化绑定，还支持array tuple struct，自定义类型也支持
 * 2. std::is_same_v = std::is_same::value
 * 3. if switch中初始化，执行语句

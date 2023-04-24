@@ -1,4 +1,4 @@
-﻿#include "contextHub.h"
+#include "contextHub.h"
 #include <iostream>
 namespace Framework
 {
