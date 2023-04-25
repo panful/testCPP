@@ -451,7 +451,7 @@ int main()
         // {auto r8 = reinterpret_cast<FUNC>(testFunc2);}不应该被转换，函数签名不一样
     }
 
-    // dynamic_cast 00_07_TEST8
+    // dynamic_cast 00_07_02_TEST8
     {
         A* pA = new A();
         B* pB = new B();
