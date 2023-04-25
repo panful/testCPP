@@ -29,7 +29,7 @@
 |返回值类型推导             |                   ||
 |lambda参数可以使用auto     |                   ||
 |变量模板                   |00_13_TEST2        ||
-|constexpr减少限制          |                   ||
+|constexpr减少限制          |00_10                |返回void也可以使用，函数体可以多条语句|
 |\[\[deprecated]]标记       |00_17_TEST4        ||
 |二进制字面量                |00_18_TEST5       ||
 |std::shared_lock 读写锁    |00_04_03           ||

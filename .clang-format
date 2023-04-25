@@ -51,3 +51,6 @@ FixNamespaceComments: true
 SeparateDefinitionBlocks : Always
 # 定义之间的空行最多为一行
 MaxEmptyLinesToKeep: 1
+
+# 宏的换行符左对齐
+AlignEscapedNewlines: Left

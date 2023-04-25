@@ -1,39 +1,43 @@
 
 /*
-* 1. 宏定义获取枚举对应的字符串 https://zhuanlan.zhihu.com/p/388703062?utm_id=0 评论区
-* 2. magic_enum https://github.com/Neargye/magic_enum 枚举转字符串第三方库
-* 3. QMetaEnum 枚举转字符串 查看Qt测试程序
-* 4. 枚举与或非操作 00_06_TEST1
-* 5. 匿名枚举
-* 6. enum 和 enum class 类型转换
-* 7. sizeof(enum) 00_11_TEST2
-*/
+ * 1. 宏定义获取枚举对应的字符串 https://zhuanlan.zhihu.com/p/388703062?utm_id=0 评论区
+ * 2. magic_enum https://github.com/Neargye/magic_enum 枚举转字符串第三方库
+ * 3. QMetaEnum 枚举转字符串 查看Qt测试程序
+ * 4. 枚举与或非操作 00_06_TEST1
+ * 5. 匿名枚举，std::get<Enum>()
+ * 6. enum 和 enum class 类型转换
+ * 7. sizeof(enum) 00_11_TEST2
+ */
 
-#define TEST2
+#define TEST1
 
 #ifdef TEST1
 
 #include <iostream>
 
-#define COLOR_TABLE()\
-DEF_COLOR(Red) \
-DEF_COLOR(Blue) \
-DEF_COLOR(Green)
+#define COLOR_TABLE() \
+    DEF_COLOR(Red)    \
+    DEF_COLOR(Blue)   \
+    DEF_COLOR(Green)
 
-enum Color {
+enum class Color
+{
 #define DEF_COLOR(v) v,
     COLOR_TABLE()
 #undef DEF_COLOR
 };
 
-const char* StringOf(Color c) {
-    switch (c) {
-
-#define DEF_COLOR(v) case Color::v: return #v;
+const char* StringOf(Color c)
+{
+    switch (c)
+    {
+#define DEF_COLOR(v) \
+    case Color::v:   \
+        return #v;
         COLOR_TABLE()
 #undef DEF_COLOR
     default:
-        return  "";
+        return "";
     }
 }
 
@@ -52,25 +56,26 @@ int main()
 #include "magic_enum.hpp"
 #include <iostream>
 
-enum class Color 
-{ 
-    RED = 2, 
-    BLUE = 4, 
-    GREEN = 8 
+enum class Color
+{
+    RED   = 2,
+    BLUE  = 4,
+    GREEN = 8
 };
 
 int main()
 {
     {
-        Color color = Color::RED;
+        Color color     = Color::RED;
         auto color_name = magic_enum::enum_name(color);
         std::cout << color_name << '\n';
     }
 
     {
-        std::string color_name{ "GREEN" };
+        std::string color_name { "GREEN" };
         auto color = magic_enum::enum_cast<Color>(color_name);
-        if (color.has_value()) {
+        if (color.has_value())
+        {
             auto value = color.value(); // Color::GREEN
             std::cout << (int)value << '\n';
         }
@@ -78,8 +83,9 @@ int main()
 
     {
         int color_integer = 2;
-        auto color = magic_enum::enum_cast<Color>(color_integer);
-        if (color.has_value()) {
+        auto color        = magic_enum::enum_cast<Color>(color_integer);
+        if (color.has_value())
+        {
             auto value = color.value(); // Color::RED
             std::cout << (int)value << '\n';
         }
@@ -94,7 +100,8 @@ int main()
 
 // QMetaEnum
 int main()
-{}
+{
+}
 
 #endif // TEST3
 
@@ -124,7 +131,8 @@ enum ENUM_2
 #define E_4 0x08
 
 // 重载位操作符就可以像enum一样使用按位与或非
-ENUM_1 operator |(ENUM_1 e1, ENUM_1 e2) {
+ENUM_1 operator|(ENUM_1 e1, ENUM_1 e2)
+{
     return static_cast<ENUM_1>(static_cast<uint32_t>(e1) | static_cast<uint32_t>(e2));
 }
 
@@ -135,7 +143,7 @@ ENUM_1 operator |(ENUM_1 e1, ENUM_1 e2) {
 int main()
 {
     {
-        //auto r1 = ENUM_1::E1 & ENUM_1::E2; // error 因为ENUM_1::E1 和 ENUM_1::E2是ENUM类型的，并不是int或其他整形
+        // auto r1 = ENUM_1::E1 & ENUM_1::E2; // error 因为ENUM_1::E1 和 ENUM_1::E2是ENUM类型的，并不是int或其他整形
         auto r1 = ENUM_1::E3 | ENUM_1::E4; // E3|E4 = 12  重载了operator |
 
         ENUM_1 test = ENUM_1::E1 | ENUM_1::E2; // E1|E2 = 3 走的是default分支
@@ -210,16 +218,46 @@ int main()
 #ifdef TEST5
 
 #include <string>
+#include <tuple>
+
+namespace MyEnum {
+enum
+{
+    Int,
+    Float,
+    String,
+};
+}
 
 int main()
 {
-    // 匿名枚举
-    enum { Sun, Mon, Tue, Wed, Thur, Fri, Sat };
+    {
+        enum
+        {
+            Sun,
+            Mon,
+            Tue,
+            Wed,
+            Thur,
+            Fri,
+            Sat
+        };
 
-    std::string week[]{ "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" };
+        std::string week[] { "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" };
 
-    auto theSun = week[Sun];
-    auto theMon = week[Mon];
+        auto theSun = week[Sun];
+        auto theMon = week[Mon];
+    }
+
+    {
+        std::tuple<int, float, std::string> myTuple { 1, 2.2f, "string" };
+
+        auto theInt    = std::get<MyEnum::Int>(myTuple);
+        auto theFloat  = std::get<MyEnum::Float>(myTuple);
+        auto theString = std::get<MyEnum::String>(myTuple);
+    }
+
+    return 0;
 }
 
 #endif // TEST5
@@ -234,29 +272,35 @@ enum class 一般总是前置声明，而 enum 只有在指定了潜在类型时
 
 #include <iostream>
 
-void f1(size_t x) { std::cout << x << '\n'; }
+void f1(size_t x)
+{
+    std::cout << x << '\n';
+}
 
-enum ENUM_1 {
+enum ENUM_1
+{
     red,
     green,
     blue
 };
 
-enum class ENUM_2 {
+enum class ENUM_2
+{
     red_c,
     green_c,
     blue_c
 };
 
-//auto red = 1; // error red重定义
+// auto red = 1; // error red重定义
 auto red_c = 1; // ok
 
 // 枚举转换
-constexpr size_t EnumConvert(ENUM_2 e) noexcept{
+constexpr size_t EnumConvert(ENUM_2 e) noexcept
+{
     return static_cast<size_t>(e);
 }
 
-template<typename E>
+template <typename E>
 constexpr typename std::underlying_type<E>::type toUType(E enumerator) noexcept
 {
     return static_cast<typename std::underlying_type<E>::type>(enumerator);
@@ -267,7 +311,7 @@ int main()
     f1(red);
 
     f1(red_c); // 实参是全局变量red_c
-    //f1(ENUM_2::red_c); // error 类型不兼容
+    // f1(ENUM_2::red_c); // error 类型不兼容
     f1(static_cast<size_t>(ENUM_2::red_c)); // ok
 
     f1(EnumConvert(ENUM_2::green_c));

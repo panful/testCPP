@@ -92,3 +92,5 @@ auto cbegin(const C& con) -> decltype(std::begin(con))
 - noexcept性质对于移动操作、swap、内存释放函数和析构函数最有价值
 - delete、delete[]、析构函数等从C++11开始隐式的具备noexcept性质
 ## 15.只要有可能使用constexpr，就使用它
+- 所有constexpr对象都是const对象，而并非所有的const对象都是constexpr对象
+- constexpr对象都具备const属性，并由编译期已知的值完成初始化
