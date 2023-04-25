@@ -1,4 +1,5 @@
 /*
+ * 1. 继承方式的区别
  * 5. 子类可以继承父类那些成员
  * 7. 纯虚析构函数，抽象类的析构函数
  * 8. 父类函数带virtual和不带virtual 纯虚函数，dynamic_cast正确使用方法
@@ -8,7 +9,72 @@
  * 16.变长using声明
  */
 
-#define TEST14
+#define TEST1
+
+#ifdef TEST1
+
+// https://www.cnblogs.com/mmmmmmmmm/p/15166853.html
+class A
+{
+public:
+    int a { 0 };
+
+protected:
+    int b { 0 };
+
+private:
+    int c { 0 };
+};
+
+class B : public A
+{
+public:
+    B()
+    {
+        int x = this->a;
+        int y = this->b;
+        // int z = this->c;
+    }
+};
+
+class C : protected A
+{
+public:
+    C()
+    {
+        int x = this->a;
+        int y = this->b;
+        // int z = this->c;
+    }
+};
+
+class D : private A
+{
+public:
+    D()
+    {
+        int x = this->a;
+        int y = this->b;
+        // int z = this->c;
+    }
+};
+
+int main()
+{
+    A a;
+    auto v1 = a.a;
+
+    B b;
+    auto v2 = b.a;
+
+    // C c;
+    // c.a;
+
+    // D d;
+    // d.a;
+}
+
+#endif // TEST1
 
 #ifdef TEST5
 

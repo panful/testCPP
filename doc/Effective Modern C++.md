@@ -74,3 +74,21 @@ void Func<void>(void*) = delete;
 - 子类中重写的函数都应该添加override声明
 - 成员函数引用饰词使得对于左值和右值对象(*this)的处理能够区分开来
 ## 13.优先选用const_iterator，而非iterator
+- 优先选用非成员函数版本的begin()、end()和rbegin()等函数
+```C++
+std::begin(container);
+std::end(container);
+
+template<class C>
+auto cbegin(const C& con) -> decltype(std::begin(con))
+{
+    // 注意此处是std::begin()
+    return std::begin(con);
+}
+```
+## 14.只要函数不会发射异常，就为其加上noexpect声明
+- 异常中立函数（自身不抛异常，调用的函数会抛出异常）不具备noexcept性质，大多数函数是异常中立的
+- 只要能确保函数不抛出异常，就一定要加上noexcept
+- noexcept性质对于移动操作、swap、内存释放函数和析构函数最有价值
+- delete、delete[]、析构函数等从C++11开始隐式的具备noexcept性质
+## 15.只要有可能使用constexpr，就使用它

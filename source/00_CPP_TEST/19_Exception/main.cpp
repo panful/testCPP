@@ -11,7 +11,7 @@
 //
 // CMake中通过 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}/EHsc")设置编译选项
 //
-#define TEST2
+#define TEST3
 
 #ifdef TEST1
 
@@ -79,7 +79,6 @@ int main()
 }
 
 #endif // TEST1
-
 
 #ifdef TEST2
 
@@ -217,3 +216,32 @@ int main()
 #endif // __GNUC__
 
 #endif // TEST2
+
+#ifdef TEST3
+
+#include <iostream>
+#include <vector>
+
+void Func1()
+{
+    std::cout << "Func1\n";
+    throw("Func1 throw");
+}
+
+// Func2被称为异常中立，Func2本身并不抛出异常，但是他调用的函数Func1会抛出异常
+// 异常中立函数永远不具备noexcept性质，因为他们可能会发射这种“路过”异常
+void Func2()
+{
+    std::cout << "Func2\ncall Func1 begin\n";
+    Func1();
+    std::cout << "call Func1 end\n";
+}
+
+int main()
+{
+    Func2();
+
+    return 0;
+}
+
+#endif // TEST3
