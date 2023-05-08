@@ -1,7 +1,2 @@
-cmake_minimum_required (VERSION 3.8)
-
-set(target_name "00_05_Pointer")
-
-add_executable (${target_name} "main.cpp")
-
-install(TARGETS ${target_name} RUNTIME DESTINATION ./)
+add_subdirectory("01_SmartPointer")
+add_subdirectory("02_new_delete")
