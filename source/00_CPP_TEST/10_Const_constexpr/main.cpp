@@ -7,9 +7,10 @@
  * 6. 普通函数使用constexpr
  * 7. 构造函数、成员函数使用constexpr
  * 8. std::as_const
+ * 9. mutable
  */
 
-#define TEST2
+#define TEST7
 
 #ifdef TEST1
 
@@ -310,24 +311,29 @@ int main()
 class Test
 {
 public:
-#if __cplusplus < 202202L
+#if __cplusplus < 202002L
+    // c++20以下不支持构造函数内修改成员变量，只能在初始化列表修改
+    // 且成员变量如果不用初始化列表初始化，必须在声明的时候初始化
     constexpr explicit Test() noexcept : m_int(0)
     {
+        int x = 666;
     }
 
     constexpr explicit Test(int n) noexcept : m_int(n)
     {
+        int x = 666;
     }
 #else
-    // c++20以下不支持构造函数内修改成员变量，只能在初始化列表修改
-    // 且成员变量如果不用初始化列表赋值，必须在声明的时候初始化
+    // 只要构造函数内部不调用非constexpr函数或者不能在编译期确定值的函数就可以使用constexpr
     constexpr explicit Test() noexcept
     {
+        int x = 666;
     }
 
     constexpr explicit Test(int n) noexcept
     {
-        // m_int = n;
+        m_int = n;
+        int x = 666;
     }
 #endif
 public:
@@ -434,3 +440,45 @@ int main()
 }
 
 #endif // TEST8
+
+#ifdef TEST9
+
+#include <iostream>
+
+class Test
+{
+public:
+    int GetValue() const
+    {
+        if (!m_init)
+        {
+            // do some thing
+            m_init = true;
+        }
+
+        return m_value;
+    }
+
+    void SetValue(int n)
+    {
+        m_value = n;
+        m_init  = true;
+    }
+
+private:
+    int m_value { 0 };
+    // 因为m_init在const修饰的成员函数内被修改，所以m_init需要被mutable修饰
+    mutable bool m_init { false };
+};
+
+int main()
+{
+    Test t;
+    std::cout << t.GetValue() << '\n';
+    t.SetValue(666);
+    std::cout << t.GetValue() << '\n';
+
+    return 0;
+}
+
+#endif // TEST9

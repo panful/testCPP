@@ -94,3 +94,6 @@ auto cbegin(const C& con) -> decltype(std::begin(con))
 ## 15.只要有可能使用constexpr，就使用它
 - 所有constexpr对象都是const对象，而并非所有的const对象都是constexpr对象
 - constexpr对象都具备const属性，并由编译期已知的值完成初始化
+## 16.保证const成员函数的线程安全性
+- 带有const的成员函数应该线程安全
+- 运用std::atomic型别的变量会比运用互斥量提供更好的性能，但前者仅适用对单个变量或内存区域的操作
