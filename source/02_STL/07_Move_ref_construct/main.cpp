@@ -1,6 +1,6 @@
 /*
 * 1. 函数返回对象，std::move，编译器优化，参数为常引用和引用
-* 2. 普通构造，移动构造，拷贝构造，移动赋值，拷贝赋值
+* 2. 
 * 3. 模板函数不要使用值传递
 * 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递  引用塌缩  https://www.qb5200.com/article/295128.html
 * 5. 
@@ -160,129 +160,6 @@ int main()
 
 #endif // TEST1
 
-#ifdef TEST2
-
-#include <iostream>
-
-class A
-{
-public:
-    int* p = nullptr;
-public:
-    A()
-    {
-        std::cout << "construction\n";
-        p = new int(1);
-    }
-
-    explicit A(const A& a) noexcept
-    {
-        std::cout << "copy construction\n";
-        this->p = new int(*a.p); // 深拷贝
-    }
-
-    A(A&& a) noexcept
-    {
-        std::cout << "move construction\n";
-        this->p = new int(*a.p);
-        a.p = nullptr;
-    }
-
-    // 这种参数没必要存在，因为对一个const对象执行std::move方法是不合理的
-    //
-    A(const A&& a) noexcept
-    {
-        std::cout << "const move construction\n";
-    }
-
-    const A& operator=(const A& a) noexcept
-    { // 返回常引用，因为不可能将返回值赋值给一个const A 例如{A a1;const A a2; a2 = a1 //编译报错}
-      // {A a1; auto a2 = a1; //调用拷贝构造函数}
-        std::cout << "assignment\n";
-        this->p = new int(*a.p);
-        return *this;
-    }
-
-    const A& operator=(A&& a) noexcept
-    {
-        std::cout << "move assignment\n";
-        this->p = new int(*a.p);
-        a.p = nullptr;
-        return *this;
-    }
-
-    // 这种形参没必要，因为对一个const对象执行std::move方法是不合理的
-    const A& operator=(const A&& a) noexcept
-    {
-        std::cout << "const move assignment\n";
-        return *this;
-    }
-
-    ~A()
-    {
-        std::cout << "destruction\n";
-        delete p;
-        p = nullptr;
-    }
-
-    void setN(int _n)
-    {
-        n = _n;
-    }
-
-private:
-    int n{ 0 };
-};
-
-int main()
-{
-
-    {
-        A a;                //普通构造函数
-        A b(a);             //拷贝构造
-        A c(std::move(a));  //移动构造，没有移动构造函数则调用拷贝构造
-    }
-
-    std::cout << "-----------------------------\n";
-
-    {
-        A aa, bb, cc;       //普通构造(3次）
-        bb = std::move(aa); //移动赋值，没有移动赋值运算符则调用普通赋值
-        cc = bb;            //普通赋值
-    }
-
-    std::cout << "-----------------------------\n";
-
-    {
-        const A dd1,dd2;
-        //dd.setN(1); // error dd是const的，setN()不是const
-        A ee;
-        ee = std::move(dd1); // 会有警告：不要对常量使用std::move 调用参数为const&&的赋值操作
-        ee.setN(1);
-
-        const A ff = std::move(dd2); // 调用参数为const&&的拷贝构造函数
-    }
-
-    std::cout << "-----------------------------\n";
-
-    {
-        A a(A()); // 啥都不调用 gcc这里会有警告
-        A b(A{}); // 普通构造函数，上面的'()'应该替换为该行的'{}'
-    }
-
-    std::cout << "-----------------------------\n";
-
-    {
-        A cc;
-        A dd = std::move(cc); //移动构造，没有移动构造函数则调用拷贝构造
-        //A ee = dd;            //拷贝构造，注意和 {A a;a = b;}的区别，如果拷贝构造带explicit关键字，则会报错
-    }
-
-
-
-    return 0;
-}
-#endif // TEST2
 
 #ifdef TEST3
 

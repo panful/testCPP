@@ -1,9 +1,9 @@
 /*
- * 1. 
+ * 1. 普通构造，移动构造，拷贝构造，移动赋值，拷贝赋值
  * 2. 类初始化列表的顺序按成员变量在类中声明的顺序从上往下依次执行，不按初始化列表
  * 3. 类成员变量析构顺序
  * 4. 成员变量定义比构造函数更先执行
-
+ * 5. 特种成员函数的生成机制 拷贝操作移动操作使用=default
  * 6. delete this，状态模式中进行状态转换时可能会用到delete this
 
  * 9. this指针，指针为nullptr访问成员函数
@@ -13,11 +13,129 @@
  * 13.explicit
  */
 
-// 02_07_TEST2 构造函数、析构函数、拷贝构造函数的使用
+#define TEST5
 
-#define TEST2
+#ifdef TEST1
 
+#include <iostream>
 
+class A
+{
+public:
+    int* p = nullptr;
+
+public:
+    A()
+    {
+        std::cout << "construction\n";
+        p = new int(1);
+    }
+
+    explicit A(const A& a) noexcept
+    {
+        std::cout << "copy construction\n";
+        this->p = new int(*a.p); // 深拷贝
+    }
+
+    A(A&& a) noexcept
+    {
+        std::cout << "move construction\n";
+        this->p = new int(*a.p);
+        a.p     = nullptr;
+    }
+
+    // 这种参数没必要存在，因为对一个const对象执行std::move方法是不合理的
+    A(const A&& a) noexcept
+    {
+        std::cout << "const move construction\n";
+    }
+
+    const A& operator=(const A& a) noexcept
+    { // 返回常引用，因为不可能将返回值赋值给一个const A 例如{A a1;const A a2; a2 = a1 //编译报错}
+      // {A a1; auto a2 = a1; //调用拷贝构造函数}
+        std::cout << "assignment\n";
+        this->p = new int(*a.p);
+        return *this;
+    }
+
+    const A& operator=(A&& a) noexcept
+    {
+        std::cout << "move assignment\n";
+        this->p = new int(*a.p);
+        a.p     = nullptr;
+        return *this;
+    }
+
+    // 这种形参没必要，因为对一个const对象执行std::move方法是不合理的
+    const A& operator=(const A&& a) noexcept
+    {
+        std::cout << "const move assignment\n";
+        return *this;
+    }
+
+    ~A()
+    {
+        std::cout << "destruction\n";
+        delete p;
+        p = nullptr;
+    }
+
+    void setN(int _n)
+    {
+        n = _n;
+    }
+
+private:
+    int n { 0 };
+};
+
+int main()
+{
+
+    {
+        A a;               // 普通构造函数
+        A b(a);            // 拷贝构造
+        A c(std::move(a)); // 移动构造，没有移动构造函数则调用拷贝构造
+    }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        A aa, bb, cc;       // 普通构造(3次）
+        bb = std::move(aa); // 移动赋值，没有移动赋值运算符则调用普通赋值
+        cc = bb;            // 普通赋值
+    }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        const A dd1, dd2;
+        // dd.setN(1); // error dd是const的，setN()不是const
+        A ee;
+        ee = std::move(dd1); // 会有警告：不要对常量使用std::move 调用参数为const&&的赋值操作
+        ee.setN(1);
+
+        const A ff = std::move(dd2); // 调用参数为const&&的拷贝构造函数
+    }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        A a(A());  // 啥都不调用 gcc这里会有警告
+        A b(A {}); // 普通构造函数，上面的'()'应该替换为该行的'{}'
+    }
+
+    std::cout << "-----------------------------\n";
+
+    {
+        A cc;
+        A dd = std::move(cc); // 移动构造，没有移动构造函数则调用拷贝构造
+        // A ee = dd;            //拷贝构造，注意和 {A a;a = b;}的区别，如果拷贝构造带explicit关键字，则会报错
+    }
+
+    return 0;
+}
+#endif // TEST1
 
 #ifdef TEST2
 
@@ -30,6 +148,7 @@ public:
     {
         std::cout << "A\n";
     }
+
     ~A()
     {
         std::cout << "~A\n";
@@ -43,6 +162,7 @@ public:
     {
         std::cout << "B\n";
     }
+
     ~B()
     {
         std::cout << "~B\n";
@@ -56,6 +176,7 @@ public:
     {
         std::cout << "C\n";
     }
+
     ~C()
     {
         std::cout << "~C\n";
@@ -65,10 +186,7 @@ public:
 class Test
 {
 public:
-    Test()
-        : b(new B())
-        , c(new C())
-        , a(new A())
+    Test() : b(new B()), c(new C()), a(new A())
     {
         std::cout << "Test\n";
     }
@@ -100,6 +218,7 @@ public:
     {
         std::cout << "A\n";
     }
+
     ~A()
     {
         std::cout << "~A\n";
@@ -113,6 +232,7 @@ public:
     {
         std::cout << "B\n";
     }
+
     ~B()
     {
         std::cout << "~B\n";
@@ -126,6 +246,7 @@ public:
     {
         std::cout << "C\n";
     }
+
     ~C()
     {
         std::cout << "~C\n";
@@ -189,6 +310,191 @@ int main()
 
 #endif // TEST4
 
+#ifdef TEST5
+
+#include <iostream>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+class Test
+{
+private:
+    Helper m_help;
+};
+
+class Test2
+{
+private:
+    Helper m_help;
+
+public:
+    // 移动操作仅当类中未包含用户显式声明的复制操作、移动操作、析构函数时才生成
+    // 所以Test2不会生成移动构造和移动赋值
+    // 在已经存在显式声明析构函数的条件下生成复制操作已经成为废弃行为
+    // 所以不建议声明了析构函数时不声明复制操作
+    ~Test2()
+    {
+    }
+};
+
+class Test3
+{
+private:
+    Helper m_help;
+
+public:
+    Test3()
+    {
+    }
+
+    // 如果显式声明了移动操作，复制操作将被删除
+    Test3(Test3&&) = default;
+
+    // 如果显式声明了移动构造函数，移动赋值将不会自动生成
+    // Test3& operator=(Test3&&) = default;
+};
+
+class Test4
+{
+private:
+    Helper m_help;
+
+public:
+    // 将析构声明为 = default 移动操作将不会自动生成，生成复制操作已成为废弃行为
+    // 即 =default 就相当于显式声明，只是实现是由编译器自动生成
+    ~Test4() = default;
+};
+
+class Test5
+{
+private:
+    Helper m_help;
+
+public:
+    Test5()                   = default;
+    ~Test5()                  = default;
+    Test5(const Test5&)       = default;
+    Test5(Test5&&)            = default; // 注意形参必须是 Object&& 不能是 const Object&& 等其他参数
+    Test5& operator=(Test5&)  = default; // 返回值类型必须是Obejct& 不能带const
+    Test5& operator=(Test5&&) = default; // 同上
+};
+
+class Test6
+{
+private:
+    Helper m_help;
+
+public:
+    Test6()
+    {
+    }
+
+    ~Test6()
+    {
+    }
+
+    Test6(const Test6&) = default;
+
+    // 只要没有显式声明拷贝赋值和移动操作就会自动生成拷贝赋值
+    // 不过如果声明了析构函数的条件下，生成拷贝操作已经被废弃
+    // 拷贝构造同理
+};
+
+int main()
+{
+    std::cout << "------------------------------------\n";
+    {
+        Test t1;
+        Test t2 {};
+    }
+    std::cout << "------------------------------------\n";
+    {
+        Test t1 {};
+        Test t2(t1);
+        Test t3(std::move(t1));
+        t2 = t1;
+        t2 = std::move(t1);
+    }
+    std::cout << "------------------------------------\n";
+    {
+        Test2 t1 {};
+        Test2 t2(t1);
+        Test2 t3(std::move(t1)); // 调用拷贝构造 因为Test2不会自动生成移动拷贝操作
+        t2 = t1;
+        t2 = std::move(t1);
+    }
+    std::cout << "------------------------------------\n";
+    {
+        Test3 t1 {};
+        Test3 t2(std::move(t1)); // 移动构造
+        // Test3 t3(t1);            // error
+        // t2 = t1;                 // error
+        // t2 = std::move(t1);      // error
+    }
+    std::cout << "------------------------------------\n";
+    {
+        Test4 t1 {};
+        Test4 t2(std::move(t1)); // 拷贝构造
+        Test4 t3(t1);            // 拷贝构造
+        t2 = t1;                 // 拷贝赋值
+        t2 = std::move(t1);      // 拷贝赋值
+    }
+    std::cout << "------------------------------------\n";
+    {
+        Test5 t1 {};
+        Test5 t2(std::move(t1)); // 移动构造
+        Test5 t3(t1);            // 拷贝构造
+        t2 = t1;                 // 拷贝赋值
+        t2 = std::move(t1);      // 移动赋值
+    }
+
+    std::cout << "------------------------------------\n";
+    {
+        Test6 t1 {};
+        Test6 t2(std::move(t1)); // 拷贝构造
+        Test6 t3(t1);            // 拷贝构造
+        t2 = t1;                 // 拷贝赋值
+        t2 = std::move(t1);      // 拷贝赋值
+    }
+
+    return 0;
+}
+
+#endif // TEST5
 
 #ifdef TEST6
 
@@ -211,6 +517,7 @@ class Test
 {
 public:
     int m_int { 100 };
+
     void Print()
     {
         std::cout << "Test::m_int:\t" << m_int << std::endl;
@@ -222,10 +529,11 @@ class A
 public:
     A()
     {
-        m_int = 99;
+        m_int  = 99;
         m_test = std::make_unique<Test>();
         std::cout << "construct\n";
     }
+
     ~A()
     {
         std::cout << "destruct\n";
@@ -235,18 +543,22 @@ public:
     {
         delete this;
     }
+
     A* Instance()
     {
         return this;
     }
+
     void PrintYes()
     {
         std::cout << "call member\t" << m_int << std::endl;
     }
+
     void PrintNo()
     {
         std::cout << "does not call\n";
     }
+
     void PrintPointer()
     {
         m_test->Print();
@@ -260,7 +572,7 @@ private:
 int main()
 {
     {
-        A* a = new A();
+        A* a     = new A();
         auto ret = a->Instance();
         if (a == ret)
         {
@@ -286,7 +598,6 @@ int main()
     }
 }
 #endif // TEST6
-
 
 #ifdef TEST9
 
@@ -327,6 +638,7 @@ public:
         // 如果f5的参数为'int x'，那么还没执行'this->x = x;'之前，成员变量就已经被设置为了5
         this->x = _x;
     }
+
     void f6()
     {
         std::cout << "does not call member\n";
@@ -346,6 +658,7 @@ public:
     {
         std::cout << "A::Func1\n";
     }
+
     void Func2()
     {
         std::cout << "A::Func2\n";
@@ -359,6 +672,7 @@ public:
     {
         std::cout << "B::Func3\n";
     }
+
     void Func1() override
     {
         std::cout << "B::Func1\n";
@@ -396,24 +710,23 @@ int main()
 
 #endif // TEST9
 
-
 #ifdef TEST11
 #include <iostream>
 
 class Object
 {
 public:
-    Object()
-        : pValue(new int(0))
+    Object() : pValue(new int(0))
     {
         std::cout << "construct\n";
     }
+
     // Object(const Object& o) :pValue(o.pValue) {std::cout << "Shallow copy\n"; }  // 浅拷贝，类如果含有指针，调用析构函数会崩溃
-    Object(const Object& obj)
-        : pValue(new int(*obj.pValue))
+    Object(const Object& obj) : pValue(new int(*obj.pValue))
     {
         std::cout << "Deep copy\n";
     } // 深拷贝
+
     ~Object()
     {
         std::cout << "destruct\n";
@@ -455,15 +768,11 @@ int main()
 class Test1
 {
 public:
-    Test1(int x)
-        : m_num1(x)
-        , m_num2(0)
+    Test1(int x) : m_num1(x), m_num2(0)
     {
     }
 
-    Test1(const Test1& t)
-        : m_num1(0)
-        , m_num2(0)
+    Test1(const Test1& t) : m_num1(0), m_num2(0)
     {
     }
 
@@ -475,15 +784,11 @@ private:
 class Test2
 {
 public:
-    explicit Test2(int x)
-        : m_num1(x)
-        , m_num2(0)
+    explicit Test2(int x) : m_num1(x), m_num2(0)
     {
     }
 
-    explicit Test2(const Test2& t)
-        : m_num1(0)
-        , m_num2(0)
+    explicit Test2(const Test2& t) : m_num1(0), m_num2(0)
     {
     }
 
@@ -516,4 +821,3 @@ int main()
 }
 
 #endif // TEST13
-
