@@ -5,10 +5,10 @@
  *
  * 201 std::shared_ptr的大小，控制块（引用计数）的创建
  * 202 std::enable_shared_from_this 如何安全地使用this创建std::shared_ptr
- * 203 std::shared_ptr reset() 主动释放控制权
+ * 203 std::shared_ptr reset() 主动释放控制权 引用计数
  * 204 自定义std::shared_ptr的删除器
- *
- * 205 std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
+ * 205 std::shared_ptr 线程安全问题
+ * 206 多线程执行std::shared_ptr，它管理的对象的线程安全问题
  *
  * 301 std::weak_ptr.expired() use_count() 字节大小
  * 302 std::shared_ptr在当前类中创建并保存（std::weak_ptr），在儿子类中也保存一份（std::shared_ptr）
@@ -21,10 +21,10 @@
  * 402 智能指针离开作用域前抛出异常，也可以正常释放
  * 403 std::make_shared使用的时机 std::allocate_shared允许自定义分配器
  * 404 使用new构造std::shared_ptr造成内存泄漏
- * 405 
+ * 405
  */
 
-#define TEST405
+#define TEST207
 
 #ifdef TEST101
 
@@ -538,7 +538,7 @@ int main()
         std::shared_ptr<Helper> sp = std::make_shared<Helper>();
         std::weak_ptr<Helper> wp   = sp;
         std::cout << wp.use_count() << '\t' << sp.use_count() << '\n';
-        wp.lock().reset(); // 不会调用析构函数
+        wp.lock().reset(); // 不会调用析构函数，原因看TEST403
         std::cout << wp.use_count() << '\t' << sp.use_count() << '\n';
     }
 
@@ -556,6 +556,34 @@ int main()
 
         sp2 = nullptr; // 立即调用析构，类似上面std::vector的示例
         std::cout << sp.use_count() << '\t' << sp2.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // std::move(std::shared_ptr)
+    {
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+        std::cout << sp.use_count() << '\n';
+        auto sp1 = sp;
+        std::cout << sp.use_count() << '\t' << sp1.use_count() << '\n';
+        auto sp2(sp);
+        std::cout << sp.use_count() << '\t' << sp1.use_count() << '\t' << sp2.use_count() << '\n';
+
+        // 移动不会增加引用计数，移动之后原来的std::shared_ptr引用计数将会变为0
+        auto sp3 = std::move(sp);
+        std::cout << sp.use_count() << '\t' << sp1.use_count() << '\t' << sp2.use_count() << '\t' << sp3.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // std::shared_ptr.unique() 如果引用计数为1则返回true，不为1都是false
+    {
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+        std::cout << sp.use_count() << '\t' << sp.unique() << '\n';
+        auto sp2 = sp;
+        std::cout << sp.use_count() << '\t' << sp.unique() << '\t' << sp2.use_count() << '\t' << sp2.unique() << '\n';
+        sp.reset();
+        std::cout << sp.use_count() << '\t' << sp.unique() << '\t' << sp2.use_count() << '\t' << sp2.unique() << '\n';
     }
 
     std::cout << "------------------------------------------------------\n";
@@ -669,9 +697,219 @@ int main()
 
 #ifdef TEST205
 
+// std::shared_ptr的引用计数是原子的，但是st::shared_ptr本身不是线程安全的
+// 所以对std::shared_ptr读写还是需要加锁，构造、拷贝构造、析构
+// c++20 std::atomic<std::shared_ptr> https://en.cppreference.com/w/cpp/memory/shared_ptr/atomic2
 
+// https://blog.csdn.net/solstice/article/details/8547547
+
+#include <chrono>
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <vector>
+
+static auto now = std::chrono::steady_clock::now();
+
+class Helper
+{
+public:
+    constexpr Helper() : m_number(new int(66))
+    {
+        std::cout << "Helper construct\n";
+        std::cout << *m_number << '\t' << m_number << '\n';
+    }
+
+    ~Helper()
+    {
+        std::cout << "Helper destruct\n";
+
+        delete m_number;
+        m_number = nullptr;
+    }
+
+    void Print() const
+    {
+        std::cout << *m_number << '\t' << m_number << '\n';
+    }
+
+private:
+    int* m_number { nullptr };
+};
+
+class Test
+{
+public:
+    void Release()
+    {
+        std::this_thread::sleep_until(now + std::chrono::seconds(2));
+
+        std::cout << "-- release\n";
+        m_helper = nullptr;
+    }
+
+    void GoodUse() const
+    {
+        std::this_thread::sleep_until(now + std::chrono::seconds(1));
+
+        std::cout << "-- use\n";
+
+        // 拷贝赋值，引用计数加1，在其他地方对std::shared_ptr引用计数减一，并不会导致析构
+        if (auto p = m_helper; p)
+        {
+            std::cout << p.use_count() << '\n';
+            std::this_thread::sleep_until(now + std::chrono::seconds(3));
+            std::cout << p.use_count() << '\n';
+
+            std::cout << "print\n";
+            p->Print();
+        }
+
+        std::cout << m_helper.use_count() << '\n';
+    }
+
+    void BadUse() const
+    {
+        std::this_thread::sleep_until(now + std::chrono::seconds(1));
+
+        std::cout << "-- use\n";
+
+        if (m_helper)
+        {
+            std::cout << m_helper.use_count() << '\n';
+            std::this_thread::sleep_until(now + std::chrono::seconds(3));
+            std::cout << m_helper.use_count() << '\n';
+
+            // m_helper引用计数为0，管理的对象已经被析构，程序中断
+            std::cout << "print\n";
+            m_helper->Print();
+        }
+
+        std::cout << m_helper.use_count() << '\n';
+    }
+
+private:
+    std::shared_ptr<Helper> m_helper { std::make_shared<Helper>() };
+};
+
+int main()
+{
+    std::cout << "------------------------------------------------------\n";
+
+    std::vector<std::thread> threads;
+    Test test;
+    {
+        // threads.emplace_back(std::thread(&Test::BadUse, &test));
+        threads.emplace_back(std::thread(&Test::GoodUse, &test));
+        threads.emplace_back(std::thread(&Test::Release, &test));
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    for (auto& t : threads)
+    {
+        t.join();
+    }
+
+    std::cout << "------------------------------------------------------\n";
+}
 
 #endif // TEST205
+
+#ifdef TEST206
+
+#include <atomic>
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <vector>
+
+class Accumulation
+{
+public:
+    void Worker()
+    {
+        for (size_t i = 0; i < m_count; i++)
+        {
+            m_number++;
+        }
+    }
+
+    void PrintResult()
+    {
+        std::cout << "Result of a thread: " << m_number << '\n';
+    }
+
+private:
+    int m_number { 0 };
+    size_t m_count { 100000 };
+};
+
+class Test
+{
+public:
+    void Worker() const
+    {
+        // 如果不使用锁累加的结果就是错误的
+        // std::lock_guard<std::mutex> lock(m_mutex);
+        m_accumulation->Worker();
+    }
+
+    void PrintResult() const
+    {
+        m_accumulation->PrintResult();
+    }
+
+private:
+    std::shared_ptr<Accumulation> m_accumulation { std::make_shared<Accumulation>() };
+    mutable std::mutex m_mutex;
+};
+
+// 将Accumulation中的m_number声明为 std::atomic<int> 不需要加锁就可以正确累加
+
+int main()
+{
+    // 多个线程执行累加任务
+    {
+        std::vector<std::thread> threads;
+        Accumulation a;
+
+        for (size_t i = 0; i < 10; i++)
+        {
+            threads.emplace_back(std::thread(&Accumulation::Worker, &a));
+        }
+
+        for (auto& t : threads)
+        {
+            t.join();
+        }
+
+        a.PrintResult();
+    }
+
+    // 使用std::shared_ptr调用累加任务
+    {
+        std::vector<std::thread> threads;
+        Test a;
+
+        for (size_t i = 0; i < 10; i++)
+        {
+            threads.emplace_back(std::thread(&Test::Worker, &a));
+        }
+
+        for (auto& t : threads)
+        {
+            t.join();
+        }
+
+        a.PrintResult();
+    }
+
+    return 0;
+}
+
+#endif // TEST206
+
 
 //---------------------------------------------------------
 #ifdef TEST301
@@ -1211,6 +1449,20 @@ int main()
 
     std::cout << "------------------------------------------------------\n";
 
+    // 不要释放get返回的裸指针
+    {
+        // auto p = std::make_shared<int>(66);
+        // std::cout << p.use_count() << '\n';
+        // auto p2 = p.get();
+        // std::cout << p.use_count() << '\n';
+        // // 崩溃，提示两次释放
+        // delete p2;
+        // p2 = nullptr;
+        // std::cout << p.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
     return 0;
 }
 
@@ -1406,4 +1658,3 @@ int main()
 }
 
 #endif // TEST404
-
