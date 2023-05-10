@@ -2,32 +2,29 @@
  * 101 std::unique_ptr reset() release() 容器中保存std::unique_ptr
  * 102 自定义std::unique_ptr的释放方法
  * 103 将std::unique_ptr应用于工厂模式，std::unique_ptr转换为std::shared_ptr
+ *
+ * 201 std::shared_ptr的大小，控制块（引用计数）的创建
+ * 202 std::enable_shared_from_this 如何安全地使用this创建std::shared_ptr
+ * 203 std::shared_ptr reset() 主动释放控制权
+ * 204 自定义std::shared_ptr的删除器
+ *
+ * 205 std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
+ *
+ * 301 std::weak_ptr.expired() use_count() 字节大小
+ * 302 std::shared_ptr在当前类中创建并保存（std::weak_ptr），在儿子类中也保存一份（std::shared_ptr）
+ * 303 std::weak_ptr.lock() 线程安全问题
+ * 304 std::weak_ptr解决std::shared_ptr循环引用
+ * 305 std::weak_ptr解决野指针（悬空指针）的问题
+ * 306 std::weak_ptr用在观察者模式
+ *
+ * 401 std::unique_ptr和std::shared_ptr的get()函数，智能指针和裸指针混用的问题
+ * 402 智能指针离开作用域前抛出异常，也可以正常释放
+ * 403 std::make_shared使用的时机 std::allocate_shared允许自定义分配器
+ * 404 使用new构造std::shared_ptr造成内存泄漏
+ * 405 
  */
 
-/*
- * 1.
- * 2. 局部作用域创建shared_ptr unique_ptr
- * 3. 局部作用域创建的shared_ptr存储在容器中，在其他作用域将容器元素设置为nullptr
-
-
- * 6. 智能指针离开作用域前throw也会释放
- * 7. weak_ptr判断是否有效
- * 8. std::shared_ptr在多个类中使用时声明的位置，以及配合weak_ptr使用
- * 9. 智能指针的get()函数并不会使引用计数加1，所以如果智能指针已经释放，之前使用get()返回的裸指针也会被释放
- * 10.std::shared_ptr reset() 主动释放 std::shared_ptr没有release()函数
- * 11.没有默认构造函数（无参构造函数）也可以使用智能指针
- * 12.weak_ptr除过解决循环引用，还可以解决悬空指针的问题 https://blog.csdn.net/whahu1989/article/details/122443129
-
- * 14.std::shared_ptr循环引用造成内存泄漏
- * 15.函数返回局部智能指针，裸指针，局部变量
- * 16.std::shared_ptr线程安全 引用计数并不是简单的static变量 https://www.zhihu.com/question/56836057/answer/2158966805
-
-
- * 21 自定义智能指针的释放方法
-
- */
-
-#define TEST102
+#define TEST405
 
 #ifdef TEST101
 
@@ -80,16 +77,19 @@ int main()
     }
 
     std::cout << "---------------------------------------------\n";
+
     // reset()
     {
-        std::unique_ptr<A> a;
+        std::unique_ptr<A> a {}; // 这里并不调用构造函数
         // a.reset(std::make_unique<A>());  // 错误
         // a.reset(new A); 正确，但不建议这样使用，new对应一个delete
+
+        std::cout << "++++++++++++\n";
 
         // unique_ptr换绑其他对象
         a.reset(std::make_unique<A>().release());
 
-        // 释放a，会调用A的析构函数
+        // 释放a，会立即调用A的析构函数，不同于std::shared_ptr
         a.reset();
         std::cout << "++++++++++++\n";
     }
@@ -262,798 +262,309 @@ int main()
 
 #endif // TEST103
 
-#ifdef TEST2
+//---------------------------------------------------------
+#ifdef TEST201
 
 #include <iostream>
 #include <memory>
-#include <vector>
 
-class A
+class Helper
 {
 public:
-    void setA(int _a)
-    {
-        a = _a;
-    }
-
-    int getA()
-    {
-        return a;
-    }
-
-private:
-    int a { 3 };
-};
-
-class Test
-{
-public:
-    void func1()
-    {
-        // 局部创建的智能指针，离开作用域就会析构
-        // 所以如果想要保留，可以将智能指针放入容器（成员变量，局部容器没意义）中保存
-        auto s1 = std::make_shared<A>();
-        s1->setA(99);
-        m_shared.emplace_back(s1);
-
-        auto u1 = std::make_unique<A>();
-        u1->setA(88);
-        m_unique.emplace_back(std::move(u1)); // 容器插入unique_ptr请看TEST1
-    }
-
-    void func2()
-    {
-        std::cout << "shared: " << m_shared[0]->getA() << "\n";
-        std::cout << "unique: " << m_unique[0]->getA() << "\n";
-    }
-
-    int func3()
-    {
-        return m_shared[0]->getA();
-    }
-
-    std::vector<std::shared_ptr<A>> m_shared;
-    std::vector<std::unique_ptr<A>> m_unique; // unique_ptr没必要使用容器，直接使用类型保存即可:std::unique_ptr<A> m_unique;
-};
-
-int main()
-{
-    A aa;
-    Test test;
-    test.func1();
-    test.func2();
-    std::cout << test.func3();
-}
-
-#endif // TEST2
-
-#ifdef TEST3
-
-#include <array>
-#include <iostream>
-#include <memory>
-
-class A
-{
-public:
-    A()
+    Helper()
     {
         std::cout << "construct\n";
     }
 
-    ~A()
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
     {
         std::cout << "destruct\n";
     }
 };
 
-class Test
-{
-public:
-    void fun1()
-    {
-        auto s1     = std::make_shared<A>();
-        m_shared[0] = s1;
-    }
-
-    void fun2()
-    {
-        m_shared[0] = nullptr;
-    }
-
-    std::array<std::shared_ptr<A>, 3> m_shared;
-};
-
 int main()
 {
-    std::cout << "start\n";
+    std::cout << "------------------------------------------------------\n";
+
     {
-        Test t;
-        std::cout << "----------\n";
-        t.fun1();
-        std::cout << "----------\n";
-        t.fun2(); // 此处就会释放Test的成员变量 m_shared，因为容器中的元素已被nullptr置换，shared_ptr被弹出，引用计数变为0
-        std::cout << "----------\n";
+        // std::shared_ptr的大小是裸指针的两倍
+        // 一个指向数据的裸指针
+        // 一个指向控制块的裸指针
+        // 控制块包含引用计数、弱计数、删除器、内存分配器等
+        std::shared_ptr<Helper> helper {};
+        std::cout << sizeof(Helper) << '\t' << sizeof(helper) << '\n';
     }
 
-    std::cout << "end\n";
+    std::cout << "------------------------------------------------------\n";
+
+    {
+        Helper* p1                 = new Helper();
+        std::unique_ptr<Helper> p2 = std::make_unique<Helper>();
+
+        // 以下3种方式都会创建一个控制块
+        std::shared_ptr<Helper> sp1 = std::shared_ptr<Helper>(p1);
+        std::shared_ptr<Helper> sp2 = std::shared_ptr<Helper>(p2.release());
+        std::shared_ptr<Helper> sp3 = std::make_shared<Helper>();
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    {
+        // 不要使用裸指针创建一个std::shared_ptr
+        // 因为使用裸指针作为实参创建std::shared_ptr时，会创建一次控制块
+        // 多次使用同一个裸指针创建std::shared_ptr就会导致同一个裸指针有多个控制块
+        // 即有多个引用计数，引用计数变为0就会释放一次，导致多次释放
+        Helper* p = new Helper();
+        std::shared_ptr<Helper> h1(p);
+        // std::shared_ptr<Helper> h2(p);
+    }
+
+    std::cout << "------------------------------------------------------\n";
+    return 0;
 }
 
-#endif // TEST3
+#endif // TEST201
 
-#ifdef TEST6
+#ifdef TEST202
 
 #include <iostream>
 #include <memory>
 
-class A
+class Test
 {
 public:
-    A()
+    Test()
     {
         std::cout << "construct\n";
     }
-
-    ~A()
-    {
-        std::cout << "destruct\n";
-    }
-};
-
-void FuncThrow()
-{
-    std::unique_ptr<A> a = std::make_unique<A>();
-    throw "ss";
-}
-
-int main()
-{
-    try
-    {
-        FuncThrow();
-    }
-    catch (...)
-    {
-        std::cout << "catch an error\n";
-    }
-}
-#endif // TEST6
-
-#ifdef TEST7
-
-#include <iostream>
-#include <memory>
-#include <vector>
-
-int main()
-{
-
-    return 0;
-}
-
-#endif // TEST7
-
-#ifdef TEST8
-
-#include <iostream>
-#include <memory>
-
-class A
-{
-public:
-    A()
-    {
-        std::cout << "AAAAA\n";
-    }
-
-    ~A()
-    {
-        std::cout << "aaaaa\n";
-    }
-};
-
-class B
-{
-public:
-    B()
-    {
-        std::cout << "BBBBB\n";
-    }
-
-    ~B()
-    {
-        std::cout << "bbbbb\n";
-        std::cout << m_a.use_count() << "\tB A\n";
-    }
-
-    void SetA(const std::shared_ptr<A>& a)
-    {
-        m_a = a;
-    }
-
-    std::shared_ptr<A> m_a { nullptr };
-};
-
-class C
-{
-public:
-    C()
-    {
-        std::cout << "CCCCC\n";
-        m_b = std::make_shared<B>();
-        // m_a = std::make_shared<A>();
-        auto pa = std::make_shared<A>();
-        m_a     = pa;
-        m_b->SetA(pa);
-    }
-
-    ~C()
-    {
-        std::cout << "ccccc\n";
-        std::cout << m_a.use_count() << "\tC A\n";
-        std::cout << m_b.use_count() << "\tC B\n";
-    }
-
-private:
-    // std::shared_ptr<A> m_a和std::shared_ptr<B> m_b这两个成员的声明顺序不一样，打印的结果也不一样（即使都会成功析构）
-    // 合理的用法是，此处的m_a应该声明为std::weak_ptr，且std::weak_ptr应该在类C，而不是类B
-    // 因为如果将std::shared_ptr<A>放在C中，B中的是std::weak_ptr<A>，且c中的m_a声明在m_b之后，就会先析构A，导致B的m_a无效
-    // 如果还需要在B中的析构函数中使用m_a就会出问题
-
-    // std::shared_ptr<A> m_a{ nullptr };
-    std::shared_ptr<B> m_b { nullptr };
-
-    // m_a在类C中的声明顺序无所谓，它只是弱指针，析构时不会使A的引用计数减一也不会调用A的析构
-    std::weak_ptr<A> m_a;
-};
-
-int main()
-{
-    {
-
-        std::cout << "=========\n";
-        std::unique_ptr<C> c = std::make_unique<C>();
-        std::cout << "=========\n";
-    }
-    std::cout << "**********\n";
-}
-
-#endif // TEST8
-
-#ifdef TEST9
-
-#include <iostream>
-#include <memory>
-
-class A
-{
-public:
-    A()
-    {
-        std::cout << " === construct\n";
-    }
-
-    ~A()
-    {
-        std::cout << "*** destruct\n";
-    }
-
-    void Set(int a)
-    {
-        m_int = a;
-    }
-
-    int Get()
-    {
-        return m_int;
-    }
-
-private:
-    int m_int { 0 };
-};
-
-class B
-{
-public:
-    void SetPointerA(A* a)
-    {
-        m_a = a;
-    }
-
-    A* GetPointerA()
-    {
-        return m_a;
-    }
-
-private:
-    A* m_a { nullptr };
-};
-
-int main()
-{
-    // 智能指针和裸指针最好不要混合使用
-    // 本例中的B::SetPointerA(A*)参数和成员变量修改为智能指针就不会有如下问题
-    {
-        B b;
-        {
-            auto pa = std::make_unique<A>();
-            pa->Set(9);
-            b.SetPointerA(pa.get());
-            std::cout << b.GetPointerA()->Get() << "\n";
-        }
-        auto a = b.GetPointerA();
-        std::cout << a->Get() << std::endl; // a对应的智能指针已经被析构，所以打印的是随机值
-    }
-    std::cout << "-------------------\n";
-    {
-        B b;
-        {
-            auto pa = std::make_shared<A>();
-            pa->Set(8);
-            b.SetPointerA(pa.get());
-            std::cout << b.GetPointerA()->Get() << "\n";
-        }
-        auto a = b.GetPointerA();
-        std::cout << a->Get() << std::endl; // a对应的智能指针已经被析构，所以打印的是随机值
-    }
-}
-
-#endif // TEST9
-
-#ifdef TEST10
-
-#include <iostream>
-#include <memory>
-#include <vector>
-
-class A
-{
-public:
-    A()
-    {
-        std::cout << "AAA\n";
-    }
-
-    ~A()
-    {
-        std::cout << "aaa\n";
-    }
-};
-
-int main()
-{
-    {
-        std::vector<std::shared_ptr<A>> vec1;
-        std::vector<std::shared_ptr<A>> vec2;
-
-        auto pa = std::make_shared<A>();
-        std::cout << pa.use_count() << '\n';
-        vec1.emplace_back(pa);
-        std::cout << pa.use_count() << '\n';
-        vec2.emplace_back(pa);
-        std::cout << pa.use_count() << '\n';
-
-        // shared_ptr没有release函数
-        pa.reset(); // 不会调用析构函数
-
-        std::cout << "11111111111\n";
-    }
-    std::cout << "============\n";
-    {
-        auto pa             = std::make_shared<A>();
-        std::weak_ptr<A> wa = pa;
-        std::cout << wa.use_count() << '\n';
-        // wa.lock().reset();
-        pa.reset(); // 只有pa引用了智能指针，所以此处会调用析构函数
-        std::cout << "222222222222\n";
-    }
-    std::cout << "============\n";
-    {
-        auto pa             = std::make_shared<A>();
-        std::weak_ptr<A> wa = pa;
-        std::cout << wa.use_count() << '\n';
-        wa.lock().reset(); // 不会调用析构函数
-        std::cout << "222222222222\n";
-    }
-    std::cout << "============\n";
-    {
-        auto pa  = std::make_shared<A>();
-        auto ppa = pa;
-        pa       = nullptr;
-        ppa      = nullptr;
-        std::cout << pa.use_count() << '\n';
-        // 将所有引用到shared_ptr的变量置为nullptr才会调用析构
-        std::cout << "3333333333333\n";
-    }
-    std::cout << "==============\n";
-}
-
-#endif // TEST10
-
-#ifdef TEST11
-
-#include <iostream>
-#include <memory>
-
-class A
-{
-public:
-    A(int _a)
-    {
-        std::cout << " === construct\n";
-    }
-
-    ~A()
-    {
-        std::cout << "*** destruct\n";
-    }
-
-private:
-};
-
-int main()
-{
-    std::unique_ptr<A> ua1;
-    std::shared_ptr<A> sa1;
-    auto ua = std::make_unique<A>(1);
-    // auto ua = std::make_unique<A>(); // error 必须有参数
-    auto sa = std::make_shared<A>(1);
-    // auto sa = std::make_shared<A>(1);
-}
-
-#endif // TEST11
-
-#ifdef TEST12
-
-#include <iostream>
-#include <memory>
-
-int main()
-{
-    {
-        int* p1 = new int(2);
-        int* p2 = p1;
-        std::cout << *p1 << '\t' << *p2 << '\t';
-        delete p1;
-        // 对p1进行delete后，p1和p2都是野指针（悬空指针），指向未知的内存
-        std::cout << *p1 << '\t' << *p2 << '\t';
-    }
-    std::cout << "------------------------\n";
-
-    {
-        int* p1 = new int(2);
-        int* p2 = p1;
-        std::cout << *p1 << '\t' << *p2 << '\t';
-        delete p1;
-        p1 = nullptr;
-        // delete p1之后，再将p1置为nullptr，如果再对nullptr解引用就会中断
-        // std::cout << *p1 << '\t' << *p2 << '\t';
-    }
-    std::cout << "------------------------\n";
-
-    // 1111111111111
-    {
-        std::shared_ptr<int> s1 = std::make_shared<int>(3);
-        std::weak_ptr<int> w1   = s1;
-
-        if (w1.expired())
-        {
-            std::cout << " w1 expired\n";
-        }
-        else
-        {
-            std::cout << " w1 !expired\t";
-            std::cout << *w1.lock() << '\n';
-        }
-
-        s1 = std::make_shared<int>(4);
-
-        if (w1.expired())
-        {
-            // std::weak_ptr弱引用的std::shared_ptr如果指向了其他地方，原来的std::weak_ptr就会失效
-            std::cout << " w1 expired\n";
-        }
-        else
-        {
-            std::cout << " w1 !expired\t";
-            std::cout << *w1.lock() << '\n';
-        }
-
-        // 将新的std::shared_ptr重新绑定到std::weak_ptr就会继续有效
-        w1 = s1;
-
-        if (w1.expired())
-        {
-            std::cout << " w1 expired\n";
-        }
-        else
-        {
-            std::cout << " w1 !expired\t";
-            std::cout << *w1.lock() << '\n';
-        }
-    }
-
-    std::cout << "-----------------------------\n";
-
-    // 22222222222
-    // 代码中weak1先是和sptr指向相同的内存空间，后面sptr释放了那段内存空间然后指向新的内存空间，
-    // 此时通过weak1的expired()方法就可以知道本来指向的那段内存空间已经被释放。因为不增加引用计数，所以不会影响内存的释放。非常方便。
-
-    // 以往使用老的方法，判断一个指针是否是NULL，但是如果这段内存已经被释放却没有赋一个NULL，
-    // 那么就会引发未知错误，这需要程序员手动赋值，而且出问题还很难排查。有了weak_ptr，就方便多了，直接使用其expired()方法看下就行了。
-    {
-        // OLD, problem with dangling pointer
-        // PROBLEM: ref will point to undefined data!
-
-        int* ptr = new int(10);
-        int* ref = ptr;
-        delete ptr;
-
-        // NEW
-        // SOLUTION: check expired() or lock() to determine if pointer is valid
-
-        // empty definition
-        std::shared_ptr<int> sptr;
-
-        // takes ownership of pointer
-        sptr.reset(new int);
-        *sptr = 10;
-
-        // get pointer to data without taking ownership
-        std::weak_ptr<int> weak1 = sptr;
-
-        // deletes managed object, acquires new pointer
-        sptr.reset(new int);
-        *sptr = 5;
-
-        // get pointer to new data without taking ownership
-        std::weak_ptr<int> weak2 = sptr;
-
-        // weak1 is expired!
-        if (weak1.expired())
-        {
-            std::cout << "weak1 is expired\n";
-        }
-        else
-        {
-            auto temp = weak1.lock();
-            std::cout << "value (weak1 point to): " << *temp << '\n';
-        }
-
-        // weak2 points to new data (5)
-        if (weak2.expired())
-        {
-            std::cout << "weak2 is expired\n";
-        }
-        else
-        {
-            auto temp = weak2.lock();
-            std::cout << "value (weak2 point to): " << *temp << '\n';
-        }
-    }
-
-    return 0;
-}
-
-#endif // TEST12
-
-#ifdef TEST14
-
-#include <iostream>
-#include <memory>
-
-class B;
-
-class A
-{
-public:
-    A() = default;
-
-    ~A()
-    {
-        std::cout << "~A\n";
-    }
-
-    std::weak_ptr<B> _b; // 用weak_ptr替换share_ptr，避免循环引用造成内存泄漏
-    // std::shared_ptr<B> _b;
-};
-
-class B
-{
-public:
-    B() = default;
-
-    ~B()
-    {
-        std::cout << "~B\n";
-    }
-
-    std::weak_ptr<A> _a;
-    // std::shared_ptr<A> _a;
-};
-
-int main()
-{
-    auto pa = std::make_shared<A>();
-    auto pb = std::make_shared<B>();
-
-    pa->_b = pb;
-    pb->_a = pa;
-
-    // auto ret = pa->_b.lock();  // weak_ptr必须使用lock()函数转为shared_ptr才能使用
-
-    // 如果类A和类B中都定义了一个对方的shared_ptr，此处引用计数就会输出为2，导致内存泄漏
-    std::cout << "A use count:" << pa.use_count() << std::endl;
-    std::cout << "B use count:" << pb.use_count() << std::endl;
-}
-
-#endif // TEST14
-
-#ifdef TEST15
-
-#include <iostream>
-#include <memory>
-
-class Test
-{
-public:
-    int m_a { 999 };
-    int* m_p { nullptr };
 
     ~Test()
     {
-        std::cout << "~Test\n";
+        std::cout << "destruct\n";
+    }
+
+public:
+    std::shared_ptr<Test> GetSharedPtr()
+    {
+        // 返回的std::shared_ptr是通过裸指针this创建的，因此会创建一次控制块
+        // 可以查看TEST201
+        return std::shared_ptr<Test>(this);
     }
 };
 
-void display(Test* p)
+class Test2 : public std::enable_shared_from_this<Test2>
 {
-    std::cout << p << "," << p->m_a << "\n";
-}
+public:
+    std::shared_ptr<Test2> GetSharedPtr()
+    {
+        return shared_from_this();
+    }
+};
 
-Test* create1()
+class Test3 : public std::enable_shared_from_this<Test3>
 {
-    // sp是局部智能指针，函数返回后会立即释放，函数外不可以访问智能指针对应的裸指针
-    auto sp = std::make_shared<Test>();
-    return sp.get();
-}
+public:
+    std::shared_ptr<Test3> GetSharedPtr()
+    {
+        return shared_from_this();
+    }
 
-std::unique_ptr<Test> create2()
-{
-    // p是一个对象（值），函数外可以正常访问
-    auto p = std::make_unique<Test>();
-    // auto p = std::make_shared<Test>();
-    return p;
-}
+    static std::shared_ptr<Test3> Create()
+    {
+        return std::shared_ptr<Test3>(new Test3());
+    }
 
-int* create3()
-{
-    // arr是一个栈内存的指针（局部数组变量）。函数返回后，指向栈区的指针就会释放内存，函数外不可以正常访问
-    int arr[3] { 1, 2, 3 };
-    return arr;
-}
+private:
+    Test3() = default;
+};
 
-int* create4()
-{
-    // p是一个堆内存的指针，只要不显式delete，其生命周期一直到程序结束，函数外可以正常访问
-    int* p = new int[3] { 1, 2, 3 };
-    return p;
-}
-
-Test create5()
-{
-    // 异常
-    int arr[] { 1, 2, 3 };
-    Test t;
-    t.m_p = arr;
-    return t;
-}
-
-Test create6()
-{
-    // 异常
-    int arr[] { 1, 2, 3 };
-    Test t;
-    t.m_p = arr;
-    return std::move(t);
-}
-
-Test& create7()
-{
-    // 异常
-    int arr[] { 1, 2, 3 };
-    Test t;
-    t.m_p = arr;
-    return t;
-    // return std::ref(t);
-}
-
-Test create8()
-{
-    // 正常
-    return Test();
-}
-
+// std::enable_shared_from_this 使用场景：
+// 当你只有this指针的时候，还想要获得关于this的std::shared_ptr。
 int main()
 {
+    std::cout << "------------------------------------------------------\n";
+
+    // 以下代码会崩溃，因为会释放两次
+    // {
+    //     Test* t  = new Test();
+    //     auto sp1 = t->GetSharedPtr();
+
+    //     std::cout << "+++++\n";
+
+    //     delete t;
+    //     t = nullptr;
+
+    //     std::cout << "+++++\n";
+    // }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 以下代码会崩溃，因为会释放两次
+    // {
+    //     auto t   = std::make_shared<Test>();
+    //     auto sp1 = t->GetSharedPtr();
+
+    //     std::cout << "+++++\n";
+    // }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 会崩溃，抛出一个std::bad_weak_ptr异常
+    // {
+    //     auto t   = new Test2();
+    //     auto sp1 = t->GetSharedPtr();
+
+    //     delete t;
+    //     t = nullptr;
+    // }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 不会崩溃
     {
-        auto t = std::make_unique<Test>();
-        t->m_a = 3;
-        std::cout << t.get() << "\n";
-        display(t.get());
-        // 调用display可以看作把display的代码块放在该作用域内，所以可以正常访问
+        auto t   = std::make_shared<Test2>();
+        auto sp1 = t->GetSharedPtr();
     }
 
-    std::cout << "========\n";
+    std::cout << "------------------------------------------------------\n";
 
+    // 不会崩溃
     {
-        auto ret = create1();
-        std::cout << "smart_point.get()" << ret->m_a << "\n"; // 异常值
+        // 因为Test3的构造函数被声明为私有的，所以只能通过静态函数Create()创建Test3
+        // 这样可以杜绝使用new创建Test3从而导致崩溃的情况
+        auto t   = Test3::Create();
+        auto sp1 = t->GetSharedPtr();
+        auto sp2 = t->GetSharedPtr();
     }
-
-    std::cout << "========\n";
-
-    {
-        auto ret = create2();
-        std::cout << "smart_point" << ret->m_a << "\n"; // 正常值
-    }
-
-    std::cout << "=======\n";
-
-    {
-        auto ret = create3();
-        std::cout << "stack" << ret[0] << "," << ret[1] << "," << ret[2] << "\n"; // 异常值
-    }
-
-    std::cout << "=======\n";
-
-    {
-        auto ret = create4();
-        std::cout << "heap" << ret[0] << "," << ret[1] << "," << ret[2] << "\n"; // 正常值
-    }
-
-    std::cout << "=======\n";
-
-    {
-        auto ret = create5();
-        if (ret.m_p)
-            std::cout << "stack Object" << ret.m_a << "," << ret.m_p[0] << "," << ret.m_p[1] << "," << ret.m_p[2] << "\n";
-    }
-
-    std::cout << "=======\n";
-
-    {
-        auto ret = create6();
-        if (ret.m_p)
-            std::cout << "std::move" << ret.m_a << "," << ret.m_p[0] << "," << ret.m_p[1] << "," << ret.m_p[2] << "\n";
-    }
-
-    std::cout << "=======\n";
-
-    {
-        auto ret = create7();
-        if (ret.m_p)
-            std::cout << "ref" << ret.m_a << "," << ret.m_p[0] << "," << ret.m_p[1] << "," << ret.m_p[2] << "\n";
-    }
-
-    std::cout << "=======\n";
-
-    {
-        auto ret = create8();
-        if (ret.m_p)
-            std::cout << "Object" << ret.m_a << "," << ret.m_p[0] << "," << ret.m_p[1] << "," << ret.m_p[2] << "\n";
-    }
+    std::cout << "------------------------------------------------------\n";
 
     return 0;
 }
 
-#endif // TEST15
+#endif // TEST202
 
-#ifdef TEST16
+#ifdef TEST203
 
-#endif // TEST16
+#include <iostream>
+#include <memory>
+#include <vector>
 
-#ifdef TEST21
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+int main()
+{
+    std::cout << "------------------------------------------------------\n";
+
+    // reset()
+    {
+        auto p = std::make_shared<Helper>();
+        std::cout << p.use_count() << '\n';
+
+        // 使用一个空的std::shared_ptr替换被p管理的对象
+        // 相当于使p的引用计数减1
+        p.reset();
+
+        std::cout << "use count: " << p.use_count() << '\n';
+        std::cout << "address: " << p << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    {
+        std::vector<std::shared_ptr<Helper>> vec;
+
+        auto p = std::make_shared<Helper>();
+
+        std::cout << "use count:\t" << p.use_count() << '\n';
+        vec.emplace_back(p);
+        std::cout << "use count:\t" << p.use_count() << '\t' << vec.front().use_count() << '\n';
+
+        // 此处执行完reset后，不会立即调用Helper的析构函数
+        // 这里的reset只是把p对std::shared_ptr的控制权释放掉，vec的控制权还在
+        // std::shared_ptr的引用计数减1
+        p.reset();
+        std::cout << "use count:\t" << p.use_count() << '\t' << vec.front().use_count() << '\n';
+        std::cout << "address:\t" << p << '\t' << vec.front() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // std::weak_ptr
+    {
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+        std::weak_ptr<Helper> wp   = sp;
+        std::cout << wp.use_count() << '\t' << sp.use_count() << '\n';
+        sp.reset(); // 立即调用析构
+        std::cout << wp.use_count() << '\t' << sp.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    {
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+        std::weak_ptr<Helper> wp   = sp;
+        std::cout << wp.use_count() << '\t' << sp.use_count() << '\n';
+        wp.lock().reset(); // 不会调用析构函数
+        std::cout << wp.use_count() << '\t' << sp.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 将std::shared_ptr赋值为nullptr
+    {
+        std::shared_ptr<Helper> sp  = std::make_shared<Helper>();
+        std::shared_ptr<Helper> sp2 = sp;
+
+        std::cout << sp.use_count() << '\t' << sp2.use_count() << '\n';
+
+        sp = nullptr;
+        std::cout << sp.use_count() << '\t' << sp2.use_count() << '\n';
+
+        sp2 = nullptr; // 立即调用析构，类似上面std::vector的示例
+        std::cout << sp.use_count() << '\t' << sp2.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST203
+
+#ifdef TEST204
 
 #include <iostream>
 #include <memory>
@@ -1063,12 +574,12 @@ class Obj
 public:
     Obj()
     {
-        std::cout << "=== construct ===\n";
+        std::cout << "construct\n";
     }
 
     ~Obj()
     {
-        std::cout << "+++ destruct +++\n";
+        std::cout << "destruct\n";
     }
 };
 
@@ -1097,17 +608,27 @@ struct myDel
 
 int main()
 {
-    // std::shared_ptr
+    std::cout << "------------------------------------------------------\n";
+
     {
         // 指定 default_delete 作为释放规则
-        std::shared_ptr<int> p6(new int[10](), std::default_delete<int[]>());
+        std::shared_ptr<int> p(new int[10](), std::default_delete<int[]>());
+    }
 
+    std::cout << "------------------------------------------------------\n";
+
+    {
         // 初始化智能指针，并自定义释放规则
-        std::shared_ptr<int> p7(new int[10](), deleteInt);
-        // std::shared_ptr<int> p5(new int[10](), myDel()); // error
-        // std::shared_ptr<int, myDel> p5(new int[10](), myDel()); // error
-        // std::shared_ptr<int, decltype(deleteInt)> p5(new int[10](), deleteInt); // error
+        std::shared_ptr<int> p(new int[10](), deleteInt);
+        std::shared_ptr<int> p2(new int[10](), myDel());
 
+        // 删除器的型别对std::shared_ptr的型别没有影响
+        // std::shared_ptr<int, decltype(deleteInt)> p3(new int[10](), deleteInt); // error
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    {
         // 使用lambda指定智能指针释放规则
         std::shared_ptr<int> p8(new int[8](),
             [](int* p)
@@ -1115,54 +636,774 @@ int main()
                 delete[] p;
                 std::cout << "use lambda delete\n";
             });
-        // std::shared_ptr<int> p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
-        // auto p9 = std::make_shared<int>(new int[8](), [](int* p) {delete[]p; std::cout << "delete\n"; }); // error
     }
 
-    std::cout << "-------------------\n";
-
-    // std::unique_ptr只能使用函数对象的方式指定释放规则
-    {
-        std::unique_ptr<int, myDel> p1(new int);
-        std::unique_ptr<int, myDel> p2(new int, myDel());
-        // auto p3 = std::make_unique<int, myDel>(new int, myDel()); // error
-        // auto p3 = std::make_unique<int>(new int, myDel()); // error
-        // std::unique_ptr<int, myDel> p3 = std::make_unique<int, myDel>(new int, myDel()); // error
-
-        auto lambdaDel = [](int* p)
-        {
-            std::cout << "use lambda delete\n";
-            delete p;
-            p = nullptr;
-        };
-
-        auto p4 = std::unique_ptr<int, decltype(lambdaDel)>(new int, lambdaDel);
-    }
-
-    std::cout << "-------------------\n";
+    std::cout << "------------------------------------------------------\n";
 
     {
-        std::unique_ptr<Obj, myDel> p1(new Obj(), myDel());
-        std::unique_ptr<Obj, myDel> p2(new Obj());
-        std::unique_ptr<Obj> p3(new Obj());
-    }
+        std::shared_ptr<Obj> p1(new Obj(),
+            [](Obj* p)
+            {
+                delete p;
+                p = nullptr;
+                std::cout << "use lambda delete Obj\n";
+            });
 
-    std::cout << "-------------------\n";
-
-    {
-        std::shared_ptr<Obj> p1(new Obj(), [](Obj* p) { std::cout << "use lambda delete Obj\n"; });
         std::shared_ptr<Obj> p2(new Obj());
-        // std::shared_ptr<Obj> p3 = p2;
-        // p3 = p1;
-
-        // std::cout << "1 count:\t" << p1.use_count() << '\n';
-        // std::cout << "2 count:\t" << p2.use_count() << '\n';
-        // std::cout << "3 count:\t" << p3.use_count() << '\n';
     }
 
-    std::cout << "-------------------\n";
+    std::cout << "------------------------------------------------------\n";
+
+    {
+        // 使用std::make_shared不支持设置删除器
+        // std::shared_ptr<int> p = std::make_shared<int>(new int(), [](int* p) {}); // error
+        // auto p2                = std::make_shared<int>(new int(), [](int* p) {}); // error
+    }
+
+    std::cout << "------------------------------------------------------\n";
 
     return 0;
 }
 
-#endif // TEST21
+#endif // TEST204
+
+#ifdef TEST205
+
+
+
+#endif // TEST205
+
+//---------------------------------------------------------
+#ifdef TEST301
+
+#include <iostream>
+#include <memory>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+int main()
+{
+    std::cout << "------------------------------------------------------\n";
+
+    // expired() use_count()
+    {
+        std::weak_ptr<Helper> wp;
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+
+        // expired(): 当std::weak_ptr引用的std::shared_ptr无效时返回true
+        // std::weak_ptr和std::shared_ptr的use_count()不是同一个东西
+        std::cout << wp.expired() << '\t' << wp.use_count() << '\t' << sp.use_count() << '\n';
+        wp = sp;
+        std::cout << wp.expired() << '\t' << wp.use_count() << '\t' << sp.use_count() << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 字节大小
+    {
+        // std::weak_ptr和std::shared_ptr的尺寸相同，和std::shared_ptr使用相同的控制块
+        // 构造、析构、赋值操作都包含了对引用计数的原子操作
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+        std::weak_ptr<Helper> wp   = sp;
+        std::cout << sizeof(sp) << '\t' << sizeof(wp) << '\n';
+    }
+
+    std::cout << "------------------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST301
+
+#ifdef TEST302
+
+#include <iostream>
+#include <memory>
+
+class A
+{
+public:
+    A()
+    {
+        std::cout << "A()\n";
+    }
+
+    ~A()
+    {
+        std::cout << "~A()\n";
+    }
+};
+
+class B
+{
+public:
+    B()
+    {
+        std::cout << "B()\n";
+    }
+
+    ~B()
+    {
+        std::cout << "~B()\n";
+        std::cout << "A count in B: " << m_a.use_count() << "\n";
+    }
+
+    void SetA(const std::shared_ptr<A>& a)
+    {
+        m_a = a;
+    }
+
+    std::shared_ptr<A> m_a { nullptr };
+};
+
+class C
+{
+public:
+    C()
+    {
+        std::cout << "C()\n";
+        m_b = std::make_shared<B>();
+        // m_a = std::make_shared<A>();
+        auto pa = std::make_shared<A>();
+        m_a     = pa;
+        m_b->SetA(pa);
+    }
+
+    ~C()
+    {
+        std::cout << "~C()\n";
+        std::cout << "A count in C: " << m_a.use_count() << '\n';
+        std::cout << "B count in C: " << m_b.use_count() << '\n';
+    }
+
+private:
+    // std::shared_ptr<A> m_a和std::shared_ptr<B> m_b这两个成员的声明顺序不一样，打印的结果也不一样（即使都会成功析构）
+    // 合理的用法是，此处的m_a应该声明为std::weak_ptr，且std::weak_ptr应该在类C，而不是类B
+    // 因为如果将std::shared_ptr<A>放在C中，B中的是std::weak_ptr<A>，且c中的m_a声明在m_b之后，就会先析构A，导致B的m_a无效
+    // 如果还需要在B中的析构函数中使用m_a就会出问题
+
+    // std::shared_ptr<A> m_a{};
+    std::shared_ptr<B> m_b {};
+
+    // m_a在类C中的声明顺序无所谓，它只是弱指针，析构时不会使A的引用计数减一也不会调用A的析构
+    std::weak_ptr<A> m_a {};
+};
+
+int main()
+{
+    std::cout << "------------------------------------------------------\n";
+
+    {
+        std::cout << "=========\n";
+        std::unique_ptr<C> c = std::make_unique<C>();
+        std::cout << "=========\n";
+    }
+
+    std::cout << "------------------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST302
+
+#ifdef TEST303
+
+#include <chrono>
+#include <iostream>
+#include <memory>
+#include <thread>
+
+static auto now = std::chrono::steady_clock::now();
+
+class Helper
+{
+public:
+    Helper() : m_number(new int(66))
+    {
+        std::cout << "Helper construct\n";
+
+        printf("%d, %p\n", *m_number, m_number);
+    }
+
+    ~Helper()
+    {
+        std::cout << "Helper destruct\n";
+
+        delete m_number;
+        m_number = nullptr;
+    }
+
+    void Print()
+    {
+        printf("%d, %p\n", *m_number, m_number);
+    }
+
+private:
+    int* m_number { nullptr };
+};
+
+class Worker
+{
+public:
+    Worker()
+    {
+        std::cout << "Worker->Helper expired: " << m_helper.expired() << '\n';
+    }
+
+    void SetPtr(const std::shared_ptr<Helper>& sp)
+    {
+        m_helper = sp;
+        std::cout << "Worker->Helper expired: " << m_helper.expired() << '\n';
+    }
+
+public:
+    void Run()
+    {
+        std::cout << "------------------ Run ------------------\n";
+
+        if (!m_helper.expired())
+        {
+            std::cout << "Worker->Helper expired: " << m_helper.expired() << '\n';
+
+            // 睡眠到程序启动后经过3s的时刻
+            std::this_thread::sleep_until(now + std::chrono::seconds(3));
+            std::cout << "Worker->Helper expired: " << m_helper.expired() << '\n';
+
+            // 使用if判断std::weak_ptr的时候，它还是有效的
+            // 但是经过一定时间后，lock()获取的std::shared_ptr已经为空
+            // 因此为了线程安全，必须在使用lock()返回的std::shared_ptr时再判断一次
+            // C++标准规定：lock()是原子操作
+            if (auto sp = m_helper.lock())
+            {
+                std::cout << "lock() is valid ptr\t" << sp << '\n';
+                sp->Print();
+            }
+            else
+            {
+                std::cout << "lock() is nullptr\n";
+            }
+        }
+    }
+
+private:
+    std::weak_ptr<Helper> m_helper;
+};
+
+int main()
+{
+    std::thread t {};
+    Worker w {};
+
+    {
+        std::shared_ptr<Helper> sp = std::make_shared<Helper>();
+
+        w.SetPtr(sp);
+        t = std::thread(&Worker::Run, &w);
+
+        std::this_thread::sleep_until(now + std::chrono::seconds(1));
+    }
+
+    std::cout << "---------------------------------\n";
+
+    t.join();
+
+    return 0;
+}
+
+#endif // TEST303
+
+#ifdef TEST304
+
+#include <iostream>
+#include <memory>
+
+class B;
+
+class A
+{
+public:
+    A()
+    {
+        std::cout << "A()\n";
+    }
+
+    ~A()
+    {
+        std::cout << "~A()\n";
+    }
+
+    // 用std::weak_ptr替换std::share_ptr，避免循环引用造成内存泄漏
+    std::weak_ptr<B> m_b;
+
+    // std::shared_ptr<B> m_b;
+};
+
+class B
+{
+public:
+    B()
+    {
+        std::cout << "B()\n";
+    }
+
+    ~B()
+    {
+        std::cout << "~B()\n";
+    }
+
+    // std::weak_ptr替换std::shared_ptr
+    std::weak_ptr<A> m_a;
+
+    // std::shared_ptr<A> m_a;
+};
+
+int main()
+{
+    std::cout << "---------------------------------------------\n";
+
+    {
+        auto pa = std::make_shared<A>();
+        auto pb = std::make_shared<B>();
+
+        pa->m_b = pb;
+        pb->m_a = pa;
+
+        // use pointer
+        // pa->m_b.lock();
+        // pb->m_a.lock();
+
+        // 如果类A和类B中都定义了一个对方的shared_ptr，此处引用计数就会输出为2，
+        // 离开作用域时不会调用析构函数，导致内存泄漏
+        std::cout << "A use count:" << pa.use_count() << std::endl;
+        std::cout << "B use count:" << pb.use_count() << std::endl;
+    }
+
+    std::cout << "---------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST304
+
+#ifdef TEST305
+
+#include <iostream>
+#include <memory>
+
+// 野指针（悬空指针）：delete之后没有置为nullptr
+
+int main()
+{
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 野指针示例
+    {
+        auto p = new int(6);
+        std::cout << *p << '\t' << p << '\n';
+
+        delete p;
+        // p = nullptr;
+
+        // 如果不将p置为nullptr，即p是一个野指针
+        // 那么对p解引用就会打印一个随机值
+        if (p)
+        {
+            std::cout << *p << '\t' << p << '\n';
+        }
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 使用std::weak_ptr解决野指针的问题
+    {
+        std::shared_ptr<int> sp = std::make_shared<int>(3);
+        std::weak_ptr<int> wp   = sp;
+
+        if (!wp.expired())
+        {
+            std::cout << "wp.expired()\t" << wp.expired() << '\n';
+            if (auto p = wp.lock())
+            {
+                std::cout << *p << '\n';
+            }
+        }
+        else
+        {
+            std::cout << "wp.expired()\t" << wp.expired() << '\n';
+            std::cout << "nullptr\n";
+        }
+
+        // 给std::shared_ptr换绑其他对象
+        sp = std::make_shared<int>(4);
+        std::cout << "-----------------------------\n";
+
+        if (!wp.expired())
+        {
+            std::cout << "wp.expired()\t" << wp.expired() << '\n';
+            if (auto p = wp.lock())
+            {
+                std::cout << *p << '\n';
+            }
+        }
+        else
+        {
+            // std::weak_ptr弱引用的std::shared_ptr如果指向了其他地方，原来的std::weak_ptr就会失效
+            std::cout << "wp.expired()\t" << wp.expired() << '\n';
+            std::cout << "nullptr\n";
+        }
+
+        // 将新的std::shared_ptr重新绑定到std::weak_ptr就会使std::weak_ptr生效
+        wp = sp;
+        std::cout << "-----------------------------\n";
+
+        if (!wp.expired())
+        {
+            std::cout << "wp.expired()\t" << wp.expired() << '\n';
+            if (auto p = wp.lock())
+            {
+                std::cout << *p << '\n';
+            }
+        }
+        else
+        {
+            std::cout << "wp.expired()\t" << wp.expired() << '\n';
+            std::cout << "nullptr\n";
+        }
+    }
+
+    std::cout << "------------------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST305
+
+//---------------------------------------------------------
+#ifdef TEST401
+
+#include <iostream>
+#include <memory>
+
+class A
+{
+public:
+    A()
+    {
+        std::cout << "A::construct\n";
+    }
+
+    ~A()
+    {
+        std::cout << "A::destruct\n";
+    }
+
+    void Set(int a)
+    {
+        m_int = a;
+    }
+
+    int Get() const
+    {
+        return m_int;
+    }
+
+private:
+    int m_int { 0 };
+};
+
+class B
+{
+public:
+    void SetPointerA(A* a)
+    {
+        m_a = a;
+    }
+
+    A* GetPointerA() const
+    {
+        return m_a;
+    }
+
+private:
+    A* m_a { nullptr };
+};
+
+class C
+{
+public:
+    void SetPointerA(std::shared_ptr<A> a)
+    {
+        m_a = a;
+    }
+
+    std::shared_ptr<A> GetPointerA() const
+    {
+        return m_a;
+    }
+
+private:
+    std::shared_ptr<A> m_a { nullptr };
+};
+
+// 智能指针和裸指针最好不要混合使用
+// 智能指针的get()函数只是获取智能指针管理的裸指针，并不会使引用计数加1，
+// 所以如果智能指针已经释放，之前使用get()返回的裸指针也会被释放
+
+int main()
+{
+    std::cout << "------------------------------------------------------\n";
+
+    // std::unique_ptr.get()
+    // 将std::unique_ptr管理的裸指针传给函数实参
+    {
+        B b;
+        {
+            auto pa = std::make_unique<A>();
+            pa->Set(9);
+            b.SetPointerA(pa.get());
+            std::cout << b.GetPointerA()->Get() << "\n";
+        } // 离开作用域pa就会被释放
+
+        // a对应的智能指针已经被析构，所以打印的是随机值
+        std::cout << b.GetPointerA() << '\t' << b.GetPointerA()->Get() << std::endl;
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // std::shared_ptr.get()
+    // 将std::shared_ptr管理的裸指针传给函数实参
+    {
+        B b;
+        {
+            auto pa = std::make_shared<A>();
+            pa->Set(9);
+            b.SetPointerA(pa.get());
+            std::cout << b.GetPointerA()->Get() << "\n";
+        } // 离开作用域pa就会被释放，调用A的析构函数
+
+        // a对应的智能指针已经被析构，所以打印的是随机值
+        std::cout << b.GetPointerA() << '\t' << b.GetPointerA()->Get() << std::endl;
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    // 直接把std::shared_ptr对象传递给函数实参
+    {
+        C c;
+        {
+            auto pa = std::make_shared<A>();
+            pa->Set(8);
+            c.SetPointerA(pa);
+            std::cout << c.GetPointerA()->Get() << "\n";
+        } // 离开作用域并不会释放pa std::shared_ptr ，因为C会控制pa
+
+        std::cout << c.GetPointerA() << '\t' << c.GetPointerA()->Get() << std::endl;
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    return 0;
+}
+
+#endif // TEST401
+
+#ifdef TEST402
+
+#include <iostream>
+#include <memory>
+#include <vector>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "Helper construct\n";
+    }
+
+    ~Helper()
+    {
+        std::cout << "Helper destruct\n";
+    }
+};
+
+void TestUnique()
+{
+    auto p = std::make_unique<Helper>();
+
+    std::cout << "Test unique start\n";
+    throw std::runtime_error("throw unique");
+    std::cout << "Test unique end\n";
+}
+
+void TestShared()
+{
+    auto p = std::make_shared<Helper>();
+
+    std::cout << "Test shared start\n";
+    throw std::runtime_error("throw shared");
+    std::cout << "Test shared end\n";
+}
+
+int main()
+{
+    std::cout << "------------------------------------------------------\n";
+
+    try
+    {
+        TestUnique();
+    }
+    catch (...)
+    {
+        std::cout << "catch an error\n";
+    }
+
+    std::cout << "------------------------------------------------------\n";
+
+    try
+    {
+        TestShared();
+    }
+    catch (...)
+    {
+        std::cout << "catch an error\n";
+    }
+
+    std::cout << "------------------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST402
+
+#ifdef TEST403
+
+#include <iostream>
+#include <memory>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "Helper construct\n";
+    }
+
+    ~Helper()
+    {
+        std::cout << "Helper destruct\n";
+    }
+};
+
+void* operator new(size_t size)
+{
+    std::cout << "new size: " << size << '\n';
+    return malloc(size);
+}
+
+void operator delete(void* p)
+{
+    std::cout << "delete\n";
+    free(p);
+}
+
+int main()
+{
+    {
+        // 会调用两次new，一次是new int 一次是new控制块
+        auto p = std::shared_ptr<int>(new int());
+    }
+
+    std::cout << "----------------------------------------------------\n";
+
+    {
+        // 只会new一次
+        // 管理的对象和控制块将在同一块内存上分配
+        auto p = std::make_shared<int>();
+    }
+
+    std::cout << "----------------------------------------------------\n";
+
+    // 因为被管理的对象和控制块在同一块内存，控制块还包含着第二个引用计数“弱计数”
+    // std::weak_ptr指向了某个控制块
+    // std::weak_ptr没有被析构前，它指向的控制块就会一直存在，也就不会调用delete
+    {
+        std::weak_ptr<Helper> wp;
+        {
+            std::cout << "+++++\n";
+            auto sp = std::make_shared<Helper>();
+            wp      = sp;
+            std::cout << "+++++\n";
+        } // 这里并不会调用delete，即不会释放内存，但是会调用Helper的析构函数
+        std::cout << wp.use_count() << '\n';
+    }     // std::weak_ptr析构时才会调用delete释放内存
+          // 所以如果std::shared_ptr的型别特别大且被std::weak_ptr弱引用，不建议使用std::make_shared
+
+    std::cout << "----------------------------------------------------\n";
+    return 0;
+}
+
+#endif // TEST403
+
+#ifdef TEST404
+
+#include <iostream>
+#include <memory>
+
+void* operator new(size_t size)
+{
+    std::cout << "new\n";
+    return malloc(size);
+}
+
+void operator delete(void* p)
+{
+    std::cout << "delete\n";
+    free(p);
+}
+
+class Throw
+{
+public:
+    Throw()
+    {
+        throw std::runtime_error("throw");
+    }
+};
+
+void FuncTest(std::shared_ptr<int>, Throw)
+{
+}
+
+int main()
+{
+    std::cout << "-----------------------------------------------\n";
+    {
+        try
+        {
+            // 可能会存在内存泄漏，调用FuncTest之前会执行以下3个步骤：
+            // 1. new int()
+            // 2. 构造std::shared_ptr
+            // 3. 构造Throw
+            // 这三个步骤的顺序并不是固定的，有可能步骤3会在1和2之间进行，从而导致内存泄漏
+            // 但是使用std::make_shared就不会出现这种情况
+            FuncTest(std::shared_ptr<int>(new int()), Throw());
+        }
+        catch (...)
+        {
+            std::cout << "catch throw\n";
+        }
+    }
+    std::cout << "-----------------------------------------------\n";
+}
+
+#endif // TEST404
+

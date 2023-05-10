@@ -104,7 +104,28 @@ auto cbegin(const C& con) -> decltype(std::begin(con))
 - 在已经存在显式声明析构函数的条件下，生成复制操作已经成为了废弃行为
 - 成员函数模板在任何情况下都不会抑制特种成员函数的生成
 # 四、智能指针
-## 18 使用std::unique_ptr管理具备专属所有权的资源
+## 18.使用std::unique_ptr管理具备专属所有权的资源
 - std::unique_ptr是小巧的、高速的、具备只移型别的智能指针，对托管资源实施专属所有权语义
 - 默认地，资源析构采用delete运算符来实现，但可以指定自定义删除器。有状态的删除器和采用函数指针实现的删除器会增加std::unique_ptr型别对象的尺寸
 - 将std::unique_ptr转换为std::shared_ptr是容易实现的。
+## 19.使用std::shared_ptr管理具备共享所有权的资源
+- std::shared_ptr提供方便的手段，实现了任意资源在共享所有权语义下进行生命周期管理的垃圾回收
+- 与std::unique_ptr相比，std::shared_ptr的尺寸通常是裸指针尺寸的两倍，它还会带来控制块的开销，并要求原子化的引用计数操作
+- 默认的资源析构通过delete运算符进行，但同时也支持定制删除器。删除器的型别对std::shared_ptr的型别没有影响
+- 避免使用裸指针型别的变量来创建std::shared_ptr指针
+## 20.对于类似std::shared_ptr但有可能空悬的指针使用std::weak_ptr
+- 使用std::weak_ptr来替代可能空悬的std::shared_ptr
+- std::weak_ptr可能的用武之地包括缓存，观察者列表，以及避免std::shared_ptr指针环路
+## 21.优先选用std::make_unique和std::make_shared，而非直接使用new
+- 相比于直接使用new表达式，make系列函数消除了重复代码、改进了异常安全性，并且对于std::make_shared和std::make_allocated_shared而言，生成的目标代码会尺寸更小，速度更快
+- 不适于使用make系列函数的场景包括需要定制删除器，以及期望直接传递大括号初始化物
+- 对于std::shared_ptr，不建议使用make系列函数的额外场景包括：
+    1. 自定义内存管理的类
+    2. 内存紧张的系统、非常大的对象、以及存在比指向到相同对象的std::shared_ptr生存期更久的std::weak_ptr
+## 22.使用Pimpl惯用法时，将特殊成员函数的定义放到实现文件中
+- Pimpl惯用法通过降低类的客户和类的实现者之间的依赖性，减少了构建遍数。
+- 对于采用std::unique_ptr来实现的Pimpl指针，须在类的头文件中声明特种成员函数，但在实现文件中实现它们，即使默认函数实现有着正确行为，也必须这样做
+- 上述建议仅适用于std::unique_ptr，但并不适用std::shared_ptr
+
+Visual Studio报错：can't delete an incomplete type 解决方法：将类的构造函数和析构函数在cpp文件中实现
+# 五、右值引用、移动语义和完美转发

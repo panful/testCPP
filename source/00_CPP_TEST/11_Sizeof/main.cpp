@@ -12,16 +12,16 @@
  * 6. _msize
  */
 
-#define TEST6
+#define TEST3
 
 #ifdef TEST1
 
 #include <iostream>
 
-#define SIZE_OF(x)                                                                                                                                   \
-    do                                                                                                                                               \
-    {                                                                                                                                                \
-        std::cout << "sizeof(" << #x << ") = \t" << sizeof(x) << std::endl;                                                                          \
+#define SIZE_OF(x)                                                          \
+    do                                                                      \
+    {                                                                       \
+        std::cout << "sizeof(" << #x << ") = \t" << sizeof(x) << std::endl; \
     } while (false)
 
 int main()
@@ -37,7 +37,7 @@ int main()
     SIZE_OF(long double); // 8
     SIZE_OF(double);
     SIZE_OF(int);
-    SIZE_OF(unsigned int); // 4
+    SIZE_OF(unsigned int);     // 4
 #ifdef WIN32
     SIZE_OF(unsigned __int64); // 8 Linxu下不能识别 __int64
 #endif                         // WIN32
@@ -174,6 +174,22 @@ struct G
     int& d = a;
 };
 
+class H
+{
+private:
+    class H1
+    {
+    };
+
+    class H2
+    {
+    };
+
+private:
+    H1 h1 {};
+    H2 h2 {};
+};
+
 int main()
 {
     std::cout << "==================x64====================\n";
@@ -184,6 +200,7 @@ int main()
     std::cout << sizeof(E) << std::endl; // 字节对齐 4 + (1 + 3) + 4 + (1 + 3) = 16
     std::cout << sizeof(F) << std::endl; // 长度为10的数组和int型指针 4 * 10 + 8 = 48
     std::cout << sizeof(G) << std::endl; // 引用本质上是指针，所以是 4 + 4 + 8 * 3 = 32，第二个4是为了字节对齐(x64)，后面3个8是3个引用（指针）
+    std::cout << sizeof(H) << std::endl; // 2，一个空类字节大小是1，两个就是2，只定义class不声明为成员变量不会增加字节数，即还是相当于空类
 
     return 0;
 }
