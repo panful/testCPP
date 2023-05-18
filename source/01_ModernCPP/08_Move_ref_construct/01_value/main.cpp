@@ -1,12 +1,14 @@
 /*
 * 1. 函数返回对象，std::move，编译器优化，参数为常引用和引用
-* 2. 
+* 2. 左值 右值 将亡值
 * 3. 模板函数不要使用值传递
 * 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递  引用塌缩  https://www.qb5200.com/article/295128.html
 * 5. 
 * 6. 传值传引用 内置类型传值比传引用效率更高 const右值引用  std::ref https://www.cnblogs.com/QG-whz/p/5129173.html
-* 7. 深入理解std::move https://mp.weixin.qq.com/s/GYn7g073itjFVg0OupWbVw
+* 7. std::reference_wrapper
 * 8.
+
+* 10.函数返回一个对象，编译器优化
 */
 
 #define TEST1
@@ -391,12 +393,55 @@ int main()
 
 #ifdef TEST7
 
+//https://www.cnblogs.com/jerry-fuyi/p/12747850.html
+//reference_wrapper 和原生指针的区别？？？
+//reference_wrapper 绑定到需要通过引用传递参数的函数时非常有用
+#include <iostream>
+#include <functional>
+using namespace std;
+
+void func(int a, int b)
+{
+    cout << "a = " << a << ",";
+    cout << "b = " << b << endl;
+}
+
+void func1(int i)
+{
+    cout << "i = " << i << endl;
+}
 
 int main()
-{}
+{
+    // 包裹函数指针
+    std::reference_wrapper<void(int, int)> f0 = func;
+    f0(5, 7);
 
+    std::function<void(int, int)> f4 = func;
+    f4(3, 4);
+
+    //std::ref返回一个reference_wrapper包裹的对象
+    auto f1 = std::ref(func);
+    f1(8, 9);
+
+    //std::add_rvalue_reference
+
+     // 和bind结合使用
+    int i = 10, j = 3;
+    auto f2 = std::bind(func1, i);
+    auto f3 = std::bind(func1, std::ref(i));
+    std::reference_wrapper<int> r_val = j;
+    auto f5 = std::bind(func1, r_val);
+    i = 30; j = 40;
+
+    f2();
+    f3();
+    f5();
+
+
+    return 0;
+}
 #endif // TEST7
-
 
 
 #ifdef TEST9
@@ -411,3 +456,174 @@ int main() {
 }
 
 #endif // TEST9
+
+
+#ifdef TEST10
+// g++ demo.cpp -o demo.exe -std=c++0x -fno-elide-constructors
+
+#include <iostream>
+
+template <typename T>
+class MyVector
+{
+public:
+    MyVector() :data(nullptr) { std::cout << "default\n"; } //无参构造
+    explicit MyVector(T t) :data(new T(t)), size(1) { std::cout << "only one\n"; } //有参构造
+    MyVector(MyVector<T>& t) {
+        std::cout << "copy\n";
+        if (t.size <= 0) {
+            size = 0;
+            data = nullptr;
+        }
+        else if (t.size == 1) {
+            data = new T(*t.data);
+            size = 1;
+        }
+        else {
+            data = new T[t.size]();
+            data = t.data;
+            size = t.size;
+        }
+    }
+
+    explicit MyVector(MyVector<T>&& t) { // 移动构造
+        std::cout << "move\n";
+        if (t.size <= 0) {
+            size = 0;
+            data = nullptr;
+        }
+        else if (t.size == 1) {
+            data = t.data;
+            size = 1;
+
+            delete t.data;
+            t.data = nullptr;
+        }
+        else {
+            data = t.data;
+            size = t.size;
+
+            delete[] t.data;
+            t.data = nullptr;
+        }
+    }
+
+    MyVector(std::initializer_list<T> init_list) { // 初始化列表构造
+        std::cout << "init list\n";
+        data = new T[init_list.size()]();
+        size = init_list.size();
+        size_t index = 0;
+        for (auto elem : init_list)
+        {
+            data[index++] = elem;
+            if (index >= size)
+                break;
+        }
+    }
+
+    const MyVector<T>& operator=(const MyVector<T>& t) { //拷贝赋值
+        std::cout << "assign\n";
+        if (t.size <= 0) {
+            size = 0;
+            data = nullptr;
+        }
+        else if (t.size == 1) {
+            data = new T(*t.data);
+            size = 1;
+        }
+        else {
+            data = new T[t.size]();
+            data = t.data;
+            size = t.size;
+        }
+        return *this;
+    }
+
+    const MyVector<T>& operator=(MyVector<T>&& t) noexcept { // 移动赋值
+        std::cout << "move assign\n";
+        if (t.size <= 0) {
+            size = 0;
+            data = nullptr;
+        }
+        else if (t.size == 1) {
+            data = t.data;
+            size = 1;
+
+            delete t.data;
+            t.data = nullptr;
+        }
+        else {
+            data = t.data;
+            size = t.size;
+
+            delete[] t.data;
+            t.data = nullptr;
+        }
+        return *this;
+    }
+
+    ~MyVector() {
+        std::cout << "destruct\n";
+        if (data)
+        {
+            if (size > 1)
+                delete[] data;
+            else
+                delete data;
+
+            data = nullptr;
+        }
+    }
+
+private:
+    T* data{ nullptr };
+    size_t size{ 0 };
+};
+
+MyVector<int> getVec1()
+{
+    return {};  //default
+}
+
+MyVector<int> getVec2()
+{
+    return MyVector<int>();
+    //default   MyVector<int>()
+    //move      return
+    //destruct  析构MyVector<int>()产生的匿名对象
+}
+
+MyVector<int> getVec3()
+{
+    return std::move(MyVector<int>());
+    //destruct
+    //move
+    //destruct
+}
+
+int main()
+{
+    {
+        MyVector<int> vec1; // 无参构造
+        MyVector<int> vec2{ 1,2,3,4 }; //初始化列表构造
+        MyVector<int> vec3(2); //有参构造
+        MyVector<int> vec4 = MyVector<int>(); //无参构造 移动构造 析构
+        MyVector<int> vec5(vec4); //拷贝构造
+        MyVector<int> vec6 = std::move(vec5);
+        vec1 = std::move(vec6);
+        std::cout << "11111111\n";
+    }
+    std::cout << "========\n";
+    {
+        auto ret1 = getVec1();     //move destruct 将get返回的对象移动到ret1，然后析构get返回的匿名对象
+        std::cout << "22222222\n";
+        auto ret2 = getVec2();  //move destruct
+        std::cout << "33333333\n";
+        auto ret3 = getVec3();  //move destruct
+        std::cout << "44444444\n";
+    }
+
+    return 0;
+}
+
+#endif // TEST10

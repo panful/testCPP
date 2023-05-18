@@ -17,8 +17,8 @@
 |for()                      |00_17_TEST3             |基于范围的for循环       |
 |constexpr                 |00_10                   |                       |
 |long long                 |00_18_TEST4             |                       |
-|rvale                     |02_02_01、02_07          |                       |
-|std::move std::forward    |02_02_01、02_07          |移动语义 完美转发       |
+|rvale                     |01_08_01                |                       |
+|std::move std::forward    |01_08_02                |移动语义 完美转发       |
 |nullptr                   |00_05                   |                       |
 |std::unique+shared_ptr    |00_05                   |                       |
 |成员函数的引用饰词|00_14_TEST3|限制*this是左值或右值时才可以调用该函数|

@@ -129,3 +129,8 @@ auto cbegin(const C& con) -> decltype(std::begin(con))
 
 Visual Studio报错：can't delete an incomplete type 解决方法：将类的构造函数和析构函数在cpp文件中实现
 # 五、右值引用、移动语义和完美转发
+## 23.理解std::move和std::forward
+- std::move实施的是无条件的向右值型别的强制型别转换。就其本身而言，它不会执行移动操作。
+- 仅当传入的实参被绑定到右值时，std::forward才针对该实参实施向右值型别的强制型别转换
+- 在运行期，std::move和std::forward都不会做任何操作
+- 不要对一个常量使用std::move，因为对常量使用std::move其实就是使用复制操作
