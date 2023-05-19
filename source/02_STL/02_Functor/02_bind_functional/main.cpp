@@ -3,31 +3,32 @@
 2. std::function 指向成员函数
 3. std::mem_fn 从成员指针创建出函数对象,有点类似function，bind
 4. 回调函数
-5. 
+5.
 6.
 
-9. 
+9.
 
 13.std::invoke std::invoke_r https://zh.cppreference.com/w/cpp/utility/functional/invoke
 14.为什么要使用std::invoke
 15.使用标准库std::hash对自定义类型求hash值
+16.
 */
-#define TEST1
+#define TEST16
 
 #ifdef TEST1
 // hash example
-#include <iostream>
 #include <functional>
-#include <string>
+#include <iostream>
 #include <map>
+#include <string>
 
 int main()
 {
-    int a = 0;
-    int b = 1;
-    int c = 2;
-    std::string type = "fluid";
-    std::string mesh = "Flow";
+    int a               = 0;
+    int b               = 1;
+    int c               = 2;
+    std::string type    = "fluid";
+    std::string mesh    = "Flow";
     std::string physics = "press";
 
     std::hash<std::string> strHash;
@@ -53,8 +54,8 @@ int main()
     std::hash<std::string> str_hash;
 
     std::cout << "same hashes:\n" << std::boolalpha;
-    std::cout << "nts1 and nts2: " << (ptr_hash(nts1) == ptr_hash(nts2)) << '\n';  // 指针是一个地址
-    std::cout << "str1 and str2: " << (str_hash(str1) == str_hash(str2)) << '\n';  // string是一个字符串
+    std::cout << "nts1 and nts2: " << (ptr_hash(nts1) == ptr_hash(nts2)) << '\n'; // 指针是一个地址
+    std::cout << "str1 and str2: " << (str_hash(str1) == str_hash(str2)) << '\n'; // string是一个字符串
     std::cout << "str1 and nts2: " << (str_hash(str1) == ptr_hash(nts2)) << '\n';
 
     return 0;
@@ -66,7 +67,8 @@ int main()
 
 #include <functional>
 
-class Test {
+class Test
+{
 public:
     int fun(int x, int y)
     {
@@ -79,11 +81,11 @@ int main()
     Test test;
     // 方式1：fun1的类型可以为auto
     std::function<int(int, int)> fun1 = std::bind(&Test::fun, test, std::placeholders::_1, std::placeholders::_2);
-    int result1 = fun1(1, 2);
+    int result1                       = fun1(1, 2);
 
     // 方式2：fun2的类型必须明确指定，不能为auto
     std::function<int(Test, int, int)> fun2 = &Test::fun;
-    int result2 = fun2(test, 1, 2);
+    int result2                             = fun2(test, 1, 2);
 
     return 0;
 }
@@ -92,7 +94,7 @@ int main()
 
 #ifdef TEST3
 
-//std::mem_fn比 std::bind功能更简单，std::bind功能更复杂，如果使用mem_fn能解决问题就不要用std::bind
+// std::mem_fn比 std::bind功能更简单，std::bind功能更复杂，如果使用mem_fn能解决问题就不要用std::bind
 
 #include <functional>
 #include <iostream>
@@ -104,10 +106,12 @@ public:
     {
         std::cout << "Hello, world.\n";
     }
+
     void has_arg(int i)
     {
         std::cout << "number: " << i << '\n';
     }
+
     int data = 7;
 };
 
@@ -135,8 +139,8 @@ int main()
 
 #ifdef TEST4
 
-#include <iostream>
 #include <functional>
+#include <iostream>
 
 using FuncType = std::function<void(int)>;
 
@@ -148,7 +152,8 @@ void callBack(int i)
 class A
 {
 public:
-    void callback(int i) {
+    void callback(int i)
+    {
         std::cout << "class A callback   " << i << "\n";
     }
 };
@@ -161,24 +166,20 @@ void test(FuncType f)
 
 int main()
 {
-    test(callBack);  // 2
+    test(callBack);               // 2
 
-    test(std::bind(callBack, 4));  //4
+    test(std::bind(callBack, 4)); // 4
 
     A a;
-    test(std::bind(&A::callback, a, 7));  // 7
+    test(std::bind(&A::callback, a, 7)); // 7
 
     A aa;
-    test(std::bind(&A::callback, aa, std::placeholders::_1));  // 2
+    test(std::bind(&A::callback, aa, std::placeholders::_1)); // 2
 
     return 0;
 }
 
 #endif // TEST4
-
-
-
-
 
 #ifdef TEST13
 
@@ -186,9 +187,17 @@ int main()
 #include <iostream>
 #include <type_traits>
 
-struct Foo {
-    Foo(int num) : num_(num) {}
-    void print_add(int i) const { std::cout << num_ + i << '\n'; }
+struct Foo
+{
+    Foo(int num) : num_(num)
+    {
+    }
+
+    void print_add(int i) const
+    {
+        std::cout << num_ + i << '\n';
+    }
+
     int num_;
 };
 
@@ -197,7 +206,8 @@ void print_num(int i)
     std::cout << i << '\n';
 }
 
-struct PrintNum {
+struct PrintNum
+{
     void operator()(int i) const
     {
         std::cout << i << '\n';
@@ -230,7 +240,6 @@ int main()
     std::cout << ret << '\n';
     std::invoke_r<void>(print_num, 44);
 #endif
-
 }
 
 #endif // TEST13
@@ -240,34 +249,33 @@ int main()
 
 #define WARP_CALL(fun, ...) fun(__VA_ARGS__)
 
-template <typename Fun, typename...Args>
-auto warp_call1(Fun f, Args... args)->decltype(f(args...))
+template <typename Fun, typename... Args>
+auto warp_call1(Fun f, Args... args) -> decltype(f(args...))
 {
-    return f(args...); //注意此处args后面的...不要忘记
+    return f(args...); // 注意此处args后面的...不要忘记
 }
 
-template <typename Fun, typename...Args>
-auto warp_call2(Fun&& f, Args&&...args)
+template <typename Fun, typename... Args>
+auto warp_call2(Fun&& f, Args&&... args)
 {
     // 只是给f和args多了一步完美转发，注意...的位置
     return std::forward<Fun>(f)(std::forward<Args>(args)...);
 }
 
-template<typename Fun, typename...Args>
-decltype(auto) warp_call3(Fun&& f, Args&&... args)noexcept
+template <typename Fun, typename... Args>
+decltype(auto) warp_call3(Fun&& f, Args&&... args) noexcept
 {
     return std::forward<Fun>(f)(std::forward<Args>(args)...);
 }
 
-template<typename Fun, typename...Args>
-constexpr auto warp_call4(Fun&& f, Args&&... args) noexcept
-->decltype(std::forward<Fun>(f)(std::forward<Args>(args)...))
+template <typename Fun, typename... Args>
+constexpr auto warp_call4(Fun&& f, Args&&... args) noexcept -> decltype(std::forward<Fun>(f)(std::forward<Args>(args)...))
 {
     return std::forward<Fun>(f)(std::forward<Args>(args)...);
 }
 
-template<typename Fun, typename...Args>
-std::invoke_result_t<Fun, Args...> warp_call5(Fun&& f, Args... args)noexcept
+template <typename Fun, typename... Args>
+std::invoke_result_t<Fun, Args...> warp_call5(Fun&& f, Args... args) noexcept
 {
     return std::forward<Fun>(f)(std::forward<Args>(args)...);
 }
@@ -291,7 +299,7 @@ int main()
     auto ret4 = warp_call3(fun, 4, 4);
     std::cout << "x + y = " << ret4 << std::endl;
 
-    //std::invoke就相当于warp_call4
+    // std::invoke就相当于warp_call4
     auto ret5 = warp_call4(fun, 3, 4);
     std::cout << "x + y = " << ret5 << std::endl;
 
@@ -311,14 +319,16 @@ class A
     friend struct std::hash<A>;
 };
 
-namespace std
+namespace std {
+template <>
+struct hash<A>
 {
-    template<>
-    struct hash<A>
+    size_t operator()(A const& a) const noexcept
     {
-        size_t operator()(A const& a) const noexcept { return 1; /*返回哈希值*/ }
-    };
-}
+        return 1; /*返回哈希值*/
+    }
+};
+} // namespace std
 
 int main()
 {
@@ -328,3 +338,108 @@ int main()
 }
 #endif // TEST15
 
+#ifdef TEST16
+
+#include <iostream>
+#include <mutex>
+
+using namespace std;
+
+namespace detail {
+template <typename MemPointer>
+struct MemPointerTraits;
+
+template <typename Obj, typename V>
+struct MemPointerTraits<V Obj::*>
+{
+    using Object = Obj;
+    using Value  = V;
+};
+
+template <typename T>
+struct Tag
+{
+};
+
+template <auto mfptr>
+struct MemberFunctionToStaticGuard
+{
+    using MemFunc = decltype(mfptr);
+    using Obj     = typename MemPointerTraits<MemFunc>::Object;
+    using Func    = typename MemPointerTraits<MemFunc>::Value;
+    inline static Obj* sm_ptr { nullptr };
+    inline static mutex sm_m;
+
+    MemberFunctionToStaticGuard(Obj* ptr)
+    {
+        sm_ptr = ptr;
+        sm_m.lock();
+    }
+
+    MemberFunctionToStaticGuard(const Obj* ptr) : MemberFunctionToStaticGuard { const_cast<Obj*>(ptr) }
+    {
+    }
+
+    ~MemberFunctionToStaticGuard()
+    {
+        sm_ptr = nullptr;
+        sm_m.unlock();
+    }
+
+    static constexpr auto GetStaticFuncPointer()
+    {
+        return GetStaticFuncPointer(Tag<Func> {});
+    }
+
+    template <typename Ret, typename... Args>
+    static constexpr auto GetStaticFuncPointer(Tag<Ret(Args...)>)
+    {
+        return static_cast<Ret (*)(Args...)>([](Args... args) { return (sm_ptr->*mfptr)(std::forward<Args>(args)...); });
+    }
+
+    template <typename Ret, typename... Args>
+    static constexpr auto GetStaticFuncPointer(Tag<Ret(Args...) const>)
+    {
+        return GetStaticFuncPointer(Tag<Ret(Args...)> {});
+    }
+};
+} // namespace detail
+
+typedef int (*pFunc)(int);
+
+void test(pFunc f)
+{
+    std::cout << "test\n";
+    f(1);
+}
+
+class A
+{
+public:
+    int foo(int x)
+    {
+        std::cout << "foo\t" << x << '\n';
+        return 0;
+    }
+
+    void bar()
+    {
+        std::cout << "bar\n";
+        detail::MemberFunctionToStaticGuard<&A::foo> guard { this };
+        test(guard.GetStaticFuncPointer());
+    }
+
+    private:
+        int x { 666 };
+};
+
+// https://www.zhihu.com/question/411373289
+// std::invoke是否可以实现？
+
+int main()
+{
+    A a;
+    a.bar();
+}
+
+#endif // TEST16
