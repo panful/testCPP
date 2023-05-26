@@ -1,15 +1,19 @@
 /*
  * 1. 继承方式的区别
+
  * 5. 子类可以继承父类那些成员
+ * 6. 基类的析构函数为什么要声明为虚函数
  * 7. 纯虚析构函数，抽象类的析构函数
  * 8. 父类函数带virtual和不带virtual 纯虚函数，dynamic_cast正确使用方法
+ *
  * 10.crtp 单例基类 https://mp.weixin.qq.com/s/eai6rC0V5Ym1kgfTWl4QhQ
+ *
  * 14.Effective Modern C++ 需要改写的函数都应该加上override
  * 15.using 在类继承时的使用
  * 16.变长using声明
  */
 
-#define TEST1
+#define TEST6
 
 #ifdef TEST1
 
@@ -84,8 +88,39 @@ int main()
 // 无参构造函数不能被继承
 // 析构函数不能被继承
 // 友元不会被继承
+// static成员函数也可以继承、重写，但是不能使用virtual override修饰
 
 #include <iostream>
+
+//-------------------------------------
+
+class A
+{
+public:
+    A()
+    {
+        std::cout << "class A construct\n";
+    };
+
+    virtual ~A()
+    {
+        std::cout << "class A destruct\n";
+    };
+};
+
+class B : public A
+{
+public:
+    B()
+    {
+        std::cout << "class B construct\n";
+    };
+
+    virtual ~B()
+    {
+        std::cout << "class B destruct\n";
+    };
+};
 
 //-------------------------------------
 class C
@@ -331,6 +366,13 @@ public:
 int main()
 {
     {
+        // 调用A的构造函数和析构函数
+        auto&& a = B::A();
+    }
+
+    std::cout << "-----------------------------------\n";
+
+    {
         // 调用顺序：
         // 1. 父类构造
         // 2. 子类构造
@@ -429,6 +471,128 @@ int main()
 
 #endif // TEST5
 
+#ifdef TEST6
+
+#include <iostream>
+
+class VirtualBase
+{
+public:
+    VirtualBase()
+    {
+        std::cout << "VirtualBase construct\n";
+    }
+
+    virtual ~VirtualBase()
+    {
+        std::cout << "VirtualBase destruct\n";
+    }
+};
+
+class VirtualDerived : public VirtualBase
+{
+public:
+    VirtualDerived()
+    {
+        std::cout << "VirtualDerived construct\n";
+    }
+
+    ~VirtualDerived() override
+    {
+        std::cout << "VirtualDerived destruct\n";
+    }
+};
+
+class NonVirtualBase
+{
+public:
+    NonVirtualBase()
+    {
+        std::cout << "NonVirtualBase construct\n";
+    }
+
+    ~NonVirtualBase()
+    {
+        std::cout << "NonVirtualBase destruct\n";
+    }
+};
+
+class NonVirtualDerived : public NonVirtualBase
+{
+public:
+    NonVirtualDerived()
+    {
+        std::cout << "NonVirtualDerived construct\n";
+    }
+
+    ~NonVirtualDerived()
+    {
+        std::cout << "NonVirtualDerived destruct\n";
+    }
+};
+
+// 在基类的析构函数为非虚析构函数的时候，并不一定会造成内存泄漏；
+// 当派生类对象的析构函数中有内存需要收回，并且在编程过程中采用了基类指针指向派生类对象，如为了实现多态，并且通过基类指针将该对象销毁，
+// 这时，就会因为基类的析构函数为非虚析构函数而不触发动态绑定，从而没有调用派生类的析构函数而导致内存泄漏。
+
+int main()
+{
+    std::cout << "----------------------------------------\n";
+    {
+        // 正确释放
+        NonVirtualDerived d;
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        // 正确释放
+        NonVirtualDerived* p = new NonVirtualDerived();
+        delete p;
+        p = nullptr;
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        // 子类的析构函数不会被调用，可能会内存泄漏
+        NonVirtualBase* p = new NonVirtualDerived();
+        delete p;
+        p = nullptr;
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        // 正确析构
+        NonVirtualBase* p = new NonVirtualDerived();
+        auto p2           = static_cast<NonVirtualDerived*>(p);
+        delete p2;
+        p2 = nullptr;
+    }
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++\n";
+    {
+        VirtualDerived d;
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        VirtualDerived* p = new VirtualDerived();
+        delete p;
+        p = nullptr;
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        // 因为基类的析构函数是虚函数，所以这里可以正确调用子类的析构函数
+        VirtualBase* p = new VirtualDerived();
+        delete p;
+        p = nullptr;
+    }
+    std::cout << "----------------------------------------\n";
+    {
+        VirtualBase* p = new VirtualDerived();
+        auto p2        = static_cast<VirtualDerived*>(p);
+        delete p2;
+        p2 = nullptr;
+    }
+    std::cout << "----------------------------------------\n";
+}
+
+#endif // TEST6
+
 #ifdef TEST7
 
 // https://blog.csdn.net/qq_33890670/article/details/80218731
@@ -516,7 +680,7 @@ int main()
     b->funB(); // 子类，父类中的funB()为纯虚函数
 
     C* c = new Test();
-    c->funC(); // 子类，因为父类函数是virtual，子类会重写该函数
+    c->funC();                            // 子类，因为父类函数是virtual，子类会重写该函数
 
     C* c1 = dynamic_cast<C*>(new Test()); // 子类转父类没必要使用dynamic_cast，直接转换就行，因为类型本来就是安全的
     c1->funC();                           // 子类

@@ -8,9 +8,10 @@
  * 7. 构造函数、成员函数使用constexpr
  * 8. std::as_const
  * 9. mutable
+ * 10.if constexpr()
  */
 
-#define TEST7
+#define TEST10
 
 #ifdef TEST1
 
@@ -482,3 +483,36 @@ int main()
 }
 
 #endif // TEST9
+
+#ifdef TEST10
+
+// 编译期求斐波拉契
+template <long N>
+constexpr long Fib()
+{
+    // if不使用constexpr就会编译失败
+    if constexpr (N >= 2)
+    {
+        return Fib<N - 1>() + Fib<N - 2>();
+    }
+    else
+    {
+        return N;
+    }
+}
+
+void TestFib()
+{
+    static_assert(Fib<0>() == 0);
+    static_assert(Fib<1>() == 1);
+    static_assert(Fib<2>() == 1);
+    static_assert(Fib<3>() == 2);
+}
+
+int main()
+{
+    TestFib();
+    return 0;
+}
+
+#endif // TEST10

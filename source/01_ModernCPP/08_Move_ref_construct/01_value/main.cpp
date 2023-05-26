@@ -1,181 +1,210 @@
 /*
-* 1. 函数返回对象，std::move，编译器优化，参数为常引用和引用
-* 2. 左值 右值 将亡值
-* 3. 模板函数不要使用值传递
-* 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递  引用塌缩  https://www.qb5200.com/article/295128.html
-* 5. 
-* 6. 传值传引用 内置类型传值比传引用效率更高 const右值引用  std::ref https://www.cnblogs.com/QG-whz/p/5129173.html
-* 7. std::reference_wrapper
-* 8.
+ * 1. 不要返回局部对象的右值引用
+ * 2. 函数返回值没必要使用std::move和std::forward
+ * 3. 模板函数不要使用值传递，最好使用万能引用
+ * 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递  引用塌缩  https://www.qb5200.com/article/295128.html
+ * 5. 判断一个类型是左值还是右值，修改一个类型为左值或右值
+ * 6. 函数的参数传值、传引用、传指针
+ * 7. std::ref std::cref std::reference_wrapper 给std::bind std::thread等传参
+ * 8. 函数返回一个对象，编译器优化 RVO NRVO
+ */
 
-* 10.函数返回一个对象，编译器优化
-*/
+// 一文读懂C++右值引用和std::move https://zhuanlan.zhihu.com/p/335994370
 
-#define TEST1
+#define TEST8
 
 #ifdef TEST1
-// g++ demo.cpp -o out -std=c++11 -fno-elide-constructors
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-// 关闭警告:
-// parentheses were disambiguated as a function declaration
-// 括号作为函数声明已消除歧义
-#pragma GCC diagnostic ignored "-Wvexing-parse"
-// 关闭警告:
-// moving a local object in a return statement prevents copy elision
-// 在return语句中移动本地对象可防止复制省略
-#pragma GCC diagnostic ignored "-Wpessimizing-move"
-#endif // __GNUC__
 
 #include <iostream>
-#include <type_traits>
-#include <functional>
 
-class Test
+class Helper
 {
 public:
-    Test() { std::cout << " 111 construct\n"; }
-    ~Test() { std::cout << " --- construct\n"; }
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
 
-    Test& operator=(const Test&)noexcept { std::cout << " 222 operator=\n"; return *this; }
-    Test& operator=(const Test&&)noexcept { std::cout << " 888 operator=\n"; return *this; }
-    Test& operator=(Test&&)noexcept { std::cout << " 333 operator=\n"; return *this; }
-    Test& operator=(Test&)noexcept { std::cout << " 999 operator=\n"; return *this; }
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
 
-    Test(const Test&) { std::cout << " 444 copy construct\n"; }
-    Test(const Test&&)noexcept { std::cout << " 555 move construct\n"; }
-    Test(Test&&)noexcept { std::cout << " 666 move construct\n"; }
-    Test(Test&)noexcept { std::cout << " 777 copy construct\n"; }
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+
+public:
+    void DoSomeThing() const
+    {
+        std::cout << "Do some thing\n";
+    }
 };
 
-Test GetTestObj1()
+Helper f1()
 {
-    // vs2019: 普通构造 111
-    // g++取消优化: 111 666 666
-    // g++默认: 111
-    return Test();
+    Helper h;
+    h.DoSomeThing();
+    return h;
 }
 
-Test GetTestObj2()
+// 返回局部对象的右值引用会有警告，不要返回局部对象的右值引用
+// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-return-ref-ref
+Helper f2()
 {
-    // vs2019: 普通构造 + 移动构造  111 + 666
-    // g++取消优化: 111 666 666
-    // g++默认: 111
-    Test t;
-    return t;
+    Helper h;
+    h.DoSomeThing();
+    return std::move(h);
 }
 
-Test GetTestObj3()
+Helper f3()
 {
-    // https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-return-ref-ref
-    // 不要返回&&
-    // vs2019: 普通构造 + 移动构造  111 + 666
-    // g++取消优化: 111 666 666
-    // g++默认: 111 666
-    Test t;
-    return std::move(t); // 返回局部变量会有警告
-}
-
-Test GetTestObj4()
-{
-    // vs2019: 普通构造 + 拷贝构造  111 + 777
-    // g++取消优化: 111 777 666
-    // g++默认: 111 777
-    Test t;
-    return std::ref(t); // g++ std::ref需要包含functional头文件
-}
-
-Test GetTestObj5()
-{
-    // vs2019: 普通构造 111
-    // g++取消优化: 111 666
-    // g++默认: 111
     return {};
+}
+
+Helper f4()
+{
+    return Helper();
 }
 
 int main()
 {
-    {
-        auto ret = GetTestObj1();
-    }
-    std::cout << "=================\n";
-
-    {
-        auto ret = GetTestObj2();
-    }
-    std::cout << "=================\n";
-
-    {
-        auto ret = GetTestObj3();
-    }
-    std::cout << "=================\n";
-
-    {
-        auto ret = GetTestObj4();
-    }
-    std::cout << "=================\n";
-
-    {
-        auto ret = GetTestObj5();
-    }
-    std::cout << "*****************************\n";
-
-    {
-        Test t1, t2, t3;
-        t1 = Test(); // 333 右值引用赋值
-        t2 = t3;     // 999 左值引用赋值
-    }
-    std::cout << "=================\n";
-
-    {
-        const Test t1;
-        Test t2;
-        //t1 = t2; // error
-        t2 = t1;   // 222 常引用赋值（左值）
-    }
-    std::cout << "=================\n";
-
-    {
-        const Test t1;
-        Test t2(t1); // 444 常引用拷贝构造函数
-    }
-    std::cout << "=================\n";
-
-    {
-        Test t2(const Test()); // 不会输出任何内容
-    }
-    std::cout << "=================\n";
-
-    {
-        const Test t1;
-        Test t2(std::move(t1));  // // 555 移动构造函数 会报警告：不要对常量使用std::move
-    }
-    std::cout << "=================\n";
+    std::cout << "--------------------------------------\n";
+    auto&& h1 = f1();
+    std::cout << "--------------------------------------\n";
+    auto&& h2 = f2();
+    std::cout << "--------------------------------------\n";
+    auto&& h3 = f3();
+    std::cout << "--------------------------------------\n";
+    auto&& h4 = f4();
+    std::cout << "--------------------------------------\n";
 
     return 0;
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif // __GNUC__
-
 #endif // TEST1
 
+#ifdef TEST2
+
+#include <iostream>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+Helper operator+(Helper&& h1, const Helper& h2)
+{
+    // 不使用-fno-elide-constructors显式禁用构造函数优化时，两种返回方法是没有区别的
+    // 显式禁用构造函数优化时，返回std::move(h1)是右值，直接返回h1是左值
+    // 所以不要返回右值引用 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-return-ref-ref
+
+    // return std::move(h1);
+    return h1;
+}
+
+template <typename T>
+T Func(T&& t)
+{
+    // 不显式禁用构造函数优化时，这两种返回方式没区别
+
+    // t.DoSomeThing();
+    // return std::forward<T>(t);
+    return t;
+}
+
+int main()
+{
+    std::cout << "1--------------------------------------\n";
+
+    Helper h1;
+    Helper h2;
+
+    std::cout << "2--------------------------------------\n";
+
+    auto&& h3 = std::move(h1) + h2;
+
+    std::cout << "3--------------------------------------\n";
+
+    auto&& h4 = Helper() + h2;
+
+    std::cout << "4--------------------------------------\n";
+
+    auto&& h5 = Func(std::move(h2));
+
+    std::cout << "5--------------------------------------\n";
+
+    auto&& h6 = Func(h1);
+
+    std::cout << "6--------------------------------------\n";
+
+    return 0;
+}
+
+#endif // TEST2
 
 #ifdef TEST3
 
 #include <iostream>
 
 // 正确析构
-template<typename T>
+template <typename T>
 void Func1(T&& t)
 {
     std::cout << "111\n";
 }
 
 // 正确析构
-template<typename T>
+template <typename T>
 void Func2(T& t)
 {
     std::cout << "222\n";
@@ -184,27 +213,23 @@ void Func2(T& t)
 // 如果T没有拷贝构造函数就会崩溃，因为值传递会有一次参数拷贝，参数拷贝时需要有拷贝构造函数
 // 函数执行完，会调用一次t的析构函数，main函数结束的时候也会调用析构，如果参数对应的类没有拷贝构造函数
 // 就只new了一次，但是析构两次调用两次delete就会崩溃
-template<typename T>
+template <typename T>
 void Func3(T t)
 {
     std::cout << "333\n";
 }
 
-// 正确析构
-template<typename T>
-void Func4(const T& t)
-{
-    std::cout << "444\n";
-}
-
 class A
 {
 public:
-    A() {
+    A()
+    {
         m_aa = new int[10]();
         std::cout << "construct\n";
     }
-    A(const A& a) {
+
+    A(const A& a)
+    {
         m_aa = new int[10]();
         for (size_t i = 0; i < 10; ++i)
         {
@@ -212,7 +237,9 @@ public:
         }
         std::cout << "copy construct\n";
     }
-    ~A() {
+
+    ~A()
+    {
         if (m_aa)
         {
 
@@ -221,8 +248,9 @@ public:
             std::cout << "destruct\n";
         }
     }
+
 private:
-    int* m_aa{ nullptr };
+    int* m_aa { nullptr };
 };
 
 int main()
@@ -230,10 +258,9 @@ int main()
     A a;
     Func1(a);
     Func2(a);
-    // 执行函数Func3函数体之前会调用拷贝构造函数
+    // 执行函数Func3函数体之前会调用拷贝构造函数，将a拷贝到实参
     Func3(a);
-    // 执行完Func3之后，就会调用一次析构函数
-    Func4(a);
+    // 执行完Func3之后，就会调用一次析构函数，将拷贝的参数析构
 
     return 0;
 }
@@ -246,21 +273,21 @@ int main()
 // Test1相比于其他三个要多一次构造（拷贝构造）
 
 // 值传递，会有拷贝消耗，对传入的参数不能修改（内部修改的只是拷贝后的值，外部的变量没有改变）
-template<class T>
+template <class T>
 T* Test1(T arg)
 {
     return new T(arg); // new 出来的没有delete就会少一次析构，new调用的拷贝构造函数
 }
 
 // 左值引用，不能传常参数等右值
-template<class T>
+template <class T>
 T* Test2(T& arg)
 {
     return new T(arg);
 }
 
 // 常引用，左值右值都可以传，但是不能对传入的参数进行修改
-template<class T>
+template <class T>
 T* Test3(const T& arg)
 {
     return new T(arg);
@@ -268,7 +295,7 @@ T* Test3(const T& arg)
 
 // 万能引用，可以解决参数完美转发的问题 关于万能引用请看00_13_TEST12
 // 引用塌缩
-template<class T>
+template <class T>
 T* Test4(T&& arg)
 {
     return new T(std::forward<T&&>(arg));
@@ -277,16 +304,23 @@ T* Test4(T&& arg)
 class A
 {
 public:
-    A() {
+    A()
+    {
         std::cout << "construct\n";
     }
-    A(const A& a) {
+
+    A(const A& a)
+    {
         std::cout << "copy construct\n";
     }
-    A(const A&& a) noexcept {
+
+    A(const A&& a) noexcept
+    {
         std::cout << "move construct\n";
     }
-    ~A() {
+
+    ~A()
+    {
         std::cout << "destruct\n";
     }
 };
@@ -297,8 +331,8 @@ int main()
     {
         A a;
         auto ret = Test1(a);
-        //delete ret; // 此处如果不delete就会少一次析构，后面的例子也一样
-        //ret = nullptr;
+        // delete ret; // 此处如果不delete就会少一次析构，后面的例子也一样
+        // ret = nullptr;
     }
     std::cout << "1-------------------\n";
     {
@@ -313,7 +347,7 @@ int main()
     std::cout << "3-------------------\n";
     {
         A a;
-        //auto ret1 = Test4(a); // 参数类型错误
+        // auto ret1 = Test4(a); // 参数类型错误
         auto ret2 = Test4(std::move(a));
     }
     std::cout << "4-------------------\n";
@@ -327,303 +361,222 @@ int main()
 
 #endif // TEST4
 
+#ifdef TEST5
 
+#include <iostream>
+#include <type_traits>
+
+int main()
+{
+    using MyInt  = int;                                // int
+    using lMyInt = std::add_lvalue_reference_t<MyInt>; // int&
+    using rMyInt = std::add_rvalue_reference_t<MyInt>; // int&&
+
+    MyInt n1  = 1;
+    lMyInt n2 = n1;
+    rMyInt n3 = 1;
+
+    std::cout << std::boolalpha;
+
+    std::cout << std::is_lvalue_reference_v<MyInt> << '\n'
+              << std::is_lvalue_reference_v<lMyInt> << '\n'
+              << std::is_lvalue_reference_v<rMyInt> << '\n';
+
+    std::cout << "---------------------\n";
+
+    std::cout << std::is_rvalue_reference_v<MyInt> << '\n'
+              << std::is_rvalue_reference_v<lMyInt> << '\n'
+              << std::is_rvalue_reference_v<rMyInt> << '\n';
+
+    return 0;
+}
+
+#endif // TEST5
 
 #ifdef TEST6
 
-// 什么时候用值传递，什么时候用引用传递
-// https://cplusplus.com/articles/z6vU7k9E/
+// 什么时候用值传递，什么时候用引用传递：https://cplusplus.com/articles/z6vU7k9E/
+// 关于传值与传引用的讨论：https://www.cnblogs.com/QG-whz/p/5129173.html
+
+// 基本类型值传递效率最高，int float double 指针等
+// 例如以下1的方式传参效率最高，其他三个汇编都会有两次mov（寻址操作），引用基于指针
+// 1.int 2.int& 3.const int& 4.int&&
+// 在 x86-64 上，对于只有一个指针成员且没有自定义复制构造函数的类，传值是可以通过寄存器进行的，就像传递普通int和指针那样
 
 #include <iostream>
 
-// [1]
-//void Func(int x)
-//{
-//    x++;
-//    std::cout << "int\n";
-//}
+int x = 1;
 
-// [2]
-//void Func(const int x)
-//{
-//    //x++;
-//    std::cout << "const int\n";
-//}
-
-// [3]
-void Func(int& x)
+void f1(int n)
 {
-    x++;
-    std::cout << "int&\n";
+    x = n + 1;
 }
 
-// [4]
-void Func(const int& x)
+void f2(int& n)
 {
-    //x++;
-    std::cout << "const int&\n";
+    x = n + 1;
 }
 
-// [5]
-void Func(int&& x)
+void f3(int&& n)
 {
-    x++;
-    std::cout << "int&&\n";
+    x = n + 1;
 }
 
-// [6]
-void Func(const int&& x)
+void f4(const int& n)
 {
-    //x++;
-    std::cout << "const int&&\n";
+    x = n + 1;
 }
 
 int main()
 {
-    int v1 = 1;
-    const int v2 = 1;
-
-    Func(v1);
-    Func(1);
-    Func(v2);
-    Func((const int&&)v1);
+    int n = 0;
+    f1(n);
+    f2(n);
+    f3(0);
+    f4(n);
 }
 
 #endif // TEST6
 
 #ifdef TEST7
 
-//https://www.cnblogs.com/jerry-fuyi/p/12747850.html
-//reference_wrapper 和原生指针的区别？？？
-//reference_wrapper 绑定到需要通过引用传递参数的函数时非常有用
-#include <iostream>
-#include <functional>
-using namespace std;
+// https://www.cnblogs.com/jerry-fuyi/p/12747850.html
+// std::ref std::cref返回值就是std::reference_wrapper
+// std::reference_wrapper就是把模板参数中的类型，对应的指针包裹了一层
+// 绑定到需要通过引用传递参数的函数时非常有用：std::bind std::thread等
 
-void func(int a, int b)
+#include <functional>
+#include <iostream>
+#include <type_traits>
+
+void Func(int& n)
 {
-    cout << "a = " << a << ",";
-    cout << "b = " << b << endl;
+    ++n;
 }
 
-void func1(int i)
+void Func2(const int& n)
 {
-    cout << "i = " << i << endl;
 }
 
 int main()
 {
-    // 包裹函数指针
-    std::reference_wrapper<void(int, int)> f0 = func;
-    f0(5, 7);
+    {
+        // std::bind会将参数n拷贝，然后传给Func
+        // 所以此处n的值并不会改变
+        int n  = 0;
+        auto f = std::bind(Func, n);
+        f(n);
+        std::cout << "++0: " << n << '\n';
+    }
 
-    std::function<void(int, int)> f4 = func;
-    f4(3, 4);
+    {
+        // 使用std::ref将n的引用传给std::bind
+        int n  = 0;
+        auto f = std::bind(Func, std::ref(n));
+        f(n);
+        std::cout << "++0: " << n << '\n';
+    }
 
-    //std::ref返回一个reference_wrapper包裹的对象
-    auto f1 = std::ref(func);
-    f1(8, 9);
+    {
+        int n   = 0;
+        auto rw = std::reference_wrapper<int>(n);
+        auto f  = std::bind(Func, rw);
+        f(n);
+        std::cout << "++0: " << n << '\n';
+    }
 
-    //std::add_rvalue_reference
+    {
+        // 常引用
+        int n   = 0;
+        auto rw = std::cref(n); // std::reference_wrapper<const int>
+        auto f  = std::bind(Func2, rw);
+        f(n);
+    }
 
-     // 和bind结合使用
-    int i = 10, j = 3;
-    auto f2 = std::bind(func1, i);
-    auto f3 = std::bind(func1, std::ref(i));
-    std::reference_wrapper<int> r_val = j;
-    auto f5 = std::bind(func1, r_val);
-    i = 30; j = 40;
+    // std::reference_wrapper 还可以包裹函数指针等其他任何类型
+    {
+        std::reference_wrapper<decltype(Func)> rw1 = std::ref(Func);
+        std::reference_wrapper<void(int&)> rw2     = std::ref(Func);
 
-    f2();
-    f3();
-    f5();
-
+        int n = 0;
+        rw1(n);
+        rw2(n);
+    }
 
     return 0;
 }
 #endif // TEST7
 
-
-#ifdef TEST9
-
-void fun(int& x) {
-    //
-}
-
-int main() {
-    //fun(10);
-    return 0;
-}
-
-#endif // TEST9
-
-
-#ifdef TEST10
-// g++ demo.cpp -o demo.exe -std=c++0x -fno-elide-constructors
+#ifdef TEST8
 
 #include <iostream>
 
-template <typename T>
-class MyVector
+class A
 {
 public:
-    MyVector() :data(nullptr) { std::cout << "default\n"; } //无参构造
-    explicit MyVector(T t) :data(new T(t)), size(1) { std::cout << "only one\n"; } //有参构造
-    MyVector(MyVector<T>& t) {
-        std::cout << "copy\n";
-        if (t.size <= 0) {
-            size = 0;
-            data = nullptr;
-        }
-        else if (t.size == 1) {
-            data = new T(*t.data);
-            size = 1;
-        }
-        else {
-            data = new T[t.size]();
-            data = t.data;
-            size = t.size;
-        }
+    constexpr A() noexcept
+    {
+        std::cout << "construct\n";
     }
 
-    explicit MyVector(MyVector<T>&& t) { // 移动构造
-        std::cout << "move\n";
-        if (t.size <= 0) {
-            size = 0;
-            data = nullptr;
-        }
-        else if (t.size == 1) {
-            data = t.data;
-            size = 1;
-
-            delete t.data;
-            t.data = nullptr;
-        }
-        else {
-            data = t.data;
-            size = t.size;
-
-            delete[] t.data;
-            t.data = nullptr;
-        }
-    }
-
-    MyVector(std::initializer_list<T> init_list) { // 初始化列表构造
-        std::cout << "init list\n";
-        data = new T[init_list.size()]();
-        size = init_list.size();
-        size_t index = 0;
-        for (auto elem : init_list)
-        {
-            data[index++] = elem;
-            if (index >= size)
-                break;
-        }
-    }
-
-    const MyVector<T>& operator=(const MyVector<T>& t) { //拷贝赋值
-        std::cout << "assign\n";
-        if (t.size <= 0) {
-            size = 0;
-            data = nullptr;
-        }
-        else if (t.size == 1) {
-            data = new T(*t.data);
-            size = 1;
-        }
-        else {
-            data = new T[t.size]();
-            data = t.data;
-            size = t.size;
-        }
-        return *this;
-    }
-
-    const MyVector<T>& operator=(MyVector<T>&& t) noexcept { // 移动赋值
-        std::cout << "move assign\n";
-        if (t.size <= 0) {
-            size = 0;
-            data = nullptr;
-        }
-        else if (t.size == 1) {
-            data = t.data;
-            size = 1;
-
-            delete t.data;
-            t.data = nullptr;
-        }
-        else {
-            data = t.data;
-            size = t.size;
-
-            delete[] t.data;
-            t.data = nullptr;
-        }
-        return *this;
-    }
-
-    ~MyVector() {
+    ~A() noexcept
+    {
         std::cout << "destruct\n";
-        if (data)
-        {
-            if (size > 1)
-                delete[] data;
-            else
-                delete data;
-
-            data = nullptr;
-        }
     }
 
-private:
-    T* data{ nullptr };
-    size_t size{ 0 };
+    A(const A&) noexcept
+    {
+        std::cout << "copy construct\n";
+    }
+
+    A(A&&) noexcept
+    {
+        std::cout << "move construct\n";
+    }
+
+    A& operator=(const A&) noexcept
+    {
+        std::cout << "copy assign\n";
+        return *this;
+    }
+
+    A& operator=(A&&) noexcept
+    {
+        std::cout << "move assign\n";
+        return *this;
+    }
+
+    int m { 1 };
+    int n { 2 };
+    int k { 3 };
 };
 
-MyVector<int> getVec1()
+A get()
 {
-    return {};  //default
+    A aa;
+    aa.m = 7;
+    aa.n = 8;
+    aa.k = 9;
+    return aa;
 }
 
-MyVector<int> getVec2()
-{
-    return MyVector<int>();
-    //default   MyVector<int>()
-    //move      return
-    //destruct  析构MyVector<int>()产生的匿名对象
-}
-
-MyVector<int> getVec3()
-{
-    return std::move(MyVector<int>());
-    //destruct
-    //move
-    //destruct
-}
+// https://mp.weixin.qq.com/s/qzf97S7jld7GJle2yJPmLw
+// https://mp.weixin.qq.com/s/rpnElZyBNVsicMR7j4SQvQ
+// GDB: https://mp.weixin.qq.com/s/XxPIfrQ3E0GR88UsmQNggg
 
 int main()
 {
-    {
-        MyVector<int> vec1; // 无参构造
-        MyVector<int> vec2{ 1,2,3,4 }; //初始化列表构造
-        MyVector<int> vec3(2); //有参构造
-        MyVector<int> vec4 = MyVector<int>(); //无参构造 移动构造 析构
-        MyVector<int> vec5(vec4); //拷贝构造
-        MyVector<int> vec6 = std::move(vec5);
-        vec1 = std::move(vec6);
-        std::cout << "11111111\n";
+    { 
+        // 整个过程只有一次构造一次析构，用GDB可以看到get()中的aa和main()中的a是同一个地址
+        // 在main函数中构造a，然后将这个a传给get()函数，所以get()函数内部不会构造aa，只需要操作main函数中创建的a
+        A a = get();
     }
-    std::cout << "========\n";
+    std::cout << "-------------------------------\n";
     {
-        auto ret1 = getVec1();     //move destruct 将get返回的对象移动到ret1，然后析构get返回的匿名对象
-        std::cout << "22222222\n";
-        auto ret2 = getVec2();  //move destruct
-        std::cout << "33333333\n";
-        auto ret3 = getVec3();  //move destruct
-        std::cout << "44444444\n";
-    }
 
-    return 0;
+        A a;       // 构造
+        a = get(); // 移动赋值
+    }
 }
 
-#endif // TEST10
+#endif // TEST8

@@ -2,6 +2,7 @@
  * 1. std::move std::forward都是仅仅执行强制型别转换的函数
  * 2. 不要对常量使用std::move
  * 3. 对标准库容器使用std::move
+ * 4. std::move_if_noexcept
  * 深入理解std::move https://mp.weixin.qq.com/s/GYn7g073itjFVg0OupWbVw
  */
 
@@ -245,3 +246,7 @@ int main()
 }
 
 #endif // TEST3
+
+#ifdef TEST4
+
+#endif // TEST4
