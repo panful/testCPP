@@ -2,16 +2,17 @@
  * 1. 不要返回局部对象的右值引用
  * 2. 函数返回值没必要使用std::move和std::forward
  * 3. 模板函数不要使用值传递，最好使用万能引用
- * 4. 函数参数为值传递，左值引用传递，右值引用传递，常引用传递  引用塌缩  https://www.qb5200.com/article/295128.html
+ * 4. 引用折叠引用塌缩00_13_04_TEST12
  * 5. 判断一个类型是左值还是右值，修改一个类型为左值或右值
  * 6. 函数的参数传值、传引用、传指针
  * 7. std::ref std::cref std::reference_wrapper 给std::bind std::thread等传参
  * 8. 函数返回一个对象，编译器优化 RVO NRVO
+ * 9. 形参是万能引用，使用标签分派
  */
 
 // 一文读懂C++右值引用和std::move https://zhuanlan.zhihu.com/p/335994370
 
-#define TEST8
+#define TEST4
 
 #ifdef TEST1
 
@@ -270,93 +271,15 @@ int main()
 
 #include <iostream>
 
-// Test1相比于其他三个要多一次构造（拷贝构造）
-
-// 值传递，会有拷贝消耗，对传入的参数不能修改（内部修改的只是拷贝后的值，外部的变量没有改变）
-template <class T>
-T* Test1(T arg)
-{
-    return new T(arg); // new 出来的没有delete就会少一次析构，new调用的拷贝构造函数
-}
-
-// 左值引用，不能传常参数等右值
-template <class T>
-T* Test2(T& arg)
-{
-    return new T(arg);
-}
-
-// 常引用，左值右值都可以传，但是不能对传入的参数进行修改
-template <class T>
-T* Test3(const T& arg)
-{
-    return new T(arg);
-}
-
-// 万能引用，可以解决参数完美转发的问题 关于万能引用请看00_13_TEST12
-// 引用塌缩
-template <class T>
-T* Test4(T&& arg)
-{
-    return new T(std::forward<T&&>(arg));
-}
-
-class A
-{
-public:
-    A()
-    {
-        std::cout << "construct\n";
-    }
-
-    A(const A& a)
-    {
-        std::cout << "copy construct\n";
-    }
-
-    A(const A&& a) noexcept
-    {
-        std::cout << "move construct\n";
-    }
-
-    ~A()
-    {
-        std::cout << "destruct\n";
-    }
-};
-
 int main()
 {
-    std::cout << "0-------------------\n";
+    // 当编译器在引用折叠的语境下生成引用的引用时，结果会变成单个引用。
+    // 如果原始的引用中有任一引用为左值引用，则结果为左值引用。否则，结果为右值引用
     {
-        A a;
-        auto ret = Test1(a);
-        // delete ret; // 此处如果不delete就会少一次析构，后面的例子也一样
-        // ret = nullptr;
+        auto&& n  = 0; // int&&
+        auto&& n2 = n; // int&
+        auto&& n3 = 3; // int&&
     }
-    std::cout << "1-------------------\n";
-    {
-        A a;
-        auto ret = Test2(a);
-    }
-    std::cout << "2-------------------\n";
-    {
-        A a;
-        auto ret = Test3(a);
-    }
-    std::cout << "3-------------------\n";
-    {
-        A a;
-        // auto ret1 = Test4(a); // 参数类型错误
-        auto ret2 = Test4(std::move(a));
-    }
-    std::cout << "4-------------------\n";
-    {
-        auto ret = Test4(A());
-    }
-    std::cout << "5-------------------\n";
-
-    return 0;
 }
 
 #endif // TEST4
@@ -562,11 +485,11 @@ A get()
 
 // https://mp.weixin.qq.com/s/qzf97S7jld7GJle2yJPmLw
 // https://mp.weixin.qq.com/s/rpnElZyBNVsicMR7j4SQvQ
-// GDB: https://mp.weixin.qq.com/s/XxPIfrQ3E0GR88UsmQNggg
+// GDB使用: https://mp.weixin.qq.com/s/XxPIfrQ3E0GR88UsmQNggg
 
 int main()
 {
-    { 
+    {
         // 整个过程只有一次构造一次析构，用GDB可以看到get()中的aa和main()中的a是同一个地址
         // 在main函数中构造a，然后将这个a传给get()函数，所以get()函数内部不会构造aa，只需要操作main函数中创建的a
         A a = get();
@@ -580,3 +503,66 @@ int main()
 }
 
 #endif // TEST8
+
+#ifdef TEST9
+
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+#include <type_traits>
+
+class Test
+{
+public:
+    template <typename T>
+    void AddName(T&& t)
+    {
+        AddNameImpl(std::forward<T>(t), std::is_integral<std::remove_reference_t<T>>());
+    }
+
+private:
+    template <typename T>
+    void AddNameImpl(T&& n, std::true_type)
+    {
+        std::cout << "int true\n";
+        AddName(NameFromIdx(std::forward<T>(n)));
+
+        // 不建议使用这种
+        // m_names.emplace(NameFromIdx(std::forward<T>(n)));
+    }
+
+    template <typename T>
+    void AddNameImpl(T&& t, std::false_type)
+    {
+        std::cout << "int false\n";
+        m_names.emplace(std::forward<T>(t));
+    }
+
+    std::string NameFromIdx(int i)
+    {
+        return 0 == m_namesWithIdx.count(i) ? std::string() : m_namesWithIdx.at(i);
+    }
+
+private:
+    std::set<std::string> m_names;
+    std::map<int, std::string> m_namesWithIdx;
+};
+
+int main()
+{
+    Test t;
+    t.AddName(1);
+    t.AddName("abc");
+    t.AddName(std::string("abc"));
+
+    std::cout << "-------------------------------------\n";
+
+    short n = 1;
+    t.AddName(n);
+
+    const long long n2 = 2;
+    t.AddName(n2);
+}
+
+#endif // TEST9
