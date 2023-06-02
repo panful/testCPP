@@ -3,10 +3,12 @@
  * 2. 不要对常量使用std::move
  * 3. 对标准库容器使用std::move
  * 4. std::move_if_noexcept
- * 深入理解std::move https://mp.weixin.qq.com/s/GYn7g073itjFVg0OupWbVw
+ * 5. std::move并不一定提高效率
  */
 
-#define TEST3
+// 深入理解std::move https://mp.weixin.qq.com/s/GYn7g073itjFVg0OupWbVw
+
+#define TEST5
 
 #ifdef TEST1
 
@@ -249,4 +251,96 @@ int main()
 
 #ifdef TEST4
 
+#include <iostream>
+#include <utility>
+
+struct Bad
+{
+    Bad()
+    {
+    }
+
+    Bad(Bad&&)
+    {
+        std::cout << "Bad: move constructor\n";
+    }
+
+    Bad(const Bad&)
+    {
+        std::cout << "Bad: copy constructor\n";
+    }
+};
+
+struct Good
+{
+    Good()
+    {
+    }
+
+    Good(Good&&) noexcept
+    {
+        std::cout << "Good: move constructor\n";
+    }
+
+    Good(const Good&) noexcept
+    {
+        std::cout << "Good: copy constructor\n";
+    }
+};
+
+int main()
+{
+    Good g;
+    Bad b;
+    Good g2 = std::move_if_noexcept(g); // 调用移动构造，移动构造是noexpect
+    Bad b2  = std::move_if_noexcept(b); // 调用拷贝构造，因为移动构造不是noexpect
+}
+
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <array>
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    // 即使对std::array执行移动操作，仍然需要对std::array的每一个元素进行复制
+    // std::array内部是一个 T [Size] 数组
+    {
+        std::array<int, 3> arr1 { 1, 2, 3 };
+
+        std::cout << arr1.size() << '\t' << arr1.data() << '\n';
+
+        auto arr2 = std::move(arr1);
+        auto p1 = arr1.data();
+        auto p2 = arr2.data();
+
+        std::cout << arr1.size() << '\t' << p1 << '\n';
+        std::cout << arr2.size() << '\t' << p2 << '\n';
+    }
+
+    std::cout << "---------------------------------\n";
+
+    // 对std::vector执行移动操作，只是把源容器的指向数据的指针移动到目标容器，并把源容器的数据指针置空
+    {
+        std::vector<int> vec1 { 1, 2, 3 };
+
+        std::cout << vec1.size() << '\t' << vec1.data() << '\n';
+
+        auto vec2 = std::move(vec1);
+        auto p1 = vec1.data();
+        auto p2 = vec2.data();
+
+        std::cout << vec1.size() << '\t' << p1 << '\n';
+        std::cout << vec2.size() << '\t' << p2 << '\n';
+    }
+
+    // std::string一般会采用SSO(small string optimization) 不大于15个字符的字符串不会去堆上分配内存
+    // 所以对std::string执行std::move也有可能执行的是复制操作
+
+    // 函数返回值绝大多数情况下也没必要使用std::move
+}
+
+#endif // TEST5
