@@ -9,9 +9,10 @@
  * 8. union 内存共享 new(p) pp;
  * 9. memcpy pod union
  * 10 std::aligned_union
+ * 11 位域
  */
 
-#define TEST8
+#define TEST11
 
 #ifdef TEST1
 
@@ -30,7 +31,8 @@ std::optional<int> asInt(const std::string& s)
     {
         // 转换成功返回结果
         return std::stoi(s);
-    } catch (...)
+    }
+    catch (...)
     {
         // 转换失败返回std::nullopt;
         // 可以理解为nullptr
@@ -50,7 +52,8 @@ int main()
         {
             // 如果std::optional没值，则*oi是未定义的行为
             std::cout << "convert \t'" << s << "' \t\tto int: " << *oi << "\n";
-        } else
+        }
+        else
         {
             std::cout << "can't convert \t'" << s << "' \tto int\n";
         }
@@ -65,7 +68,8 @@ int main()
         try
         {
             std::cout << optInt2.value() << '\n'; // 此处会抛出异常
-        } catch (std::bad_optional_access)
+        }
+        catch (std::bad_optional_access)
         {
             std::cout << "value() throw error\n";
         }
@@ -102,7 +106,8 @@ std::variant<int, std::string> func(void* p)
     if (p)
     {
         return 1;
-    } else
+    }
+    else
     {
         return "string";
     }
@@ -122,10 +127,10 @@ int main()
         std::variant<int, int, int, float, float, std::string> var1;
         // var1 = 2.0f;  //错误，variant模板初始化有多个float，不知道是给第几个float赋值
         std::variant<int, int, float, float, char, char> var11 { std::in_place_index<3>, 2 }; // 初始化为第三个类型
-        var1.emplace<1>(2.0f);                                                                // 正确，指定具体第几个类型，会强制类型转换
-        auto index1 = var1.index();                                                           // 1
-        var1.emplace<5>("test");                                                              // 正确
-        auto index5 = var1.index();                                                           // 5
+        var1.emplace<1>(2.0f);      // 正确，指定具体第几个类型，会强制类型转换
+        auto index1 = var1.index(); // 1
+        var1.emplace<5>("test");    // 正确
+        auto index5 = var1.index(); // 5
         // var1.emplace<2>("test");  //错误
         // var1.emplace<int>(2);     //错误
 
@@ -134,10 +139,10 @@ int main()
 
     {
         std::variant<int, float, char> var2;
-        var2.emplace<int>(2); // 没有多个int类型时才可以这样赋值
-        var2 = 2.0f;
-        var2 = 3.0f;                // 覆盖前面的值
-        var2 = 'x';                 // 覆盖前面的值
+        var2.emplace<int>(2);       // 没有多个int类型时才可以这样赋值
+        var2        = 2.0f;
+        var2        = 3.0f;         // 覆盖前面的值
+        var2        = 'x';          // 覆盖前面的值
         auto index2 = var2.index(); // 此时var2的值为'x'，是var2的第2个类型（从0开始）
         // auto ret1 = std::get<1>(var2);   //抛出异常，因为var2的值为'x'是第2个类型
         // auto ret2 = std::get<int>(var2); //抛出异常，var2值的类型为char
@@ -168,7 +173,9 @@ int main()
             double d;
             double e;
         };
-        std::cout << "double:" << sizeof(double) << "\tfloat:" << sizeof(float) << "\tstd::string:" << sizeof(std::string) << "\tMyStruct:" << sizeof(MyStruct) << '\n';
+
+        std::cout << "double:" << sizeof(double) << "\tfloat:" << sizeof(float) << "\tstd::string:" << sizeof(std::string)
+                  << "\tMyStruct:" << sizeof(MyStruct) << '\n';
 
         std::variant<int, float, double, char> var1;
         std::variant<int, float, char> var2;
@@ -181,7 +188,8 @@ int main()
         std::variant<MyStruct, int> var9;
         std::variant<MyStruct, int, MyStruct, double> var10;
 
-        auto f = [](auto&& v) {
+        auto f = [](auto&& v)
+        {
             // variant中最大字节数的类型大于8则sizeof(variant)等于这个字节数+8
             // 小于8则翻倍，好像是这个规律
             std::cout << sizeof(v) << '\t' << typeid(v).name() << '\n';
@@ -204,6 +212,7 @@ int main()
             double c;
             char d;
         };
+
         union MyUnion2 {
             int a;
             float b;
@@ -218,6 +227,7 @@ int main()
             double c;
             char d;
         };
+
         struct MyStruct2
         { // 4+4+4+40 + 4 = 56 因为std::string存储了一个指针（8位）因此sizeof(MyStruct2)是8（结构体中最大字节数的成员）的倍数
             int a;
@@ -264,8 +274,16 @@ template <typename... Ts>
 overload(Ts...) -> overload<Ts...>;
 
 auto twice = overload {
-    [](std::string& s) { s += s; std::cout << "twice\t" << s << '\n'; },
-    [](auto& i) { i *= 2; std::cout << "twice\t" << i << '\n'; },
+    [](std::string& s)
+    {
+        s += s;
+        std::cout << "twice\t" << s << '\n';
+    },
+    [](auto& i)
+    {
+        i *= 2;
+        std::cout << "twice\t" << i << '\n';
+    },
 };
 
 void f1()
@@ -275,43 +293,43 @@ void f1()
     std::visit(twice, var1);
     std::visit(twice, var3);
 
-    std::visit(overload {
-                   // calls best matching lambda for current alternative
-                   [](int i) { std::cout << "int: " << i << '\n'; },
-                   [](const std::string& s) { std::cout << "string: " << s << '\n'; },
-               },
+    std::visit(
+        overload {
+            // calls best matching lambda for current alternative
+            [](int i) { std::cout << "int: " << i << '\n'; },
+            [](const std::string& s) { std::cout << "string: " << s << '\n'; },
+        },
         var1);
 
-    std::visit(overload {
-                   // calls best matching lambda for current alternative
-                   [](int i) { std::cout << "int: " << i << '\n'; },
-                   [](const std::string& s) { std::cout << "string: " << s << '\n'; },
-               },
+    std::visit(
+        overload {
+            // calls best matching lambda for current alternative
+            [](int i) { std::cout << "int: " << i << '\n'; },
+            [](const std::string& s) { std::cout << "string: " << s << '\n'; },
+        },
         var3);
 
     // std::visit同时传入多个std::variant
     std::variant<int, float, std::string> varA, varB;
     varA = 3;
     varB = "string\n";
-    std::visit(overload {
-                   [](auto a, auto b) {
-                       std::cout << "visit:\t" << a << '\t' << b;
-                   },
-               },
+    std::visit(
+        overload {
+            [](auto a, auto b) { std::cout << "visit:\t" << a << '\t' << b; },
+        },
         varA, varB);
 
     // std::visit返回值
     std::variant<int> abc, def;
-    abc = 3;
-    def = 4;
-    bool testval = std::visit(overload {
-                                  [](int a, int b) {
-                                      return a < b;
-                                  },
-                              },
+    abc          = 3;
+    def          = 4;
+    bool testval = std::visit(
+        overload {
+            [](int a, int b) { return a < b; },
+        },
         abc, def);
 }
-}
+} // namespace T1
 
 // 2.使用函数对象访问lambda
 namespace T2 {
@@ -322,10 +340,12 @@ struct MyVisitor
     {
         std::cout << d << '\n';
     }
+
     void operator()(int i) const
     {
         std::cout << i << '\n';
     }
+
     void operator()(const std::string& s) const
     {
         std::cout << s << '\n';
@@ -342,7 +362,7 @@ void f2()
 
     std::visit(MyVisitor(), var3); // calls operator() for matching std::string type
 }
-}
+} // namespace T2
 
 // 3.使用泛型lambda访问std::variant
 namespace T3 {
@@ -351,31 +371,39 @@ void f3()
     //+++++++++++++++++++++
     std::variant<int, double, std::string> var1(42), var2(3.14), var3("visit");
 
-    auto myLambda1 = [](const auto& val) {
-        std::cout << val << std::endl;
-    };
+    auto myLambda1 = [](const auto& val) { std::cout << val << std::endl; };
 
     std::visit(myLambda1, var1);
     std::visit(myLambda1, var2);
     std::visit(myLambda1, var3);
     //++++++++++++++++++++++
 
-    std::visit([](auto&& x) {x += x; std::cout << x << '\n'; }, var1);
+    std::visit(
+        [](auto&& x)
+        {
+            x += x;
+            std::cout << x << '\n';
+        },
+        var1);
 
     //++++++++++++++++++++++
-    auto myLambda2 = [](auto&& x) {
-        if constexpr (std::is_convertible_v<decltype(x), std::string>) {
+    auto myLambda2 = [](auto&& x)
+    {
+        if constexpr (std::is_convertible_v<decltype(x), std::string>)
+        {
             std::cout << "string is:" + x << '\n';
         }
-        else {
+        else
+        {
             std::cout << x << "\tnot string\n";
-        } };
+        }
+    };
     std::visit(myLambda2, var1);
     std::visit(myLambda2, var2);
     std::visit(myLambda2, var3);
     //+++++++++++++++++++++++
 }
-}
+} // namespace T3
 
 int main()
 {
@@ -446,10 +474,10 @@ class MyAny
 {
 public:
     template <typename T> // 这里用模板函数不用模板类，因为如果是模板类，实例化一个MyAny对象就需要指定类型，这样做any就没有了意义，
-    MyAny(T t)
-        : base(std::make_unique<Data<T>>(t))
+    MyAny(T t) : base(std::make_unique<Data<T>>(t))
     {
     }
+
     template <typename T>
     T any_cast()
     {
@@ -463,19 +491,22 @@ private:
     class Base
     {
     public:
-        virtual ~Base() { } // 基类是一个多态类，必须定义析构函数
+        virtual ~Base()
+        {
+        } // 基类是一个多态类，必须定义析构函数
     };
+
     template <typename T>
     class Data : public Base
     {
     public:
-        Data(T t)
-            : value(t)
+        Data(T t) : value(t)
         {
         }
 
         T value;
     };
+
     // Data data;  //派生的子类Data需要模板参数才能创建，所以这里必须是没有模板的基类
     std::unique_ptr<Base> base; // 如果是模板函数，不知道存储的数据类型，就需要在MyAny类内部再定义一个模板基类Base
     // Base base;  //不能用普通对象，因为无法把类型从Base转换到Data，没法访问value
@@ -495,7 +526,8 @@ int main()
     try
     {
         auto ret3 = f.any_cast<char*>(); // throw error
-    } catch (...)
+    }
+    catch (...)
     {
         std::cout << "An exception is thrown here\n";
     }
@@ -535,7 +567,7 @@ int main()
 {
     // 1
     {
-        std::function<int(int)> f1 = std::bind(&test1, 3);
+        std::function<int(int)> f1          = std::bind(&test1, 3);
         std::function<void(std::string)> f2 = std::bind(&test2, "sssssssss");
         std::vector<std::any> myFuns1;
         myFuns1.emplace_back(f1);
@@ -564,7 +596,8 @@ int main()
         {
             auto fun3 = std::any_cast<std::function<int(int)>>(myFuns2[0]);
             auto fun4 = std::any_cast<std::function<void(std::string)>>(myFuns2[1]);
-        } catch (...)
+        }
+        catch (...)
         {
             std::cout << "std::any_cast throw an error\n";
         }
@@ -573,7 +606,7 @@ int main()
 
     // 3 使用std::placeholders替换实参
     {
-        std::function<int(int)> f5 = std::bind(&test1, std::placeholders::_1);
+        std::function<int(int)> f5          = std::bind(&test1, std::placeholders::_1);
         std::function<void(std::string)> f6 = std::bind(&test2, std::placeholders::_1);
         std::vector<std::any> myFuns3;
         myFuns3.emplace_back(f5);
@@ -619,19 +652,25 @@ public:
     struct FuncStruct
     {
         function_ func = nullptr;
-        void* param = nullptr;
+        void* param    = nullptr;
 
-        FuncStruct() { }
-        FuncStruct(const function_& f, void* p)
-            : func(f)
-            , param(p)
+        FuncStruct()
+        {
+        }
+
+        FuncStruct(const function_& f, void* p) : func(f), param(p)
         {
         }
     };
 
 public:
-    FuncExecQueue() { }
-    ~FuncExecQueue() { }
+    FuncExecQueue()
+    {
+    }
+
+    ~FuncExecQueue()
+    {
+    }
 
     void push(const FuncStruct& funcStruct)
     {
@@ -697,8 +736,8 @@ int main()
     queue.push(FuncExecQueue::FuncStruct(&b, nullptr));
 
     CustomParam* p = new CustomParam();
-    p->a = 100;
-    p->b = 500;
+    p->a           = 100;
+    p->b           = 500;
 
     queue.push(FuncExecQueue::FuncStruct(&c, static_cast<void*>(p)));
 
@@ -720,6 +759,7 @@ int main()
 namespace {
 union bit32_data {
     uint32_t data { 0 };
+
     struct
     {
         uint8_t byte0;
@@ -736,19 +776,18 @@ union Vec3 {
     {
         T x, y, z;
     };
+
     struct
     {
         T r, g, b;
     };
+
     struct
     {
         T s, t, p;
     };
 
-    Vec3(const T& v1, const T& v2, const T& v3)
-        : x(v1)
-        , y(v2)
-        , z(v3)
+    Vec3(const T& v1, const T& v2, const T& v3) : x(v1), y(v2), z(v3)
     //, r(v1)
     //, g(v2)
     //, b(v3)
@@ -769,8 +808,7 @@ struct Vec3Data
 template <typename T>
 struct Vec3Struct
 {
-    Vec3Struct(const T& v1, const T& v2, const T& v3)
-        : data(v1, v2, v3)
+    Vec3Struct(const T& v1, const T& v2, const T& v3) : data(v1, v2, v3)
     {
     }
 
@@ -787,7 +825,7 @@ struct Vec3Struct
 private:
     Vec3Data<T> data;
 };
-}
+} // namespace
 
 int main()
 {
@@ -810,18 +848,12 @@ int main()
     {
         bit32_data num;
 
-        std::cout << std::hex
-                  << static_cast<int>(num.byte.byte3)
-                  << static_cast<int>(num.byte.byte2)
-                  << static_cast<int>(num.byte.byte1)
+        std::cout << std::hex << static_cast<int>(num.byte.byte3) << static_cast<int>(num.byte.byte2) << static_cast<int>(num.byte.byte1)
                   << static_cast<int>(num.byte.byte0) << '\n';
 
         num.data = 0x12345678;
 
-        std::cout << std::hex
-                  << static_cast<int>(num.byte.byte3)
-                  << static_cast<int>(num.byte.byte2)
-                  << static_cast<int>(num.byte.byte1)
+        std::cout << std::hex << static_cast<int>(num.byte.byte3) << static_cast<int>(num.byte.byte2) << static_cast<int>(num.byte.byte1)
                   << static_cast<int>(num.byte.byte0) << '\n';
     }
 
@@ -836,10 +868,12 @@ int main()
         if (0x78 == num.byte.byte0)
         {
             std::cout << "Little endian\n";
-        } else if (0x78 == num.byte.byte3)
+        }
+        else if (0x78 == num.byte.byte3)
         {
             std::cout << "Big endian\n";
-        } else
+        }
+        else
         {
             std::cout << "error\n";
         }
@@ -926,7 +960,7 @@ struct MyStruct
 class MyClass1
 {
 public:
-    MyClass1() = default;
+    MyClass1()  = default;
     ~MyClass1() = default;
 
 private:
@@ -937,7 +971,7 @@ private:
 class MyClass2
 {
 public:
-    MyClass2() = default;
+    MyClass2()  = default;
     ~MyClass2() = default;
 
 private:
@@ -966,7 +1000,7 @@ int main()
 
         MyStruct* s1 = new MyStruct { npod2, pod2, 2, std::string("abc"), { 1, 2, 3 } };
         MyStruct* s2 = new MyStruct { nullptr, nullptr, 0, "", {} };
-        std::memcpy(s2, s1, sizeof(MyStruct)); // ok
+        std::memcpy(s2, s1, sizeof(MyStruct));                            // ok
 
         std::cout << std::is_standard_layout_v<MyNotPODType> << '\n';     // false
         std::cout << std::is_standard_layout_v<MyPODType> << '\n';        // true
@@ -1013,8 +1047,8 @@ union U {
     int i;
     char c;
     double d;
-    U(const char* str)
-        : c(str[0])
+
+    U(const char* str) : c(str[0])
     {
     }
 }; // non-POD
@@ -1044,3 +1078,73 @@ int main()
 }
 
 #endif // TEST10
+
+#ifdef TEST11
+
+#include <iostream>
+
+struct CPUID
+{
+    uint32_t Stepping : 4;
+    uint32_t Model : 4;
+    uint32_t FamilyID : 4;
+    uint32_t Type : 2;
+    uint32_t Reserved1 : 2;
+    uint32_t ExtendedModel : 4;
+    uint32_t ExtendedFamilyID : 8;
+    uint32_t Reserved2 : 4;
+};
+
+CPUID to_id(const uint32_t value)
+{
+    CPUID id;
+
+    id.Stepping         = value & 0xf;
+    id.Model            = value >> 4 & 0xf;
+    id.FamilyID         = value >> 8 & 0xf;
+    id.Type             = value >> 12 & 0x3;
+    id.Reserved1        = value >> 14 & 0x3;
+    id.ExtendedModel    = value >> 16 & 0xf;
+    id.ExtendedFamilyID = value >> 20 & 0xff;
+    id.Reserved2        = value >> 28 & 0xf;
+
+    return id;
+}
+
+uint32_t from_id(const CPUID id)
+{
+    // clang-format off
+    return id.Stepping 
+         | id.Model << 4 
+         | id.FamilyID << 8
+         | id.Type << 12 
+         | id.Reserved1 << 14
+         | id.ExtendedModel << 16
+         | id.ExtendedFamilyID << 20 
+         | id.Reserved2 << 28;
+    // clang-format on
+}
+
+int main()
+{
+    // 字节对齐
+    std::cout << "size: " << sizeof(CPUID) << '\n';
+
+    CPUID id(0b1000, 0b0100, 0b0010, 0b10, 0b01, 0b1100, 0b11001100, 0b0011);
+
+    std::cout << id.Stepping << '\t' << id.Model << '\t' << id.FamilyID << '\t' << id.Type << '\t' << id.Reserved1 << '\t' << id.ExtendedModel << '\t'
+              << id.ExtendedFamilyID << '\t' << id.Reserved2 << '\n';
+
+    // 00_18_TEST5 二进制字面量
+    auto id2 = to_id(0b0011'11001100'1100'0110'0010'0100'1000);
+    auto val = from_id(id2);
+    auto id3 = to_id(val);
+
+    std::cout << id2.Stepping << '\t' << id2.Model << '\t' << id2.FamilyID << '\t' << id2.Type << '\t' << id2.Reserved1 << '\t' << id2.ExtendedModel
+              << '\t' << id2.ExtendedFamilyID << '\t' << id2.Reserved2 << '\n';
+    std::cout << val << '\n';
+    std::cout << id3.Stepping << '\t' << id3.Model << '\t' << id3.FamilyID << '\t' << id3.Type << '\t' << id3.Reserved1 << '\t' << id3.ExtendedModel
+              << '\t' << id3.ExtendedFamilyID << '\t' << id3.Reserved2 << '\n';
+}
+
+#endif // TEST11
