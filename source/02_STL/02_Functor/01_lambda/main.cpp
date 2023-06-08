@@ -1,29 +1,31 @@
 /*
-* 1. std::sort使用lambda
-* 2. constexpr lambda表达式
-* 3. lambda捕获*this
-* 5. lambda各种捕获方式的区别 mutable值捕获方式修改捕获的值
-*/
+ * 1. std::sort使用lambda
+ * 2. constexpr lambda表达式
+ * 3. lambda捕获*this
+ * 4. 捕获指针，lambda内调用对象方法
+ * 5. lambda各种捕获方式的区别 mutable值捕获方式修改捕获的值
+ * 6. lambda使用static变量
+ */
 
-#define TEST3
+#define TEST6
 
 #ifdef TEST1
 
-#include <vector>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 bool Compare(int a, int b)
 {
     std::cout << a << '\t' << b << '\n';
-    //return a > b;
+    // return a > b;
     return b > a;
 }
 
 int main()
 {
-    std::vector<int> vec{ 1,3,5,4,2,6 };
-    //std::sort(vec.begin(), vec.end());
+    std::vector<int> vec { 1, 3, 5, 4, 2, 6 };
+    // std::sort(vec.begin(), vec.end());
     std::sort(vec.begin(), vec.end(), Compare);
 }
 
@@ -36,14 +38,15 @@ int main()
 
 #include <string>
 
-int main() { // c++17可编译
+int main()
+{ // c++17可编译
     constexpr auto lamb = [](int n) { return 1 + n * n; };
     static_assert(lamb(3) == 10, "error");
 
-    constexpr auto lamb2 = [](std::string str) {return "#" + str + "#"; };
+    constexpr auto lamb2 = [](std::string str) { return "#" + str + "#"; };
     lamb2("s"); // ok
-    //static_assert(lamb2("s") == std::string("#s#"), "error"); // 编译不过去
-    //static_assert(lamb2("s") == std::string("s"), "error"); // 静态断言失败
+    // static_assert(lamb2("s") == std::string("#s#"), "error"); // 编译不过去
+    // static_assert(lamb2("s") == std::string("s"), "error"); // 静态断言失败
 }
 #endif // TEST2
 
@@ -61,10 +64,12 @@ int main() { // c++17可编译
 
 struct MyStruct
 {
-    int a{ 9 };
+    int a { 9 };
 
-    int Before17GetA() {
-        auto f = [this]() {
+    int Before17GetA()
+    {
+        auto f = [this]()
+        {
             this->SetA();
             return a;
         };
@@ -72,13 +77,15 @@ struct MyStruct
         return f();
     }
 
-    int After17GetA() {
-        auto f1 = [*this]() {
+    int After17GetA()
+    {
+        auto f1 = [*this]()
+        {
 
-            //this->SetA(); // error，*this是一个const对象，只能调用常成员函数
+        // this->SetA(); // error，*this是一个const对象，只能调用常成员函数
 
-            // C++20可以使用return this->a;
-            // C++17只能使用return a;
+        // C++20可以使用return this->a;
+        // C++17只能使用return a;
 
 #if __cplusplus > 201703L
             return this->a;
@@ -87,7 +94,8 @@ struct MyStruct
 #endif
         };
 
-        auto f2 = [*this]() mutable{
+        auto f2 = [*this]() mutable
+        {
 #if __cplusplus > 201703L
             this->SetA(); // ok
             return this->a;
@@ -96,12 +104,13 @@ struct MyStruct
             return a;
 #endif
         };
-        
+
         f2();
         return f1() == f1() ? 0 : 1;
     }
 
-    void SetA() {
+    void SetA()
+    {
         this->a = 88;
     }
 };
@@ -109,25 +118,30 @@ struct MyStruct
 class MyClass
 {
 public:
-    MyClass() { 
-        s = new MyStruct(); 
+    MyClass()
+    {
+        s = new MyStruct();
     }
-    ~MyClass() {
+
+    ~MyClass()
+    {
         if (s)
         {
             delete s;
             s = nullptr;
         }
     }
+
     // 如果捕获*this一定要实现【深拷贝】
-    MyClass(const MyClass& obj) {
-        this->s = new MyStruct();
+    MyClass(const MyClass& obj)
+    {
+        this->s    = new MyStruct();
         this->s->a = obj.s->a;
     }
 
     void TestFunc()
     {
-        auto lambda1 = [*this]()mutable
+        auto lambda1 = [*this]() mutable
         {
 #if __cplusplus > 201703L
             this->Func1(); // ok C++20
@@ -144,11 +158,16 @@ public:
     }
 
     // 测试常成员函数和普通函数
-    void Func1() const{}
-    void Func2() {}
+    void Func1() const
+    {
+    }
+
+    void Func2()
+    {
+    }
 
 private:
-    MyStruct* s{ nullptr };
+    MyStruct* s { nullptr };
 };
 
 int main()
@@ -167,126 +186,297 @@ int main()
 
 #endif // TEST3
 
+#ifdef TEST4
 
+#include <iostream>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+
+public:
+    void TestNonConst()
+    {
+        std::cout << "Helper::TestNonConst()\n";
+    }
+
+    void TestConst() const
+    {
+        std::cout << "Helper::TestConst()\n";
+    }
+
+    void Test()
+    {
+        std::cout << &number << '\t' << number << '\n';
+    }
+
+private:
+    int number { 999 };
+};
+
+// 最好不要捕获指针
+
+int main()
+{
+    std::cout << "----------------------------\n";
+    {
+        Helper h;
+        auto f = [&h]() { h.TestNonConst(); }; // 调用TestNonConst()必须使用引用捕获，或者使用mutable关键字
+        f();
+    }
+
+    std::cout << "----------------------------\n";
+
+    // 值捕获会调用拷贝构造函数
+    {
+        Helper h;
+        auto f = [=]() { h.TestConst(); }; // 调用TestConst可以使用值捕获，也可以引用捕获
+        f();
+        std::cout << "++++++++++++++++++++++++++++\n";
+        auto f2 = [h]() { h.TestConst(); };
+        f2();
+        std::cout << "++++++++++++++++++++++++++++\n";
+        auto f3 = [&h]() { h.TestConst(); };
+        f3();
+    }
+
+    std::cout << "----------------------------\n";
+    {
+        Helper h;
+        auto f = [x = h]() { x.TestConst(); }; // 和直接使用值捕获是一样的
+        f();
+    }
+
+    std::cout << "----------------------------\n";
+
+    {
+        Helper* p = new Helper();
+        std::cout << p << '\n';
+        auto f = [p]()
+        {
+            std::cout << p << '\n';
+            p->Test(); // 调用Test的时候，Helper的析构函数已经被调用，所以Helper的成员变量也已经被析构
+        };
+        delete p;
+        p = nullptr;
+        f();
+    }
+
+    std::cout << "----------------------------\n";
+
+    {
+        Helper* p = new Helper();
+        std::cout << p << '\n';
+        // 调用拷贝构造
+        auto f = [x = *p]()
+        {
+            std::cout << &x << '\n';
+            x.TestConst(); // 程序没有问题，但是只能调用const成员函数。拷贝一个对象，然后以值的方式捕获这个对象
+        };
+        delete p;
+        p = nullptr;
+        f();
+    }
+    std::cout << "----------------------------\n";
+}
+
+#endif // TEST4
 
 #ifdef TEST5
 
 #include <iostream>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
 
 int main()
 {
-    {//test1 值捕获
-        int i = 1;
-        auto f = [i] {return i; }; //等价于 auto f = [i](){return i;};  ()可写可不写
-        i = 10;
-        int j = f();
-        cout << j << endl;  // 1
+    // 值捕获
+    {
+        int i  = 1;
+        auto f = [i] { return i; }; // 等价于 auto f = [i](){return i;};  ()可写可不写
+        i      = 10;
+        int j  = f();
+        std::cout << j << std::endl; // 1，值捕获时，定义lambda之后修改捕获的变量，不会影响lambda的执行结果
     }
 
-    {//test2 引用捕获
-        int i = 1;
-        auto f = [&i] {return i; };
-        i = 10;
-        int j = f();
-        cout << j << endl;  // 10
+    // 引用捕获
+    {
+        int i  = 1;
+        auto f = [&i] { return i; };
+        i      = 10;
+        int j  = f();
+        i      = 20;
+        std::cout << j << std::endl; // 10 ，引用捕获时，定义lambda之后修改捕获的变量，lambda使用的是调用时捕获的变量对应的值
     }
 
-    {//test3 隐式值捕获
-        int i = 1;
-        int j = 2;
-        auto f = [=] {return i + j; };
-        i = 3;
-        int m = f();
-        cout << m << endl;  //3
+    // 隐式值捕获
+    {
+        int i  = 1;
+        int j  = 2;
+        auto f = [=] { return i + j; };
+        i      = 5;
+        int m  = f();
+        std::cout << m << std::endl; // 3
     }
 
-    {//test4 隐式引用捕获
-        int i = 1;
-        int j = 2;
-        auto f = [&] {return i + j; };
-        i = 3;
-        int m = f();
-        cout << m << endl;  //5
+    // 隐式引用捕获
+    {
+        int i  = 1;
+        int j  = 2;
+        auto f = [&] { return i + j; };
+        i      = 3;
+        int m  = f();
+        std::cout << m << std::endl; // 5
     }
 
-    {//test5 隐式、显式混合捕获1
-        int i = 1;
-        int j = 2;
-        //i为值捕获，j为引用捕获
-        auto f = [=, &j] {return i + j; };
-        i = 3;
-        j = 4;
-        int m = f();
-        cout << m << endl;  //5
-    }
-
-    {//test5 隐式、显式混合捕获2 
+    // 隐式、显式混合捕获1
+    {
         int i = 1;
         int j = 2;
-        //i为引用捕获，j为值捕获
-        auto f = [&, j]()->int {return i + j; };  //->int是C++返回值类型后置语法
-        i = 3;
-        j = 4;
-        int m = f();
-        cout << m << endl;  //5
+        // i为值捕获，j为引用捕获
+        auto f = [=, &j] { return i + j; };
+        i      = 3;
+        j      = 4;
+        int m  = f();
+        std::cout << m << std::endl; // 5
     }
 
-    {//test6 可变lambda 1
-        int i = 10;
-        auto f = [&i]/*()mutable*/ {return ++i; }; // 引用捕获mutable可写可不写
-        i = 5;
-        int j = f();
-        cout << j << endl;  //6
-    }
-
-    {//test6 可变lambda 2
-        int i = 10;
-        auto f = [i]()mutable {return ++i; };  // 值捕获必须有mutable，不然报错，此处不能省略()
-        i = 5;
-        int j = f();
-        cout << j << endl;  //6
-    }
-
-    {//值捕获，引用捕获均编译错误，因为i为const
-        //const int i = 10;
-        //auto f = [&i]() mutable {return ++i; };
-        //auto f = [i]() mutable {return ++i; };
-        //int j = f();
-        //cout << j << endl;
-    }
-
-    {// test7 捕获列表和参数列表
-     // 参数列表是需要在调用该lambda的时候传入参数，捕获列表是用来声明那些变量可以在lambda内部使用
+    // 隐式、显式混合捕获2
+    {
         int i = 1;
-        auto f = [i](int x) {return -(i + x); }; //参数列表：调用时需要传入一个int值，捕获列表：变量i可以在lambda内部使用
+        int j = 2;
+        // i为引用捕获，j为值捕获
+        auto f = [&, j]() -> int { return i + j; }; //->int是C++返回值类型后置语法
+        i      = 3;
+        j      = 4;
+        int m  = f();
+        std::cout << m << std::endl; // 5
+    }
+
+    // 可变lambda（在lambda内修改捕获的值）
+    {
+        int i  = 10;
+        auto f = [&i] /*()mutable*/ { return ++i; }; // 引用捕获mutable可写可不写
+        i      = 5;
+        int j  = f();
+        std::cout << j << std::endl; // 6
+    }
+
+    // 可变lambda
+    {
+        int i  = 10;
+        auto f = [i]() mutable { return ++i; }; // 值捕获必须有mutable，不然报错，此处不能省略()
+        i      = 5;
+        int j  = f();
+        std::cout << j << std::endl; // 6
+    }
+
+    // lambda不能修改捕获的const变量
+    {
+        // const int i = 10;
+        // auto f = [&i]() mutable {return ++i; };
+        // auto f = [i]() mutable {return ++i; };
+        // int j = f();
+        // std::cout << j << std::endl;
+    }
+
+    // 捕获列表和参数列表
+    {
+        // 参数列表是需要在调用该lambda的时候传入参数，捕获列表是用来声明那些变量可以在lambda内部使用
+        int i = 1;
+        auto f = [i](int x) { return -(i + x); }; // 参数列表：调用时需要传入一个int值，捕获列表：变量i可以在lambda内部使用
         auto j = f(3);
-        cout << j << endl;  // -(1+3) = -4
-    }
-
-    {//test8 lambda的返回类型
-        vector<int> ivec{ -12,2,-22,3,0 };
-        //改变ivec里的值，负数变成整数                                                
-        //此lambda不写返回类型没有问题.                                               
-        transform(ivec.begin(), ivec.end(), ivec.begin(), [](int i) {return i < 0 ? -i : i; });
-
-        //此lambda不写返回类型也没有问题.  
-        vector<int> ret;
-        ret.resize(ivec.size());
-        transform(ivec.begin(), ivec.end(), ret.begin(), [](int i) {if (i < 0) return -i; else return i; });
-
-        for (const auto& s : ret)
-        {
-            cout << s << " ";
-        }
-        cout << endl;
+        std::cout << j << std::endl;              // -(1+3) = -4
     }
 
     return 0;
 }
 
-
 #endif // TEST5
+
+#ifdef TEST6
+
+#include <iostream>
+
+int n         = 0;
+static int sn = 1;
+
+int main()
+{
+    // gcc11 C++20 lambda可以捕获静态变量，但是会有警告
+    // msvc c++20 lambda不能捕获静态变量
+    {
+        auto f = [n]() { std::cout << n << '\n'; };
+        f();
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    {
+        auto f = [sn]() { std::cout << sn << '\n'; };
+        f();
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    // 会修改sn的值
+    {
+        std::cout << sn << '\n';
+        auto f = [sn]()
+        {
+            ++sn;
+            std::cout << sn << '\n';
+        };
+        std::cout << sn << '\n';
+        f();
+        std::cout << sn << '\n';
+    }
+
+    std::cout << "----------------------------------------\n";
+
+    // 静态变量是不需要捕获的，直接可以在lambda内部使用
+    // 相当于引用捕获
+    {
+        std::cout << n << '\t' << sn << '\n';
+        auto f = []()
+        {
+            n++;
+            sn++;
+            std::cout << "lambda: " << n << '\t' << sn << '\n';
+        };
+        std::cout << n << '\t' << sn << '\n';
+        f();
+        std::cout << n << '\t' << sn << '\n';
+    }
+}
+
+#endif // TEST6
