@@ -5,9 +5,10 @@
  * 4. 捕获指针，lambda内调用对象方法
  * 5. lambda各种捕获方式的区别 mutable值捕获方式修改捕获的值
  * 6. lambda使用static变量
+ * 7. 初始化捕获
  */
 
-#define TEST6
+#define TEST7
 
 #ifdef TEST1
 
@@ -252,7 +253,9 @@ int main()
     std::cout << "----------------------------\n";
     {
         Helper h;
-        auto f = [&h]() { h.TestNonConst(); }; // 调用TestNonConst()必须使用引用捕获，或者使用mutable关键字
+        // 调用TestNonConst()必须使用引用捕获，或者使用mutable关键字
+        // 如果不使用mutable，lambda生成的仿函数的operator()是一个const成员函数，所以不能调用捕获对象的非const成员函数
+        auto f = [&h]() { h.TestNonConst(); };
         f();
     }
 
@@ -480,3 +483,79 @@ int main()
 }
 
 #endif // TEST6
+
+#ifdef TEST7
+
+#include <iostream>
+#include <vector>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&);
+    Helper& operator=(const Helper&) = delete;
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+
+public:
+    void TestNonConst()
+    {
+        std::cout << "Helper::TestNonConst()\n";
+    }
+
+    void TestConst() const
+    {
+        std::cout << "Helper::TestConst()\n";
+    }
+};
+
+int main()
+{
+    {
+        Helper h;
+
+        // 调用移动构造函数。不能直接值捕获，因为拷贝构造函数是delete的
+        // 捕获列表中=左边的x其实就是lambda生成的仿函数的成员变量的名称
+        // =右边的表达式是成员变量的源，所以=两边如果是变量名是可以相同的
+        auto f = [x = std::move(h)]() mutable
+        {
+            x.TestConst();
+            x.TestNonConst();
+        };
+        f();
+    }
+
+    std::cout << "----------------------------------------------------------\n";
+
+    {
+        std::vector<int> vec { 1, 2, 3 };
+        std::cout << vec.size() << '\n';
+
+        // 调用移动构造，所以lambda作用域外边的vec会被清空
+        auto f = [x = std::move(vec)]() { std::cout << x.size() << '\n'; };
+        std::cout << vec.size() << '\n';
+        f();
+        std::cout << vec.size() << '\n';
+    }
+}
+
+#endif // TEST7

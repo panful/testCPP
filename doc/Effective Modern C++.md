@@ -170,3 +170,15 @@ Visual Studio报错：can't delete an incomplete type 解决方法：将类的�
 - 按引用的默认捕获会导致空悬指针问题
 - 按值的默认捕获极易受空悬指针影响（尤其是this），并会误导人们认为lambda是自洽的
 - static变量是无法被捕获的，能捕获编译器也会有警告，在lambda内使用static变量，相当于引用捕获
+## 32.使用初始化捕获将对象移入闭包
+- 使用C++14的初始化捕获将对象移入闭包
+- 在C++11中，经由手工实现的类或std::bind去模拟初始化捕获
+```C++
+    Object obj;
+
+    // = 左边的obj作用域是lambda表达式内部，它是由右边的obj通过拷贝构造而来
+    auto f = [obj = obj](){};
+
+    // 左边的obj是由右边的obj移动构造而来，可以用来捕获std::unique_ptr，std::thread等只移型别
+    auto f = [obj = std::move(obj)](){};
+```
