@@ -6,9 +6,10 @@
  * 5. lambda各种捕获方式的区别 mutable值捕获方式修改捕获的值
  * 6. lambda使用static变量
  * 7. 初始化捕获
+ * 8. lambda使用auto形参
  */
 
-#define TEST7
+#define TEST8
 
 #ifdef TEST1
 
@@ -559,3 +560,93 @@ int main()
 }
 
 #endif // TEST7
+
+#ifdef TEST8
+
+#include <iostream>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+
+public:
+    void Test() const
+    {
+        std::cout << "Helper::Test()\n";
+    }
+};
+
+void f1(int m, int n)
+{
+    std::cout << m << '\t' << n << '\n';
+}
+
+void f2(const Helper& h)
+{
+    h.Test();
+}
+
+int main()
+{
+    {
+        // 值传递，会调用一次Helper的拷贝构造
+        auto f = [](auto h) { h.Test(); };
+        Helper h;
+        f(h);
+    }
+
+    std::cout << "---------------------------------------------------\n";
+
+    {
+        auto f = [](auto&& h) { h.Test(); };
+        f(Helper());
+    }
+
+    std::cout << "---------------------------------------------------\n";
+
+    {
+        // lambda使用auto&&形参时（万能引用）应该使用std::forward转发实参
+        auto f = [](auto&& h) { f2(std::forward<decltype(h)>(h)); };
+        f(Helper());
+    }
+
+    std::cout << "---------------------------------------------------\n";
+
+    {
+        auto f = [](auto&&... n) { f1(std::forward<decltype(n)>(n)...); };
+        f(1, 2);
+    }
+}
+
+#endif // TEST8

@@ -182,3 +182,6 @@ Visual Studio报错：can't delete an incomplete type 解决方法：将类的�
     // 左边的obj是由右边的obj移动构造而来，可以用来捕获std::unique_ptr，std::thread等只移型别
     auto f = [obj = std::move(obj)](){};
 ```
+## 33.对auto&&型别的形参使用decltype，以std::forward之
+- `std::forward<T>()`的模板列表使用`decltype(arg)`，无需区分左值和右值
+## 34.
