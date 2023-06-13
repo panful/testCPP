@@ -184,4 +184,6 @@ Visual Studio报错：can't delete an incomplete type 解决方法：将类的�
 ```
 ## 33.对auto&&型别的形参使用decltype，以std::forward之
 - `std::forward<T>()`的模板列表使用`decltype(arg)`，无需区分左值和右值
-## 34.
+## 34.优先选用lambda，而非std::bind
+- lambda比起使用std::bind而言，可读性更好、表达力更强，运行效率也可能更高
+- 仅在C++11中，std::bind在实现移动捕获，或是绑定到具备模板化的函数调用运算符的对象的场合中，可能尚有余热可以发挥

@@ -3,8 +3,8 @@
 2. std::function 指向成员函数
 3. std::mem_fn 从成员指针创建出函数对象,有点类似function，bind
 4. 回调函数
-5.
-6.
+5. std::bind会调用参数的拷贝构造，即总是复制其实参
+6. 将std::bind的返回值绑定到std::bind的实参需要强制类型转换
 
 9.
 
@@ -13,7 +13,7 @@
 15.使用标准库std::hash对自定义类型求hash值
 16.
 */
-#define TEST16
+#define TEST6
 
 #ifdef TEST1
 // hash example
@@ -180,6 +180,124 @@ int main()
 }
 
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <functional>
+#include <iostream>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&)
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&)
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+void f3(const Helper& h)
+{
+    std::cout << &h << '\n';
+}
+
+int main()
+{
+    {
+        Helper h;
+        std::cout << &h << '\n';
+        // 此处的std::bind调用了一次Helper的拷贝构造
+        auto f = std::bind(f3, h);
+        // 实际上调用f3的时候，实参并不是h，而是使用h拷贝构造的一个新的对象
+        // 如果要传入引用，需要使用std::ref
+        f();
+    }
+
+    std::cout << "------------------------------------\n";
+
+    {
+        Helper h;
+        std::cout << &h << '\n';
+        auto f = std::bind(f3, std::placeholders::_1);
+        // 传给f3的实参就是h
+        f(h);
+    }
+}
+
+#endif // TEST5
+
+#ifdef TEST6
+
+#include <functional>
+#include <iostream>
+
+void f1(int)
+{
+    std::cout << "f1(int)\n";
+}
+
+void f2(std::function<void(int)>)
+{
+    std::cout << "f2(std::function<void(int)>)\n";
+}
+
+int main()
+{
+
+    {
+        // error
+        // auto f = std::bind(f2, std::bind(f1, 2));
+        // f();
+
+        // error
+        // auto f = std::bind(f2, std::bind(f1, std::placeholders::_1));
+        // f(2);
+    }
+
+    // std::bind不能直接绑定到std::function类型的实参
+    {
+        auto f = std::bind(f2, static_cast<std::function<void(int)>>(std::bind(f1, 2)));
+        f();
+    }
+    {
+        auto f = std::bind(f2, static_cast<std::function<void(int)>>(std::bind(f1, std::placeholders::_1)));
+        f(2);
+    }
+
+    // 使用lambda传递std::function类型的参数
+    {
+        auto f = std::bind(f2, [](int) {});
+        f();
+    }
+}
+
+#endif // TEST6
 
 #ifdef TEST13
 
@@ -429,8 +547,8 @@ public:
         test(guard.GetStaticFuncPointer());
     }
 
-    private:
-        int x { 666 };
+private:
+    int x { 666 };
 };
 
 // https://www.zhihu.com/question/411373289
