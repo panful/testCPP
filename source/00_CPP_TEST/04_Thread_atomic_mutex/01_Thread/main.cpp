@@ -4,24 +4,26 @@
 02. detach()示例
 03. 线程调用成员函数
 04. 给线程执行的函数传递引用类型的参数
+05. std::thread执行的任务如果抛出异常无法捕获
 ------------------------------------------------
 11. std::promise + std::future 获取线程执行的结果
 12. std::packaged_task + std::future 获取线程执行结果
 13. 使用lambda获取线程的执行结果
 14. std::promise 在指定时间再设置线程任务执行需要的数据
-15. std::future 常用函数的使用
+15. std::future std::shared_future常用函数的使用
 16. std::promise.set_value_at_thread_exit 线程退出时才将状态设置为就绪
 17. std::packaged_task 常用函数的使用
 18. std::promise 实现定时器
 ------------------------------------------------
 21. std::async 创建策略的区别，获取线程的执行结果
 22. std::async 线程池机制，接收返回值
+23. 捕获std::async执行的任务抛出的异常
 ------------------------------------------------
 31. std::condition_variable 条件变量同步机制
 
 */
 
-#define TEST18
+#define TEST23
 
 #ifdef TEST01
 
@@ -104,7 +106,10 @@ int main()
 class Test
 {
 public:
-    void Print(int a) { std::cout << "Test: " << a << '\n'; }
+    void Print(int a)
+    {
+        std::cout << "Test: " << a << '\n';
+    }
 };
 
 class Test2
@@ -116,7 +121,10 @@ public:
     }
 
 private:
-    void Print(int a) { std::cout << "Test2: " << a << '\n'; }
+    void Print(int a)
+    {
+        std::cout << "Test2: " << a << '\n';
+    }
 };
 
 class Test3
@@ -176,6 +184,7 @@ void Func3(int&& n)
 {
     std::cout << "Func3(int&& n): " << n << '\n';
 }
+
 class MyClass
 {
 public:
@@ -183,10 +192,12 @@ public:
     {
         std::cout << "MyClass::Func(int n): " << n << '\n';
     }
+
     void Func2(int& n)
     {
         std::cout << "MyClass::Func2(int& n): " << n << '\n';
     }
+
     void Func3(int&& n)
     {
         std::cout << "MyClass::Func3(int&& n): " << n << '\n';
@@ -228,6 +239,36 @@ int main()
     return 0;
 }
 #endif // TEST04
+
+#ifdef TEST05
+
+#include <iostream>
+#include <thread>
+
+void worker()
+{
+    std::cout << "worker start\n";
+    throw std::runtime_error("error");
+    std::cout << "worker end\n";
+}
+
+int main()
+{
+    {
+        try
+        {
+            std::thread t(worker);
+            t.join();
+        }
+        catch (...)
+        {
+            // 任务抛出异常不会被捕获，直接调用std::terminate终止程序
+            std::cout << "catch error\n";
+        }
+    }
+}
+
+#endif // TEST05
 
 //-------------------------------
 // std::future 用于访问异步操作的结果，而 std::promise 和 std::packaged_task 在 future 高一层，它们内部都有一个 future，
@@ -283,9 +324,7 @@ int main()
         auto sum1 = futureObj.get();
         auto sum2 = futureObj2.get();
 
-        std::cout << "4 + 5 = " << sum1 << '\n'
-                  << "6 + 7 = " << sum2 << '\n'
-                  << "(4 + 5) / (6 + 7) = " << sum1 / sum2 << '\n';
+        std::cout << "4 + 5 = " << sum1 << '\n' << "6 + 7 = " << sum2 << '\n' << "(4 + 5) / (6 + 7) = " << sum1 / sum2 << '\n';
     }
     return 0;
 }
@@ -428,10 +467,12 @@ int main()
     // std::future.wait()
     {
         MyUtility::ConsumeTime ct;
-        std::future<int> result_future = std::async(std::launch::async, []() {
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-            return 9;
-        });
+        std::future<int> result_future = std::async(std::launch::async,
+            []()
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(3));
+                return 9;
+            });
         ct.ConsumeTimeByNow();
 
         result_future.wait();
@@ -454,10 +495,12 @@ int main()
     // };
     {
         MyUtility::ConsumeTime ct;
-        std::future<int> result_future = std::async(std::launch::async, []() {
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-            return 9;
-        });
+        std::future<int> result_future = std::async(std::launch::async,
+            []()
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(3));
+                return 9;
+            });
         ct.ConsumeTimeByNow();
 
         auto wait_status = result_future.wait_for(std::chrono::seconds(2));
@@ -559,27 +602,28 @@ int main()
         std::promise<int> p;
         std::future<int> f = p.get_future();
 
-        std::thread([&p] {
-            std::this_thread::sleep_for(2s);
+        std::thread(
+            [&p]
+            {
+                std::this_thread::sleep_for(2s);
 
-            // 在当前线程退出的时候再将状态设置为就绪
-            p.set_value_at_thread_exit(9);
+                // 在当前线程退出的时候再将状态设置为就绪
+                p.set_value_at_thread_exit(9);
 
-            // 执行完set_value()就会将状态设置为就绪
-            // p.set_value(9);
-            std::this_thread::sleep_for(2s);
-        }).detach();
+                // 执行完set_value()就会将状态设置为就绪
+                // p.set_value(9);
+                std::this_thread::sleep_for(2s);
+            })
+            .detach();
 
-        std::cout << "Waiting...\n"
-                  << std::flush;
+        std::cout << "Waiting...\n" << std::flush;
 
         // set_value_at_thread_exit需要4s
         // set_value只需2秒
         f.wait();
         ct.ConsumeTimeByNow();
 
-        std::cout << "Done!\nResult is: "
-                  << f.get() << '\n';
+        std::cout << "Done!\nResult is: " << f.get() << '\n';
     }
 }
 
@@ -595,7 +639,11 @@ int main()
 {
     std::cout << std::boolalpha;
     std::cout << "thread id: " << std::this_thread::get_id() << '\n';
-    auto worker = [](int n) { std::cout << "thread id: " << std::this_thread::get_id() << '\n';return 2 * n; };
+    auto worker = [](int n)
+    {
+        std::cout << "thread id: " << std::this_thread::get_id() << '\n';
+        return 2 * n;
+    };
 
     // valid用于检查std::packaged_task对象是否拥有合法函数
     // 只有当valid返回ture时，才能使用operator()等执行任务的函数
@@ -679,7 +727,7 @@ void f2(std::future<void> futureObj, std::function<void()> f)
 int main()
 {
     std::cout << std::this_thread::get_id() << '\n';
-    
+
     std::promise<void> promiseObj;
     std::future<void> futureObj = promiseObj.get_future();
 
@@ -715,8 +763,9 @@ int Add(int a, int b)
 // 第一个参数是创建策略：
 // std::launch::async 表示任务执行在另一线程；
 // std::launch::deferred 表示延迟执行任务，调用 get 或者 wait 时才会执行，不会创建线程，惰性执行在【当前线程】。
-// 如果不明确指定创建策略，以上两个都不是 async 的默认策略，而是未定义，它是一个基于任务的程序设计，内部有一个【调度器(线程池)】，会根据实际情况决定采用哪种策略。
-// async(std::launch::async | std::launch::deferred, func, args...);
+// 如果不明确指定创建策略，以上两个都不是 async的默认策略，而是未定义，
+// 它是一个基于任务的程序设计，内部有一个【调度器(线程池)】，会根据实际情况决定采用哪种策略。 async(std::launch::async |
+// std::launch::deferred, func, args...);
 
 int main()
 {
@@ -773,7 +822,8 @@ int main()
         std::async(std::launch::async, MySleep, 5); // 再阻塞 5s
         ut.ConsumeTimeByNow();
 
-        auto f1 = std::async(std::launch::async, MySleep, 5); // 返回值被接收，所以不会析构，这句代码也就不会阻塞，返回值的作用域结束时才会析构f1，那个时候才会阻塞
+        auto f1 = std::async(
+            std::launch::async, MySleep, 5); // 返回值被接收，所以不会析构，这句代码也就不会阻塞，返回值的作用域结束时才会析构f1，那个时候才会阻塞
         ut.ConsumeTimeByNow();
 
         auto f2 = std::async(std::launch::async, MySleep, 5); // f1,f2,f3并行析构，这三句代码析构共总只需要5s
@@ -787,6 +837,42 @@ int main()
 }
 
 #endif // TEST22
+
+#ifdef TEST23
+
+#include <future>
+#include <iostream>
+#include <thread>
+
+void worker()
+{
+    std::cout << "thread id: " << std::this_thread::get_id() << "\nworker start\n";
+    throw std::runtime_error("error");
+    std::cout << "worker end\n";
+}
+
+int main()
+{
+    {
+        auto fut = std::async(worker);
+        //auto fut = std::async(std::launch::async, worker);
+        //auto fut = std::async(std::launch::deferred, worker);
+        try
+        {
+            fut.get();
+            // 如果任务抛出异常，get()之后的代码不会执行
+            std::cout << "end get()\n";
+        }
+        catch (...)
+        {
+            // 任务如果抛出异常，在调用get()的线程中可以捕获到该异常
+            std::cout << "thread id: " << std::this_thread::get_id() << '\n';
+            std::cout << "catch error\n";
+        }
+    }
+}
+
+#endif // TEST23
 
 //-------------------------------
 
@@ -805,7 +891,7 @@ int main()
 class Test
 {
 public:
-    Test() = default;
+    Test()  = default;
     ~Test() = default;
 
     void Eexcutor()
@@ -834,10 +920,12 @@ private:
             // 当lambda表达式返回false时会一直阻塞，阻塞并不会占用cpu
             // 当调用std::condition_variable::notify_all或notify_one时，会执行一次lambda，
             // 如果lambda返回true停止阻塞执行后面代码，返回false则继续阻塞
-            m_cv.wait(lock, [this]() {
-                std::cout << "lambda result: " << !m_list.empty() << "\twait\n";
-                return !m_list.empty();
-            });
+            m_cv.wait(lock,
+                [this]()
+                {
+                    std::cout << "lambda result: " << !m_list.empty() << "\twait\n";
+                    return !m_list.empty();
+                });
 
             auto element = m_list.front();
             m_list.pop_front();

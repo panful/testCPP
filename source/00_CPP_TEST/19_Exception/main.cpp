@@ -1,7 +1,9 @@
 /*
-* 1. 定义一个抛出异常的宏
-* 2. noexcept
-*/
+ * 1. 定义一个抛出异常的宏
+ * 2. noexcept
+ * 3. 异常中立，函数本身不抛出异常，调用的函数抛出异常
+ * 4. std::current_exception
+ */
 
 //
 // vs中EHa/EHs/EHsc的区别 https://blog.csdn.net/dan452819043/article/details/115340141
@@ -11,39 +13,34 @@
 //
 // CMake中通过 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}/EHsc")设置编译选项
 //
-#define TEST3
+#define TEST4
 
 #ifdef TEST1
 
-#include <iostream>
 #include <exception>
+#include <functional>
+#include <iostream>
 #include <string>
 #include <type_traits>
-#include <functional>
-#include <string>
 
 #define ThrowError(_error_) throw(_error_.Information())
 
 class Error
 {
 public:
-    Error(const std::string& _file, const std::string& _line, const std::string& _method, const std::string& _message):
-        file(_file),
-        line(_line),
-        method(_method),
-        message(_message)
-    {}
-
-    std::string Information()const
+    Error(const std::string& _file, const std::string& _line, const std::string& _method, const std::string& _message)
+        : file(_file), line(_line), method(_method), message(_message)
     {
-        return 
-            "----------------------------\n"
-            "File\t\t: " + file + '\n' +
-            "Line\t\t: " + line + '\n' +
-            "Method\t\t: " + method + '\n' +
-            "Message\t\t: " + message + '\n' +
-            "----------------------------\n";
     }
+
+    std::string Information() const
+    {
+        return "----------------------------\n"
+               "File\t\t: "
+            + file + '\n' + "Line\t\t: " + line + '\n' + "Method\t\t: " + method + '\n' + "Message\t\t: " + message + '\n'
+            + "----------------------------\n";
+    }
+
 private:
     std::string file;
     std::string line;
@@ -87,7 +84,7 @@ int main()
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wterminate"
 #elif defined _WIN32
-#pragma warning(disable:4297)
+#pragma warning(disable : 4297)
 #endif // __GNUC__
 
 #include <iostream>
@@ -130,10 +127,11 @@ void func5() noexcept(false)
 class Parent
 {
 public:
-    virtual void Func1() const = 0;
+    virtual void Func1() const    = 0;
     virtual void Func2() noexcept = 0;
 };
-class Child :public Parent
+
+class Child : public Parent
 {
 public:
     void Func1() noexcept {};
@@ -155,7 +153,7 @@ int main()
     {
         FuncPointer1 f1 = func1;
         FuncPointer1 f3 = func3;
-        //FuncPointer2 f2 = func2; // error FuncPointer2是noexcept，而func2可以抛出异常
+        // FuncPointer2 f2 = func2; // error FuncPointer2是noexcept，而func2可以抛出异常
         FuncPointer2 f4 = func3;
     }
 
@@ -191,7 +189,7 @@ int main()
     std::cout << "---------------------\n";
     try
     {
-        //func4();
+        // func4();
     }
     catch (...)
     {
@@ -245,3 +243,44 @@ int main()
 }
 
 #endif // TEST3
+
+#ifdef TEST4
+
+#include <exception>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+
+void handle_eptr(std::exception_ptr eptr) // 按值传递 ok
+{
+    try
+    {
+        if (eptr)
+        {
+            std::rethrow_exception(eptr);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "Caught exception \"" << e.what() << "\"\n";
+    }
+}
+
+// 可以在子线程抛出异常时，使用std::current_exception()保存到队列中
+// 主线程消费该队列，达到主线程捕获子线程异常的效果
+
+int main()
+{
+    std::exception_ptr eptr;
+    try
+    {
+        std::string().at(1); // 这生成一个 std::out_of_range
+    }
+    catch (...)
+    {
+        eptr = std::current_exception(); // 捕获
+    }
+    handle_eptr(eptr);
+} // std::out_of_range 的析构函数调用于此，在 eptr 析构时
+
+#endif // TEST4
