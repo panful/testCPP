@@ -18,12 +18,14 @@
 21. std::async 创建策略的区别，获取线程的执行结果
 22. std::async 线程池机制，接收返回值
 23. 捕获std::async执行的任务抛出的异常
+24. 默认以异步方式执行任务
+25. std::async的返回值使用wait_for时的坑
 ------------------------------------------------
 31. std::condition_variable 条件变量同步机制
 
 */
 
-#define TEST23
+#define TEST25
 
 #ifdef TEST01
 
@@ -855,8 +857,8 @@ int main()
 {
     {
         auto fut = std::async(worker);
-        //auto fut = std::async(std::launch::async, worker);
-        //auto fut = std::async(std::launch::deferred, worker);
+        // auto fut = std::async(std::launch::async, worker);
+        // auto fut = std::async(std::launch::deferred, worker);
         try
         {
             fut.get();
@@ -873,6 +875,63 @@ int main()
 }
 
 #endif // TEST23
+
+#ifdef TEST24
+
+#include <future>
+#include <iostream>
+#include <thread>
+
+template <typename T, typename... Args>
+typename std::future<std::result_of_t<T(Args...)>> reallyAsyc(T&& t, Args&&... args)
+{
+    return std::async(std::launch::async, std::forward<T>(t), std::forward<Args>(args)...);
+}
+
+void worker(int a, int b)
+{
+    std::cout << "thread id:" << std::this_thread::get_id() << "\targs: " << a << ", " << b << '\n';
+}
+
+int main()
+{
+    std::cout << "thread id:" << std::this_thread::get_id() << '\n';
+    auto f1 = reallyAsyc(worker, 1, 2);
+    auto f2 = reallyAsyc(worker, 3, 4);
+    auto f3 = reallyAsyc(worker, 5, 6);
+}
+
+#endif // TEST24
+
+#ifdef TEST25
+
+#include <iostream>
+#include <future>
+#include <thread>
+
+void worker()
+{
+    // 睡眠1s
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
+int main()
+{
+    std::cout << "start\n";
+    //auto fut = std::async(worker);
+    auto fut = std::async(std::launch::deferred, worker);
+
+    while(fut.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready)
+    {
+        std::cout << "--- while ---\n";
+    }
+
+    // while之后的代码可能永远都不会执行到，因为std::async的默认执行方式可以是延迟的std::deferred也可以是std::async
+    // 当执行方式是std::deferred时，fut.wait_for将永远返回std::deferred，因此会死循环
+    std::cout << "end\n";
+}
+
+#endif // TEST25
 
 //-------------------------------
 

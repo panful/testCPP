@@ -4,14 +4,14 @@
  * 03 std::recursive_mutex 递归锁
  * 04 std::shared_lock 读写锁
  * 05 std::shared_lock 读写锁
- *
+ * 06 thread_local
  *
  * 07 std::timed_mutex 超时锁
  *
- * 09 自旋锁
+ *  自旋锁
  */
 
-#define TEST1
+#define TEST6
 
 #ifdef TEST1
 
@@ -208,6 +208,7 @@ public:
         shared = "fun1";
         std::cout << "in fun1, shared variable is now " << shared << '\n';
     }
+
     void fun2()
     {
         std::lock_guard<std::recursive_mutex> lk(rm);
@@ -238,6 +239,7 @@ int main()
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
+
 class Test
 {
 public:
@@ -247,6 +249,7 @@ public:
         std::this_thread::sleep_for(std::chrono::microseconds(1));
         return m_number;
     }
+
     void Set(size_t n)
     {
         std::unique_lock<std::shared_mutex> lk(m_mutex);
@@ -333,8 +336,8 @@ lock_guard和unique_lock是write lock。被锁后不允许其他线程执行被s
 #define READ_THREAD_COUNT 8
 #define LOOP_COUNT 5000000
 
-using ReadLock = std::shared_lock<std::shared_mutex>;
-using WriteLock = std::lock_guard<std::shared_mutex>;
+using ReadLock   = std::shared_lock<std::shared_mutex>;
+using WriteLock  = std::lock_guard<std::shared_mutex>;
 using NormalLock = std::lock_guard<std::mutex>;
 
 // 使用读写锁
@@ -388,14 +391,16 @@ void test_shared_mutex()
     shared_mutex_counter counter;
     unsigned int temp;
 
-    auto writer = [&counter]() {
+    auto writer = [&counter]()
+    {
         for (unsigned int i = 0; i < LOOP_COUNT; i++)
         {
             counter.increment();
         }
     };
 
-    auto reader = [&counter, &temp]() {
+    auto reader = [&counter, &temp]()
+    {
         for (unsigned int i = 0; i < LOOP_COUNT; i++)
         {
             temp = counter.get();
@@ -428,14 +433,16 @@ void test_mutex()
     mutex_counter counter;
     unsigned int temp;
 
-    auto writer = [&counter]() {
+    auto writer = [&counter]()
+    {
         for (unsigned int i = 0; i < LOOP_COUNT; i++)
         {
             counter.increment();
         }
     };
 
-    auto reader = [&counter, &temp]() {
+    auto reader = [&counter, &temp]()
+    {
         for (unsigned int i = 0; i < LOOP_COUNT; i++)
         {
             temp = counter.get();
@@ -472,6 +479,36 @@ int main()
 
 #endif // TEST5
 
+#ifdef TEST6
+
+#include <iostream>
+#include <thread>
+
+//int x = 0;
+thread_local int x = 0;
+
+// thread_local会在线程初始化的时候拷贝一个自己线程的副本
+
+void thread_func(const std::string& thread_name)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        x++;
+        std::cout << "thread[" << thread_name << "]: x = " << x << std::endl;
+    }
+}
+
+int main()
+{
+    std::thread t1(thread_func, "t1");
+    std::thread t2(thread_func, "t2");
+    t1.join();
+    t2.join();
+    return 0;
+}
+
+#endif // TEST6
+
 #ifdef TEST7
 
 // 尝试获取锁的时间过长时就会触发超时, 超时的情况下不让线程继续阻塞
@@ -501,6 +538,7 @@ void test()
         std::this_thread::sleep_for(1ms);
     }
 }
+
 int main()
 {
     for (int i = 0; i < 3; i++)
