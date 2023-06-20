@@ -198,4 +198,14 @@ Visual Studio报错：can't delete an incomplete type 解决方法：将类的�
 - 如果异步是必要的，则指定std::launch::async
 - std::async可以捕获到子线程的异常
 - 默认执行策略和thread_local使用时会不明确thread_local变量使用的哪个线程的局部存储
-## 37.
+## 37.使std::thread型别对象在所有路径皆不可联结
+- 使std::thread型别对象在所有路径皆不可联结,即离开std::thread的作用域时std::thread.joinable()返回false
+- 在析构时调用join可能导致难以调试的性能异常,因为调用join后线程必须正常执行完
+- 在析构时调用detach可能导致难以调试的未定义行为,线程分离之后,使用的变量可能已经被销毁了
+- 在成员列表的最后声明std::thread型别对象,因为成员变量以声明的顺序构造
+- 不可联结的std::thread型别对象包括:
+    - 默认构造的std::thread,没有可执行的函数
+    - 已移动的std::thread
+    - 已联结的std::thread,即调用过join()
+    - 已分离的std::thread,即调用过detach()
+## 38.
