@@ -13,13 +13,13 @@
 15. std::future std::shared_future常用函数的使用
 16. std::promise.set_value_at_thread_exit 线程退出时才将状态设置为就绪
 17. std::packaged_task 常用函数的使用
-18. std::promise 实现定时器
+18. std::promise 实现定时器，std::promise<void> 用来实现一次性事件通信
 ------------------------------------------------
 21. std::async 创建策略的区别，获取线程的执行结果
 22. std::async 线程池机制，接收返回值
 23. 捕获std::async执行的任务抛出的异常
 24. 默认以异步方式执行任务
-25. std::async的返回值使用wait_for时的坑
+25. 对std::async的返回值（期指）使用wait_for时的坑
 ------------------------------------------------
 31. std::condition_variable 条件变量同步机制
 
@@ -905,8 +905,8 @@ int main()
 
 #ifdef TEST25
 
-#include <iostream>
 #include <future>
+#include <iostream>
 #include <thread>
 
 void worker()
@@ -918,10 +918,10 @@ void worker()
 int main()
 {
     std::cout << "start\n";
-    //auto fut = std::async(worker);
+    // auto fut = std::async(worker);
     auto fut = std::async(std::launch::deferred, worker);
 
-    while(fut.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready)
+    while (fut.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready)
     {
         std::cout << "--- while ---\n";
     }
