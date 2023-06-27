@@ -13,13 +13,14 @@
 
 // c++的缺陷和思考 https://blog.csdn.net/fl2011sx?type=blog
 
-#define TEST5
+#define TEST2
 
 #ifdef TEST1
 
 #include <iostream>
 #include <sstream>
 #include <string>
+
 int main()
 {
 
@@ -81,6 +82,8 @@ int main()
     float f3 = -0.0011223344f;
     float f4 = 2.0f;
 
+    // std::fixed不使用科学计数法，std::scientific使用科学计数法
+
     std::cout << std::fixed << f2 << std::endl;
     std::cout << std::scientific << f2 << std::endl;
     std::cout << std::fixed << f3 << std::endl;
@@ -88,7 +91,7 @@ int main()
     std::cout << std::fixed << f4 << std::endl;
     std::cout << std::scientific << f4 << std::endl;
 
-    std::cout << "--------\n";
+    std::cout << "------------------------------------------------\n";
     std::cout.precision(2);          // 精度为2，小数点后的数字个数 std::setprecision()也可以设置精度
     std::cout.fill(0);               // 以0填充
     std::cout.setf(std::ios::right); // 右对齐
@@ -179,8 +182,8 @@ int main()
 
     // 流中存储bool int复合数据
     {
-        bool b1 = true;
-        bool b[4] = { true, false, false, true };
+        bool b1    = true;
+        bool b[4]  = { true, false, false, true };
         int arr[4] = { 5, 6, 7, 8 };
         std::stringstream ss;
         ss.write(reinterpret_cast<char*>(&b1), sizeof(bool));
@@ -222,11 +225,11 @@ int main()
     // void *memcpy(void *str1, const void *str2, size_t n) 从存储区 str2 复制 n 个字节到存储区 str1。
 
     {
-        const char* char6 = "1234567890abc";
+        const char* char6  = "1234567890abc";
         const int buf_size = 5;
-        size_t length1 = strlen(char6);
-        char* char7 = new char[length1]();
-        size_t length2 = strlen(char7);
+        size_t length1     = strlen(char6);
+        char* char7        = new char[length1]();
+        size_t length2     = strlen(char7);
 
         while (length1 > 0)
         {
@@ -236,7 +239,8 @@ int main()
             {
                 // sendSize = length1;
                 length1 = 0;
-            } else
+            }
+            else
             {
                 length1 -= buf_size;
             }
@@ -249,7 +253,7 @@ int main()
 
     {
         const char* buf1 = "123456789";
-        auto len1 = strlen(buf1);
+        auto len1        = strlen(buf1);
 
         char buf2[20] { 0 };
         memcpy(buf2, buf1, 15);
@@ -263,8 +267,8 @@ int main()
 
     {
         const char* buf1 = "123abc";
-        char* buf2 = new char[1]();
-        auto s1 = strlen(buf2);
+        char* buf2       = new char[1]();
+        auto s1          = strlen(buf2);
         // char* buf2 = nullptr;
         strcat(buf2, buf1);
         const char* buf3 = "xyz";
@@ -281,8 +285,8 @@ int main()
         int c = 77;
 
         int buf[] { 99, 88, 77 };
-        char* buf1 = reinterpret_cast<char*>(buf);
-        char* buf5 = new char[100]();
+        char* buf1       = reinterpret_cast<char*>(buf);
+        char* buf5       = new char[100]();
         const char* buf6 = "abc";
         strcat(buf5, buf1);
         strcat(buf5, buf6);
@@ -358,10 +362,10 @@ int main()
     // 字符串数组使用std::fill std::copy
     {
         const char* c1 = "abcd1234efgh5678";
-        char* c2 = new char[16]();
-        char c3[] = "abcd1234";
-        char c4[10] = { 0 };
-        char c5[10] = { 0 };
+        char* c2       = new char[16]();
+        char c3[]      = "abcd1234";
+        char c4[10]    = { 0 };
+        char c5[10]    = { 0 };
 
         // 只有c3和c4这种数组可以用std::begin和std::end，c1和c2不行
 
@@ -371,8 +375,7 @@ int main()
         // 将c3的内容拷贝到c5，如果目标的大小不足将会崩溃
         std::copy(std::cbegin(c3), std::cend(c3), c5);
 
-        std::cout << c4 << '\n'
-                  << c5 << '\n';
+        std::cout << c4 << '\n' << c5 << '\n';
     }
 
     std::cout << "----------------------------------------\n";
@@ -380,7 +383,7 @@ int main()
     // 使用std::copy拷贝数据到void*
     {
         std::array<int, 5> source { 1, 2, 3, 4, 5 };
-        int* ptrInt = new int[5]();
+        int* ptrInt   = new int[5]();
         void* ptrVoid = reinterpret_cast<void*>(ptrInt);
 
         std::copy(source.cbegin(), source.cend(), static_cast<int*>(ptrVoid));
@@ -403,10 +406,9 @@ int main()
         // 需要提前分配内存，即设置dest2的大小
         std::copy(source.cbegin(), source.cend(), dest2.begin());
 
-        auto printElem = [](auto&& container) {
-            std::for_each(container.begin(), container.end(), [](auto&& val) {
-                std::cout << val << '\t';
-            });
+        auto printElem = [](auto&& container)
+        {
+            std::for_each(container.begin(), container.end(), [](auto&& val) { std::cout << val << '\t'; });
             std::cout << '\n';
         };
         printElem(dest1);
@@ -414,10 +416,9 @@ int main()
     }
 
     // 用来打印元素
-    auto printElem = [](auto&& container) {
-        std::for_each(container.begin(), container.end(), [](auto&& val) {
-            std::cout << val << '\t';
-        });
+    auto printElem = [](auto&& container)
+    {
+        std::for_each(container.begin(), container.end(), [](auto&& val) { std::cout << val << '\t'; });
         std::cout << '\n';
     };
 
@@ -428,12 +429,14 @@ int main()
         std::vector<int> dest;
 
         // 将source的偶数元素拷贝到dest
-        std::copy_if(source.cbegin(), source.cend(), std::back_inserter(dest), [](auto&& val) {
-            if (val % 2 == 0)
-                return true;
-            else
-                return false;
-        });
+        std::copy_if(source.cbegin(), source.cend(), std::back_inserter(dest),
+            [](auto&& val)
+            {
+                if (val % 2 == 0)
+                    return true;
+                else
+                    return false;
+            });
 
         printElem(dest);
     }
@@ -445,12 +448,14 @@ int main()
         std::vector<int> dest;
 
         // 将source的偶数元素拷贝到dest
-        std::copy_if(source.cbegin(), source.cend(), std::back_inserter(dest), [](auto&& val) {
-            if (val % 2 == 0)
-                return true;
-            else
-                return false;
-        });
+        std::copy_if(source.cbegin(), source.cend(), std::back_inserter(dest),
+            [](auto&& val)
+            {
+                if (val % 2 == 0)
+                    return true;
+                else
+                    return false;
+            });
 
         printElem(dest);
     }
@@ -587,9 +592,9 @@ int main()
         std::stringstream ss;
         ss << c1;
 
-        char* c4 = new char[5]; //"1234"
+        char* c4 = new char[5];   //"1234"
         ss.get(c4, 5);
-        char* c5 = new char[5]; //"567"
+        char* c5 = new char[5];   //"567"
         ss.get(c5, 4);
         char* c6 = new char[5](); //"890a"
         ss.get(c6, 5);
@@ -609,7 +614,7 @@ int main()
         ss << c1;
         char* c2 = new char[5](); // "1234"
         ss.read(c2, 4);
-        char* c3 = new char[5]; // "56789   "   error
+        char* c3 = new char[5];   // "56789   "   error
         ss.read(c3, 5);
         char* c4 = new char[5](); // "0abcd   "   error
         ss.read(c4, 5);
@@ -679,7 +684,8 @@ int main()
                 //  用 <<写的文件有问题，暂时不知道为啥
                 ss2.write(buffer, 1024);
                 length -= 1024;
-            } else
+            }
+            else
             {
                 char* buffer = new char[length + 1]();
                 ss.read(buffer, length);
@@ -690,7 +696,7 @@ int main()
         }
 
         auto ret1 = ss2.str();
-        auto len = ret1.size();
+        auto len  = ret1.size();
         auto ret2 = ret1.c_str();
         std::ofstream ofs("out.bmp", std::ofstream::binary);
         ofs.write(ret2, len);
@@ -698,10 +704,10 @@ int main()
     }
 
     {
-        const int bufferSize = 1024;
+        const int bufferSize    = 1024;
         char buffer[bufferSize] = { 0 };
-        int readLen = 0;
-        int haveRead = 0;
+        int readLen             = 0;
+        int haveRead            = 0;
 
         std::ifstream ifs("test.bmp", std::ios::binary);
         if (ifs)
