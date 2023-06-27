@@ -3,16 +3,16 @@
 // https://blog.csdn.net/luoqie123/article/details/52058354
 
 /*
-* 1. type_traits常用模板，类型判断
-* 2. decltype的使用
-* 3.
-* 4. 模板可变参数打印 std::index_sequence  00_13_TEST16
-* 5. function_traits 获取函数返回值类型，函数参数类型及个数
-* 6. 实现编译期判断一个类是不是另一个类的子类
-* 7. std::iterator_traits，STL源码剖析，解引用，即获取指针指向值的类型
-*/
+ * 1. type_traits常用模板，类型判断
+ * 2. decltype的使用
+ * 3. 定义一个空模板类，通过编译器的报错信息查看型别
+ * 4. 模板可变参数打印 std::index_sequence  00_13_TEST16
+ * 5. function_traits 获取函数返回值类型，函数参数类型及个数
+ * 6. 实现编译期判断一个类是不是另一个类的子类
+ * 7. std::iterator_traits，STL源码剖析，解引用，即获取指针指向值的类型
+ */
 
-#define TEST2
+#define TEST3
 
 #ifdef TEST1
 
@@ -20,7 +20,9 @@
 #include <iostream>
 #include <type_traits>
 
-class A {};
+class A
+{
+};
 
 int main()
 {
@@ -46,31 +48,40 @@ int main()
 #include <iostream>
 #include <vector>
 
-int TestFunc(int, int&, int*) { std::cout << "The function TestFunc is called\n"; return 0; }
-class TestClass {};
+int TestFunc(int, int&, int*)
+{
+    std::cout << "The function TestFunc is called\n";
+    return 0;
+}
+
+class TestClass
+{
+};
 
 int main()
 {
     // var
     {
         // decltype(x); 当x是变量的时候，返回x的类型
-        int a = 1, & b = a;
+        int a = 1, &b = a;
         decltype(a) x;     // int x;
         decltype(b) y = a; // int& y;所以y必须使用左值初始化
-        //decltype(999) y;   // error 
+        // decltype(999) y;    // error
+        decltype(999.f) z = a; // ok
     }
 
     // expr
     {
         // decltype(x); 当x是表达式的时候，返回的是表达式x结果的类型。表达式的结果是左值，返回的是引用，右值返回的是类型
-        int a = 1, * p = &a, & r = a;
-        decltype(a + 1) x;  // int x;
-        decltype(p) y;      // int* y;
-        decltype(*p) z = a; // int& z; // p指向的对象是一个左值
-        decltype((a)) m = a;// int& m; // 加了括号该变量就成为一个表达式，该表达式返回的是一个左值（因为该表达式的结果可以作为赋值语句的左侧的值，注意区分其他表达式返回的值为右值）
-        decltype(a) n;      // int n;  // 注意带括号和不带括号的区别
+        int a = 1, *p = &a, &r = a;
+        decltype(a + 1) x;   // int x;
+        decltype(p) y;       // int* y;
+        decltype(*p) z  = a; // int& z; // p指向的对象是一个左值
+        decltype((a)) m = a; // int& m; // 加了括号该变量就成为一个表达式，该表达式返回的是一个左值
+                             // 因为该表达式的结果可以作为赋值语句的左侧的值，注意区分其他表达式返回的值为右值
+        decltype(a) n;       // int n;  // 注意带括号和不带括号的区别
 
-        decltype((p)) u = p;// int* &u;// (p)是左值，所以u是一个引用，因此u是指向int类型的指针的引用
+        decltype((p)) u = p; // int* &u;// (p)是左值，所以u是一个引用，因此u是指向int类型的指针的引用
     }
 
     // func
@@ -81,11 +92,11 @@ int main()
         // 声明一个FuncType类型的函数指针，并使用函数TestFunc初始化
         FuncType* func = TestFunc; // 等价于 int(*func)(int,int&,int*); func = TestFunc;
 
-        decltype(func) x;      // x是一个函数指针，和func,z类型一样
-        decltype(TestFunc) y;  // y是一个类型为int(int,int&,int*)的函数
-        decltype(TestFunc)* z; // z是一个函数指针，和func,x类型一样, int(*z)(int,int&,int*);
+        decltype(func) x;          // x是一个函数指针，和func,z类型一样
+        decltype(TestFunc) y;      // y是一个类型为int(int,int&,int*)的函数
+        decltype(TestFunc)* z;     // z是一个函数指针，和func,x类型一样, int(*z)(int,int&,int*);
 
-        int a = 1, & b = a, * c = &a;
+        int a = 1, &b = a, *c = &a;
         decltype(TestFunc(a, b, c)) w;   // int w;  TestFunc函数返回值为int型的右值，此处不会调用函数TestFunc
         decltype((TestFunc(a, b, c))) v; // int v;  表达式(TestFunc(a,b,c))函数返回值为int型的右值，此处也不会调用TestFunc
     }
@@ -94,7 +105,7 @@ int main()
     {
         // decltype(x); x不能是类型
         // decltype(int); // error
-        // decltype(TestClass) x; // error 
+        // decltype(TestClass) x; // error
 
         TestClass t;
         decltype(t) x;       // TestClass x;
@@ -104,10 +115,10 @@ int main()
     // auto
     {
         // Effective Modern C++ 条款3
-        std::vector<int> vec{ 1,2,3,4,5 };
-        decltype(vec[0]) v0 = vec[0];   // v0类型为 int&
-        decltype(auto) v1 = vec[1];     // v1类型为 int&
-        auto v2 = vec[2];               // v2类型为 int
+        std::vector<int> vec { 1, 2, 3, 4, 5 };
+        decltype(vec[0]) v0 = vec[0]; // v0类型为 int&
+        decltype(auto) v1   = vec[1]; // v1类型为 int&
+        auto v2             = vec[2]; // v2类型为 int
     }
 
     return 0;
@@ -117,26 +128,41 @@ int main()
 
 #ifdef TEST3
 
+template <typename T>
+class TD;
+
+int main()
+{
+    int x = 1;
+    int& y = x;
+    int* z = &y;
+
+    // 在错误信息中可以查看到这三个表达式的具体信息
+    TD<decltype(x)> xType;
+    TD<decltype(y)> yType;
+    TD<decltype(z)> zType;
+}
+
 #endif // TEST3
 
 #ifdef TEST4
 
-#include <iostream>
-#include <vector>
 #include <climits>
 #include <cstdint>
+#include <iostream>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 // 打印可变参数
-template<typename ...Args>
+template <typename... Args>
 void printer(Args&&... args)
 {
     (std::cout << ... << args) << '\n';
 }
 
 // 给指定std::vector添加任意数量元素
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 void push_back_vec(std::vector<T>& v, Args&&... args)
 {
     static_assert((std::is_constructible_v<T, Args&&> && ...));
@@ -144,18 +170,18 @@ void push_back_vec(std::vector<T>& v, Args&&... args)
 }
 
 // 编译期交换整数的字节序
-// compile-time endianness swap based on http://stackoverflow.com/a/36937049 
-template<class T, std::size_t... N>
+// compile-time endianness swap based on http://stackoverflow.com/a/36937049
+template <class T, std::size_t... N>
 constexpr T bswap_impl(T i, std::index_sequence<N...>)
 {
     return (((i >> N * CHAR_BIT & std::uint8_t(-1)) << (sizeof(T) - 1 - N) * CHAR_BIT) | ...);
 }
 
 // std::make_unsigned_t<T> 给T添加unsigned限定符，即 unsigned int 等价于 std::make_unsigned_t<int>
-template<class T, class U = std::make_unsigned_t<T>>
+template <class T, class U = std::make_unsigned_t<T>>
 constexpr U bswap(T i)
 {
-    return bswap_impl<U>(i, std::make_index_sequence<sizeof(T)>{});
+    return bswap_impl<U>(i, std::make_index_sequence<sizeof(T)> {});
 }
 
 int main()
@@ -168,12 +194,13 @@ int main()
         std::vector<int> v;
         push_back_vec(v, 6, 2, 45, 12);
         push_back_vec(v, 1, 2, 9);
-        for (int i : v) std::cout << i << ' ';
+        for (int i : v)
+            std::cout << i << ' ';
     }
 
     {
         static_assert(bswap<std::uint16_t>(0x1234u) == 0x3412u);
-        //static_assert(bswap<std::uint16_t>(0x1234u) == 0x1234u); // 静态断言失败
+        // static_assert(bswap<std::uint16_t>(0x1234u) == 0x1234u); // 静态断言失败
         static_assert(bswap<std::uint64_t>(0x0123456789abcdefULL) == 0xefcdab8967452301ULL);
     }
 
@@ -223,43 +250,53 @@ int main()
 
 #include <functional>
 
- // 原型
-template<typename T>
+// 原型
+template <typename T>
 struct function_traits;
 
 // 普通函数
-template<typename ReturnType, typename... Args>
+template <typename ReturnType, typename... Args>
 struct function_traits<ReturnType(Args...)>
 {
-    enum { arity = sizeof...(Args) };
-    using return_type = ReturnType;
-    using function_type = ReturnType(Args...);
-    using stl_function_type = std::function<function_type>;
-    using pointer = ReturnType(*)(Args...);
+    enum
+    {
+        arity = sizeof...(Args)
+    };
 
-    template<size_t I>
+    using return_type       = ReturnType;
+    using function_type     = ReturnType(Args...);
+    using stl_function_type = std::function<function_type>;
+    using pointer           = ReturnType (*)(Args...);
+
+    template <size_t I>
     struct args
     {
         static_assert(I < arity, "index is out of range, index must less than sizeof Args");
         using type = typename std::tuple_element<I, std::tuple<Args...>>::type;
     };
 
-    using tuple_type = std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...>;
+    using tuple_type      = std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...>;
     using bare_tuple_type = std::tuple<std::remove_const_t<std::remove_reference_t<Args>>...>;
 };
 
 // 函数指针
-template<typename ReturnType, typename... Args>
-struct function_traits<ReturnType(*)(Args...)> : function_traits<ReturnType(Args...)> {};
+template <typename ReturnType, typename... Args>
+struct function_traits<ReturnType (*)(Args...)> : function_traits<ReturnType(Args...)>
+{
+};
 
 // std::function
-template<typename ReturnType, typename... Args>
-struct function_traits<std::function<ReturnType(Args...)>> : function_traits<ReturnType(Args...)> {};
+template <typename ReturnType, typename... Args>
+struct function_traits<std::function<ReturnType(Args...)>> : function_traits<ReturnType(Args...)>
+{
+};
 
 // 成员函数
-#define FUNCTION_TRAITS(...)\
-template <typename ReturnType, typename ClassType, typename... Args>\
-struct function_traits<ReturnType(ClassType::*)(Args...) __VA_ARGS__> : function_traits<ReturnType(Args...)>{};\
+#define FUNCTION_TRAITS(...)                                                                                      \
+    template <typename ReturnType, typename ClassType, typename... Args>                                          \
+    struct function_traits<ReturnType (ClassType::*)(Args...) __VA_ARGS__> : function_traits<ReturnType(Args...)> \
+    {                                                                                                             \
+    };
 
 FUNCTION_TRAITS()
 FUNCTION_TRAITS(const)
@@ -267,22 +304,24 @@ FUNCTION_TRAITS(volatile)
 FUNCTION_TRAITS(const volatile)
 
 // 函数对象
-template<typename Callable>
-struct function_traits : function_traits<decltype(&Callable::operator())> {};
+template <typename Callable>
+struct function_traits : function_traits<decltype(&Callable::operator())>
+{
+};
 
-template<typename Function>
+template <typename Function>
 typename function_traits<Function>::stl_function_type to_function(const Function& lambda)
 {
     return static_cast<typename function_traits<Function>::stl_function_type>(lambda);
 }
 
-template<typename Function>
+template <typename Function>
 typename function_traits<Function>::stl_function_type to_function(Function&& lambda)
 {
     return static_cast<typename function_traits<Function>::stl_function_type>(std::forward<Function>(lambda));
 }
 
-template<typename Function>
+template <typename Function>
 typename function_traits<Function>::pointer to_function_pointer(const Function& lambda)
 {
     return static_cast<typename function_traits<Function>::pointer>(lambda);
@@ -296,26 +335,35 @@ typename function_traits<Function>::pointer to_function_pointer(const Function& 
 
 using namespace std;
 
-template<typename T>
+template <typename T>
 void printType()
 {
     cout << typeid(T).name() << endl;
 }
 
-float(*cast_func)(int, int, int, int);
+float (*cast_func)(int, int, int, int);
+
 float free_function(const string& a, int b)
 {
     return (float)a.size() / b;
 }
+
 struct AA
 {
-    int f(int a, int b)volatile { return a + b; }
-    int operator()(int)const { return 0; }
+    int f(int a, int b) volatile
+    {
+        return a + b;
+    }
+
+    int operator()(int) const
+    {
+        return 0;
+    }
 };
 
 void test_function_traits()
 {
-    std::function<int(int)> f = [](int a) {return a; };
+    std::function<int(int)> f = [](int a) { return a; };
     printType<function_traits<std::function<int(int)>>::function_type>();
     printType<function_traits<std::function<int(int)>>::args<0>::type>();
     printType<function_traits<decltype(f)>::function_type>();
@@ -337,17 +385,17 @@ int main()
 {
     {
         // 获取函数类型
-        function_traits<decltype(func)>::function_type;     // int __cdecl(int, char)
-        // 获取函数返回值  
-        function_traits<decltype(func)>::return_type;       // int
-        // 获取函数的参数个数    
-        function_traits<decltype(func)>::arity;             // 2
+        function_traits<decltype(func)>::function_type; // int __cdecl(int, char)
+        // 获取函数返回值
+        function_traits<decltype(func)>::return_type; // int
+        // 获取函数的参数个数
+        function_traits<decltype(func)>::arity; // 2
         // 获取函数第一个入参类型
-        function_traits<decltype(func)>::args<0>::type;     // int
+        function_traits<decltype(func)>::args<0>::type; // int
         // 获取函数第二个入参类型
-        function_traits<decltype(func)>::args<1>::type;     // char
+        function_traits<decltype(func)>::args<1>::type; // char
 
-        //function_traits<decltype(func)>::args<2>::type;   //静态断言失败，func函数只有两个参数
+        // function_traits<decltype(func)>::args<2>::type;   //静态断言失败，func函数只有两个参数
 
         cout << typeid(function_traits<decltype(func)>::function_type).name() << endl;
         cout << typeid(function_traits<decltype(func)>::return_type).name() << endl;
@@ -368,16 +416,21 @@ int main()
 
 #include <iostream>
 
-struct true_type {
+struct true_type
+{
     static constexpr bool value = true;
 };
 
-struct false_type {
+struct false_type
+{
     static constexpr bool value = false;
 };
 
 template <typename B, typename D>
-true_type test_is_base(B*){return true_type();}
+true_type test_is_base(B*)
+{
+    return true_type();
+}
 
 // 函数 test_is_base可以不用实现
 template <typename B, typename D>
@@ -389,10 +442,17 @@ false_type test_is_base(void*);
 // is_base_of就是继承一个true_type或者false_type的结构体
 // test_is_base<B, D>(static_cast<D*>(nullptr)就是将D*类型的nullptr传给函数test_is_base
 template <typename B, typename D>
-struct is_base_of : decltype(test_is_base<B, D>(static_cast<D*>(nullptr))) {};
+struct is_base_of : decltype(test_is_base<B, D>(static_cast<D*>(nullptr)))
+{
+};
 
-class A {};
-class B :public A {};
+class A
+{
+};
+
+class B : public A
+{
+};
 
 int main()
 {
@@ -405,19 +465,19 @@ int main()
 
 #ifdef TEST7
 
-//STL源码剖析 iterator_traits https://blog.csdn.net/buxiao1983/article/details/44043955
+// STL源码剖析 iterator_traits https://blog.csdn.net/buxiao1983/article/details/44043955
 
 #include <iostream>
 #include <vector>
 
-//第一种方式
+// 第一种方式
 template <class Iter>
-struct My_iter_trait//简化版的iterator_traits，只定义了value_type；为了区别于STL中的iterator::traits，名字也改为My_iter_trait
+struct My_iter_trait // 简化版的iterator_traits，只定义了value_type；为了区别于STL中的iterator::traits，名字也改为My_iter_trait
 {
     typedef typename Iter::value_type value_type;
 };
 
-//第二种方式，偏特化
+// 第二种方式，偏特化
 template <class Type>
 struct My_iter_trait<Type*>
 {
@@ -425,23 +485,24 @@ struct My_iter_trait<Type*>
     typedef Type value_type;
 };
 
-//使用标准库iterator_traits
+// 使用标准库iterator_traits
 template <typename T>
 struct MyStruct
 {
     // [1]和[2]有同样的效果
-    //typedef typename T::value_type VT;                       // [0] 如果T是指针类型，这句代码无法获取指针指向的数据类型，报错
-    typedef typename My_iter_trait<T>::value_type VT;        // [1] 
-    //typedef typename std::iterator_traits<T>::value_type VT; // [2] 使用iterator_traits可以获取指针指向的数据类型
+    // typedef typename T::value_type VT;                       // [0] 如果T是指针类型，这句代码无法获取指针指向的数据类型，报错
+    typedef typename My_iter_trait<T>::value_type VT; // [1]
+    // typedef typename std::iterator_traits<T>::value_type VT; // [2] 使用iterator_traits可以获取指针指向的数据类型
 };
 
 // [1] 使用自定义 interator_trait解引用
 template <class Iter>
 void iter_print1(const Iter& a, const Iter& b)
 {
-    typedef typename My_iter_trait<Iter>::value_type T; //此处是关键，请思考一下：如果a，b是指针的话，除了用My_iter_trait的第二种方式，还有什么办法可以获得a或b所指向的数据的类型？
-    T key;  //值
-    Iter p; //指针
+    typedef typename My_iter_trait<Iter>::value_type
+        T; // 此处是关键，请思考一下：如果a，b是指针的话，除了用My_iter_trait的第二种方式，还有什么办法可以获得a或b所指向的数据的类型？
+    T key; // 值
+    Iter p; // 指针
     for (p = a; p != b; p++)
     {
         key = *p;
@@ -449,8 +510,9 @@ void iter_print1(const Iter& a, const Iter& b)
     }
     std::cout << std::endl;
 }
+
 // [2] 通过使用*解引用，取得指针指向的实际值
-template<typename Iter>
+template <typename Iter>
 void iter_print2(const Iter& a, const Iter& b)
 {
     Iter p = a;
@@ -466,8 +528,8 @@ template <class Iter>
 void iter_print3(const Iter& a, const Iter& b)
 {
     typedef typename std::iterator_traits<Iter>::value_type T;
-    T key;  //值
-    Iter p; //指针
+    T key;  // 值
+    Iter p; // 指针
     for (p = a; p != b; p++)
     {
         key = *p;
@@ -478,13 +540,13 @@ void iter_print3(const Iter& a, const Iter& b)
 
 int main()
 {
-    int a[10] = { 1,2,3,4,5,6,7,8,9,10 };
-    std::vector<std::string> b{ "A","B","C","D","E","F","G" };
+    int a[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    std::vector<std::string> b { "A", "B", "C", "D", "E", "F", "G" };
     int* p = a;
 
     iter_print1<int*>(a, a + 10);
-    //iter_print1(a, a + 10); // 第一个参数是数组，第二个是指针，所以报错
-    iter_print1(p, p + 10);   // 第一个参数和第二个都是指针，可以自动推导
+    // iter_print1(a, a + 10); // 第一个参数是数组，第二个是指针，所以报错
+    iter_print1(p, p + 10);          // 第一个参数和第二个都是指针，可以自动推导
     iter_print1<std::vector<std::string>::iterator>(b.begin(), b.end());
     iter_print1(b.begin(), b.end()); // c++17可以不指定模板列表，会自动推导
 
@@ -500,13 +562,10 @@ int main()
 
     std::cout << "---------------\n";
 
-    MyStruct<int*>::VT s = 0;  //int
-    //MyStruct<int>::VT s = 0;    //错误，int本身就是值类型，所以不存在获取指向值的类型
+    MyStruct<int*>::VT s = 0; // int
+    // MyStruct<int>::VT s = 0;    //错误，int本身就是值类型，所以不存在获取指向值的类型
 
     return 0;
 }
 
 #endif // TEST7
-
-
-
