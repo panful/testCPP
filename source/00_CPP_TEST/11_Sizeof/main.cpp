@@ -1,5 +1,3 @@
-// alignof
-// alignas
 
 // https://www.cnblogs.com/mmmmmmmmm/p/14088273.html
 
@@ -8,11 +6,11 @@
  * 2. 枚举类 enum class
  * 3. class 虚表
  * 4. 标准库容器
- * 5. #pragma pack 设置字节对齐
+ * 5. #pragma pack 设置字节对齐 alignof alignas
  * 6. _msize
  */
 
-#define TEST3
+#define TEST5
 
 #ifdef TEST1
 
@@ -326,6 +324,58 @@ int main()
         };
 
         std::cout << sizeof(t) << std::endl; // 24
+    }
+
+    // alignas 用来设置内存中对齐方式，可以是 8 16 32 64 128
+    // alignof 表示变量的字节数要求 如果为1表示没有要求，为N表示字节数必须是N的倍数
+    {
+        struct t
+        {
+            int a[2];
+            alignas(8) int b[4];
+            int c[2];
+        };
+
+        std::cout << sizeof(t) << '\t' << alignof(t) << std::endl; // 32
+    }
+
+    {
+        struct t
+        {
+            int a[2];
+            alignas(64) int b[4];
+            int c[2];
+        };
+
+        std::cout << sizeof(t) << '\t' << alignof(t) << std::endl; // 128 = 64 +64
+    }
+
+    {
+        struct t
+        {
+            int a[2];
+            alignas(16) int b[4]; // alignas之前的字节为16，之后的字节数是16的整数倍，不满需要补齐
+            int c[2];
+            int d[4];
+            int e[2];
+            int f[2];
+        };
+
+        std::cout << sizeof(t) << '\t' << alignof(t) << std::endl; // 80 = 16 + 16*3 + 16
+    }
+
+    {
+        // alighnas(N) 整体的字节数必须是N的整数倍
+        struct alignas(16) t
+        {
+            int a[2];
+            int b[4];
+            int c[2];
+            int d[4];
+            int e[2];
+        };
+
+        std::cout << sizeof(t) << '\t' << alignof(t) << std::endl; // 64 = 16 * 4
     }
 
     return 0;
