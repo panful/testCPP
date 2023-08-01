@@ -21,10 +21,10 @@
  * 402 智能指针离开作用域前抛出异常，也可以正常释放
  * 403 std::make_shared使用的时机 std::allocate_shared允许自定义分配器
  * 404 使用new构造std::shared_ptr造成内存泄漏
- * 405
+ * 405 智能指针应用于多态
  */
 
-#define TEST207
+#define TEST405
 
 #ifdef TEST101
 
@@ -910,7 +910,6 @@ int main()
 
 #endif // TEST206
 
-
 //---------------------------------------------------------
 #ifdef TEST301
 
@@ -1658,3 +1657,158 @@ int main()
 }
 
 #endif // TEST404
+
+#ifdef TEST405
+
+#include <iostream>
+#include <memory>
+
+class A
+{
+public:
+    A()
+    {
+        std::cout << "A()\n";
+    }
+
+    virtual ~A()
+    {
+        std::cout << "~A()\n";
+    }
+
+    virtual void Func()
+    {
+        std::cout << "A::Func()\n";
+    }
+
+    void Func_A()
+    {
+        std::cout << "A::Func_A()\n";
+    }
+};
+
+class B : public A
+{
+public:
+    B()
+    {
+        std::cout << "B()\n";
+    }
+
+    virtual ~B() override
+    {
+        std::cout << "~B()\n";
+    }
+
+    virtual void Func() override
+    {
+        std::cout << "B::Func()\n";
+    }
+
+    void Func_B()
+    {
+        std::cout << "B::Func_B()\n";
+    }
+};
+
+int main()
+{
+    {
+        std::unique_ptr<A> ptr {};
+        ptr = std::make_unique<B>();
+        ptr->Func();
+    }
+
+    std::cout << "--------------------------\n";
+
+    {
+        std::unique_ptr<A> ptr {};
+        ptr = std::make_unique<B>();
+        ptr->Func();
+
+        std::unique_ptr<B> ptr_b {};
+        ptr_b.reset(dynamic_cast<B*>(ptr.release()));
+        if (ptr_b)
+        {
+            ptr_b->Func_B();
+        }
+    }
+
+    std::cout << "--------------------------\n";
+
+    {
+        std::unique_ptr<A> ptr {};
+        ptr = std::make_unique<B>();
+        ptr->Func();
+
+        std::unique_ptr<B> ptr_b = std::move(std::unique_ptr<B>(dynamic_cast<B*>(ptr.release())));
+
+        if (ptr_b)
+        {
+            ptr_b->Func_B();
+        }
+    }
+
+    std::cout << "--------------------------\n";
+
+    {
+        std::unique_ptr<A> ptr {};
+        ptr = std::make_unique<A>();
+        ptr->Func();
+
+        auto p = ptr.release();
+
+        // 此处不要使用 static_cast 应该使用 dynamic_cast
+        // 多态更建议使用std::shared_ptr，转换指针时使用 dynamic_pointer_cast
+        std::unique_ptr<B> ptr_b = std::move(std::unique_ptr<B>(dynamic_cast<B*>(p)));
+
+        if (ptr_b)
+        {
+            ptr_b->Func_B();
+        }
+        else
+        {
+            // 需要保证ptr正确释放
+            ptr = std::unique_ptr<A>(p);
+        }
+    }
+
+    std::cout << "--------------------------\n";
+
+    {
+        std::shared_ptr<A> ptr {};
+        ptr = std::make_shared<B>();
+
+        auto ptr_b = std::dynamic_pointer_cast<B>(ptr);
+
+        if (ptr_b)
+        {
+            ptr_b->Func_B();
+        }
+        if (ptr)
+        {
+            ptr->Func_A();
+        }
+    }
+
+    std::cout << "--------------------------\n";
+
+    {
+        std::shared_ptr<A> ptr {};
+        ptr = std::make_shared<A>();
+
+        // 转换失败，ptr_b为空
+        auto ptr_b = std::dynamic_pointer_cast<B>(ptr);
+
+        if (ptr_b)
+        {
+            ptr_b->Func_B();
+        }
+        if (ptr)
+        {
+            ptr->Func_A();
+        }
+    }
+}
+
+#endif // TEST405
