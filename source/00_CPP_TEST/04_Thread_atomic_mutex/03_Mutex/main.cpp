@@ -482,28 +482,66 @@ int main()
 #ifdef TEST6
 
 #include <iostream>
+#include <mutex>
 #include <thread>
 
-//int x = 0;
-thread_local int x = 0;
+static std::mutex m {};
 
-// thread_local会在线程初始化的时候拷贝一个自己线程的副本
+class Helper
+{
+public:
+    Helper()
+    {
+        std::lock_guard<std::mutex> lock(m);
+        std::cout << "thread id: " << std::this_thread::get_id() << '\n';
+        std::cout << "construct\n";
+    }
+
+    ~Helper()
+    {
+        std::lock_guard<std::mutex> lock(m);
+        std::cout << "destruct\n";
+    }
+
+    int value { 0 };
+};
+
+static Helper x {};              // 程序启动时初始化，每个线程共享同一个x
+thread_local Helper y {};        // 程序启动时初始化，每个线程都有一个拷贝的y
+static thread_local Helper z {}; // 程序启动时初始化，虽然是static，但是每个线程都有一个拷贝的z
 
 void thread_func(const std::string& thread_name)
 {
     for (int i = 0; i < 10; i++)
     {
-        x++;
-        std::cout << "thread[" << thread_name << "]: x = " << x << std::endl;
+        x.value++;
+        y.value++;
+        z.value++;
+
+        {
+            std::lock_guard<std::mutex> lock(m);
+            std::cout << "thread[" << thread_name << "]: id: " << std::this_thread::get_id() << "\tx = " << x.value << "\ty = " << y.value
+                      << "\tz = " << z.value << '\n';
+        }
     }
 }
 
+// thread_local 变量只会在每个线程最开始被调用的时候进行初始化，并且只会被初始化一次。
+// thread_local 作为类成员变量时必须是 static 的
+
 int main()
 {
+    std::cout << "------------------\t" << std::this_thread::get_id() << '\n';
+
+    // 线程启动时会拷贝一个thread_local修饰的变量，调用拷贝构造函数
+    // 传递变量到线程时也会调用一次拷贝构造函数
     std::thread t1(thread_func, "t1");
     std::thread t2(thread_func, "t2");
     t1.join();
     t2.join();
+
+    std::cout << "------------------\n";
+
     return 0;
 }
 
