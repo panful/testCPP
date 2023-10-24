@@ -6,7 +6,7 @@
  * 5.
  */
 
-#define TEST2
+#define TEST4
 
 #ifdef TEST1
 
@@ -244,6 +244,32 @@ int main()
         std::cout << std::endl;
 
         delete[] intArray;
+    }
+
+    // 将指针插入std::vector<struct>
+    {
+        struct Point
+        {
+            double x;
+            double y;
+            double z;
+        };
+
+        double input[] { 1., 2., 3., 4., 5., 6., 7., 8., 9. };
+        std::vector<Point> output;
+        std::copy(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input + 9), std::back_inserter(output));
+
+        auto out = reinterpret_cast<double*>(output.data());
+
+        for (const auto& elem : output)
+        {
+            std::cout << elem.x << ' ' << elem.y << ' ' << elem.z << '\n';
+        }
+        for (size_t i = 0; i < 9; ++i)
+        {
+            std::cout << out[i] << ' ';
+        }
+        std::cout << std::endl;
     }
 }
 
