@@ -1,102 +1,85 @@
-/*
-* 1. std::forward_list没有size()函数
-* 2. 自定义链表
-*/
+/**
+ * 1. std::list的使用，std::forward_list没有size()函数
+ */
 
-#define TEST2
+// https://www.cnblogs.com/mmmmmmmmm/p/14812567.html
+
+#define TEST1
 
 #ifdef TEST1
 
-#include <list>
-#include <forward_list>
+#include <algorithm>
 #include <iostream>
+#include <list>
 
 int main()
 {
-    {
-        std::list<int> myList;
-        auto nSize = myList.size();
-        auto isEmpty = myList.empty();
-    }
+    // 插入
+    std::list<int> List1;
+    List1.insert(List1.begin(), { 1, 2 });    // 1,2
+    List1.emplace(List1.end(), std::move(3)); // 1,2,3
+    List1.emplace_back(4);                    // 1,2,3,4
+    List1.emplace_front(5);                   // 5,1,2,3,4
+    List1.push_back(6);                       // 5,1,2,3,4,6
+    List1.push_front(7);                      // 7,5,1,2,3,4,6
 
-    {
-        std::forward_list<int> myList;
-        //myList.size(); // 没有size()函数
-        auto isEmpty = myList.empty();
-    }
+    // 删除
+    std::list<int> List2 { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    List2.pop_back();                                                   // 0,1,2,3,4,5,6,7
+    List2.pop_front();                                                  // 1,2,3,4,5,6,7
+    List2.erase(List2.begin());                                         // 2,3,4,5,6,7
+    List2.erase(std::find(List2.begin(), List2.end(), 5), List2.end()); // 2,3,4
+    List2.remove(2);                                                    // 3,4，返回值是移出的元素个数，没有移出则返回0
+    List2.remove_if([](int n) { return n == 4; });                      // 3
+    List2.clear();                                                      // 清空
 
-    {
-        std::list<int> myList1{ 0,1,2,3 };
-        std::list<int> myList2{ 4,5,6,7,8 };
+    // 查找
+    std::list<int> List3 { 1, 2, 3, 4, 5 };
+    int front                   = List3.front(); // 1
+    int back                    = List3.back();  // 5
+    std::list<int>::iterator it = std::find(List3.begin(), List3.end(), 2);
 
-        myList1.splice(myList1.begin(), myList2);
-    }
-}
+    // 修改
+    std::list<int> List4 { 2, 3, 4 };
+    std::list<int> List5 { 7, 8, 9 };
+    List4.swap(List5);
 
-#endif // TEST1
+    std::list<int> List6 { 1, 2, 3, 4, 5, 6 };
+    List5.remove(3);
+    List6.emplace_back(7);
 
-#ifdef TEST2
+    // 归并
+    std::list<int> List7 { 8, 7, 7, 9 };
+    List7.sort();
+    std::list<int> List8 { 5, 3, 3, 2 };
+    List8.sort();
+    List7.merge(List8);
 
-#include <list>
-#include <initializer_list>
-#include <iostream>
+    // 排序
+    List7.sort(std::greater<int>()); // 降序
+    List7.sort(std::less<int>());    // 升序
 
-struct ListNode 
-{
-    int val{ 0 };
+    // 移除相邻重复元素
+    List7.unique();
 
-    ListNode* next{ nullptr };
+    // 逆序
+    List7.reverse();
 
-    ListNode() : val(0), next(nullptr) {}
+    // 转移元素
+    std::list<int> List9 { 1, 2, 3, 4, 5 };
+    std::list<int> List10 { 7, 8, 9 };
+    auto it9 = List9.begin();
+    std::advance(it9, 2);      // 迭代器指向的元素向后移动两位，指向3
+    List9.splice(it9, List10); // List9:1,2,7,8,9,3,4,5;List10为空
 
-    ListNode(int x) : val(x), next(nullptr) {}
-
-    ListNode(int x, ListNode* next) : val(x), next(next) {}
-
-    ListNode(std::initializer_list<int> list)
-    {
-        ListNode* node = nullptr;
-        auto it = list.begin();
-        while (it != list.end())
-        {
-            if (!next)
-            {
-                val = *it++;
-                if (it != list.end())
-                    next = node = new ListNode(*it++);
-            }
-            else
-            {
-                node->next = new ListNode(*it++);
-                node = node->next;
-            }
-        }
-    }
-};
-
-#define PRINT_LIST(list_node) 
-
-
-int main()
-{
-    {
-        std::list<int> l1;
-    }
-
-    {
-        ListNode* l1 = new ListNode({ 1,2,3,4,5 });
-        while (auto next = l1->next)
-        {
-            std::cout << next->val << '\n';
-            l1->next = l1->next->next;
-        }
-        ListNode l2{ 1 };
-        ListNode l3{ 1,2,3,4 };
-        ListNode l4{ 1,l1 };
-    }
-
+    // 转移元素
+    std::list<int> List11 { 1, 2, 3 };
+    std::list<int> List12 { 5, 6, 7, 8, 9 };
+    auto it12 = List12.begin();
+    std::advance(it12, 2);
+    List11.splice(List11.begin(), List12, it12, List12.end()); // List11:7,8,9,1,2,3;Lis12:5,6
 
     return 0;
 }
 
-#endif // TEST2
+#endif // TEST1
