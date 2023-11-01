@@ -6,7 +6,7 @@ if(WIN32)
 endif()
 
 #查找boost库
-find_package(Boost COMPONENTS thread filesystem locale system)
+find_package(Boost COMPONENTS thread filesystem locale system coroutine)
 
 if(BOOST_FOUND)
     message("-------------------boost found---------------")
