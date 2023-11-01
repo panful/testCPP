@@ -1,11 +1,11 @@
 /**
- * 1. std::format 的使用
- *
+ * 101. std::format 的使用
+ * 201. std::ranges std::views
  */
 
-#define TEST1
+#define TEST201
 
-#ifdef TEST1
+#ifdef TEST101
 
 #include <format>
 #include <iostream>
@@ -46,4 +46,30 @@ int main()
     }
 }
 
-#endif // TEST1
+#endif // TEST101
+
+#ifdef TEST201
+
+#include <iostream>
+#include <ranges>
+#include <vector>
+
+int main()
+{
+    {
+        std::vector vec = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        // filter 提取偶数
+        // transform 将提取到的偶数乘2
+        // 结果res是惰性求值，只有在用到的时候才会实际执行views操作
+        auto res = vec | std::views::filter([](auto v) { return v % 2 == 0; }) | std::views::transform([](auto v) { return v * 2; });
+
+        for (auto elem : res)
+        {
+            std::cout << elem << ' ';
+        }
+        std::cout << std::endl;
+    }
+}
+
+#endif // TEST201
