@@ -3,9 +3,11 @@
  * 2. unsigned int 和 unsigned char[4] 互相转换 https://www.cnblogs.com/mmmmmmmmm/p/14586206.html
  * 3. 位运算符 & | ！ >> <<
  * 4. functional头文件中的位操作函数，逻辑操作函数
+ * 5. 重载bool
+ * 6. 重载指针类型转换
  */
 
-#define TEST2
+#define TEST6
 
 #ifdef TEST1
 
@@ -46,7 +48,7 @@ int main()
 
 int main()
 {
-    auto c0 = 0x01020304 >> 8;           // c0 = 0x010203 类型为int
+    auto c0 = 0x01020304 >> 8; // c0 = 0x010203 类型为int
 
     unsigned int c1  = 0x01020304 >> 16; // c1 = 0x0102
     unsigned char c2 = 0x01020304 >> 16; // c2 = 0x02   取uint的最低8位
@@ -55,7 +57,7 @@ int main()
     uint32_t ui2 = 5;
     auto ret1    = ui1 | ui2; // ret1 = 7  按位或（二进制）
 
-    ui1 |= ui2;               // ui1 = ui1|ui2;
+    ui1 |= ui2; // ui1 = ui1|ui2;
 
     int test = 0;
 }
@@ -73,7 +75,7 @@ int main()
     auto ret1 = a(2, 5); // 等价于 auto ret1 = 2|5
 
     std::logical_and<bool> b;
-    auto ret2 = b(false, true);    // 等价于 auto ret2 = false && true;
+    auto ret2 = b(false, true); // 等价于 auto ret2 = false && true;
 
     auto ret3 = std::not_fn(ret2); // 等价于 auto ret3 = !ret2;
 
@@ -82,7 +84,7 @@ int main()
 
     // std::equal_to d;  //可以自动识别类型
     std::equal_to<int> d;
-    auto ret5 = d(2, 3);     // 等价于 auto ret5 = (2 == 3);
+    auto ret5 = d(2, 3); // 等价于 auto ret5 = (2 == 3);
 
     std::ranges::equal_to e; // C++ 20
     auto ret6 = e(2, 3.3);   //    auto ret6 = (2 == 3.3);
@@ -91,3 +93,51 @@ int main()
     return 0;
 }
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <iostream>
+
+struct Test
+{
+    constexpr explicit operator bool() const noexcept
+    {
+        return true;
+    }
+};
+
+int main()
+{
+    Test t;
+
+    // 如果Test没有重载bool，则不能对Test对象做判断(if)操作
+    if (t)
+    {
+        std::cout << "true\n";
+    }
+}
+
+#endif // TEST5
+
+#ifdef TEST6
+
+#include <iostream>
+
+template <typename T>
+struct Test
+{
+    operator T*() const noexcept
+    {
+        return static_cast<T*>(this->Object);
+    }
+
+    T* Object;
+};
+
+int main()
+{
+    Test<int> t;
+    int* p = t;
+}
+
+#endif // TEST6
