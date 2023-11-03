@@ -7,7 +7,7 @@
  * 6. 重载指针类型转换
  */
 
-#define TEST6
+#define TEST5
 
 #ifdef TEST1
 
@@ -115,6 +115,9 @@ int main()
     {
         std::cout << "true\n";
     }
+
+    // 如果使用explicit，则Test对象转换为bool类型必须如下显式转换，不能 bool b = t
+    bool b = static_cast<bool>(t);
 }
 
 #endif // TEST5

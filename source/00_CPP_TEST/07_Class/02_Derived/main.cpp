@@ -1,84 +1,147 @@
 /*
- * 1. 继承方式的区别
+ * 1. 继承方式的区别 虚继承（菱形继承）
 
+ * 4. 基类的拷贝构造、拷贝赋值可以被继承
  * 5. 子类可以继承父类那些成员
  * 6. 基类的析构函数为什么要声明为虚函数
  * 7. 纯虚析构函数，抽象类的析构函数
  * 8. 父类函数带virtual和不带virtual 纯虚函数，dynamic_cast正确使用方法
  *
  * 10.crtp 单例基类 https://mp.weixin.qq.com/s/eai6rC0V5Ym1kgfTWl4QhQ
- *
+ * 11.虚基类、单一继承对象模型
+ * 12.多继承对象模型
+ * 13.虚继承对象模型
  * 14.Effective Modern C++ 需要改写的函数都应该加上override
  * 15.using 在类继承时的使用
  * 16.变长using声明
  */
 
-#define TEST6
+#define TEST13
 
 #ifdef TEST1
 
+// public private protectd 继承：
 // https://www.cnblogs.com/mmmmmmmmm/p/15166853.html
+
+#include <iostream>
+
 class A
 {
 public:
-    int a { 0 };
+    void Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
 
-protected:
-    int b { 0 };
-
-private:
-    int c { 0 };
+    uint64_t Member { 666 };
 };
 
-class B : public A
+class B1 : public A
 {
-public:
-    B()
-    {
-        int x = this->a;
-        int y = this->b;
-        // int z = this->c;
-    }
 };
 
-class C : protected A
+class B2 : public A
 {
-public:
-    C()
-    {
-        int x = this->a;
-        int y = this->b;
-        // int z = this->c;
-    }
 };
 
-class D : private A
+class C : public B1,
+          public B2
 {
-public:
-    D()
-    {
-        int x = this->a;
-        int y = this->b;
-        // int z = this->c;
-    }
+};
+
+// 虚继承
+class D1 : virtual public A
+{
+};
+
+class D2 : virtual public A
+{
+};
+
+class E : public D1,
+          public D2
+{
 };
 
 int main()
 {
-    A a;
-    auto v1 = a.a;
+    {
+        C c;
+        // c.Func(); // error 访问不明确
+        // c.Member;
 
-    B b;
-    auto v2 = b.a;
+        c.B1::Func(); // ok
+        c.B2::Func(); // ok
+        std::cout << c.B1::Member << '\t' << c.B2::Member << '\n';
+    }
 
-    // C c;
-    // c.a;
+    std::cout << "------------------------------------\n";
 
-    // D d;
-    // d.a;
+    {
+        E e;
+        e.Func();
+        std::cout << e.Member << '\n';
+    }
+
+    std::cout << "------------------------------------\n";
+
+    {
+        D1 d1;
+        D2 d2;
+        d1.Func();
+        d2.Func();
+        std::cout << d1.Member << '\t' << d2.Member << '\n';
+    }
 }
 
 #endif // TEST1
+
+#ifdef TEST4
+
+#include <iostream>
+
+class Base
+{
+public:
+    Base()
+    {
+    }
+
+    virtual ~Base()
+    {
+    }
+
+    Base(const Base&)            = delete;
+    Base& operator=(const Base&) = delete;
+};
+
+class Derived : public Base
+{
+};
+
+class Test
+{
+    // 编译器会自动生成：拷贝构造、拷贝赋值、移动构造、移动赋值
+};
+
+int main()
+{
+    {
+        Test t;
+        Test t2(t);
+        Test t3(std::move(t2));
+        t = t3;
+    }
+
+    {
+        Derived d, d2;
+        // Derived d3(d);               // 编译失败，基类拷贝构造函数被继承
+        // Derived d4(std::move(d3));   // 编译失败
+        // d = d2;                      // 编译失败
+    }
+}
+
+#endif // TEST4
 
 #ifdef TEST5
 
@@ -680,7 +743,7 @@ int main()
     b->funB(); // 子类，父类中的funB()为纯虚函数
 
     C* c = new Test();
-    c->funC();                            // 子类，因为父类函数是virtual，子类会重写该函数
+    c->funC(); // 子类，因为父类函数是virtual，子类会重写该函数
 
     C* c1 = dynamic_cast<C*>(new Test()); // 子类转父类没必要使用dynamic_cast，直接转换就行，因为类型本来就是安全的
     c1->funC();                           // 子类
@@ -701,6 +764,482 @@ int main()
 }
 
 #endif // TEST8
+
+#ifdef TEST11
+
+// https://www.cnblogs.com/QG-whz/p/4909359.html
+
+#include <iostream>
+
+class Base
+{
+public:
+    virtual void Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    Base()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual ~Base()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Func2()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    int Member { 123 };
+};
+
+class Derived : public Base
+{
+public:
+    Derived()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void Func() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void Func2()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    ~Derived() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Func3()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    int DerivedMember { 456 };
+};
+
+// 64位程序，指针是uint64_t
+// 以下测试基于MSVC 对于GCC等其他编译器并不一定正确
+
+int main()
+{
+    typedef void (*Fun)();
+
+    // 虚基类的模型：虚函数指针 + 所有成员变量
+    {
+        // 8 + 8 = 16 类的第一个位置是虚函数指针，8个字节。成员变量类型为int需要字节对齐
+        std::cout << "sizeof(Base): " << sizeof(Base) << '\n';
+
+        Base b;
+        uint64_t* vptrAddress = (uint64_t*)(&b); // 虚函数指针，指向虚函数表，表中的虚函数顺序与类中声明的顺序一致
+        std::cout << "vptr: " << vptrAddress << '\n';
+
+        Fun vFunc0 = (Fun) * ((uint64_t*)*(uint64_t*)(&b)); // 类中的第0个虚函数，虚函数表中保存的是函数指针，所以需要两次uint64_t*类型转换
+        vFunc0();
+        Fun vFunc2 = (Fun) * ((uint64_t*)*(uint64_t*)(&b) + 2); // 类中的第2个虚函数，第1个是虚析构函数，没有类型无法获取到
+        vFunc2();
+
+        auto member = *(int*)((uint64_t*)(&b) + 1);
+        std::cout << "Member: " << member << '\n'; // 成员变量
+    }
+
+    std::cout << "------------------------------------------\n";
+
+    // 单一继承，子类也拥有自己单独的虚函数表
+    // 模型：虚函数指针 + 所有成员变量（基类+子类自己）
+    {
+        // 8+8+8 = 24 虚表指针 + 所有成员变量（需要考虑内存对齐）
+        std::cout << "sizeof(Derived): " << sizeof(Derived) << '\n';
+
+        Derived d;
+
+        auto func = (Fun) * (uint64_t*)*(uint64_t*)(&d); // Func()
+        func();
+        auto func2 = (Fun) * ((uint64_t*)*(uint64_t*)(&d) + 2); // Func2()
+        func2();
+        auto func3 = (Fun) * ((uint64_t*)*(uint64_t*)(&d) + 3); // Func3() 子类定义的虚函数附加到基类虚函数后边
+        func3();
+
+        auto baseMember    = *(int*)((uint64_t*)(&d) + 1); // 第1个是基类的成员变量
+        auto deviredMember = *(int*)((uint64_t*)(&d) + 2); // 第2个是子类的成员变量
+        std::cout << "Member: " << baseMember << '\t' << deviredMember << '\n';
+    }
+}
+
+#endif // TEST11
+
+#ifdef TEST12
+
+#include <iostream>
+
+class Base
+{
+public:
+    virtual void Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void BaseFunc()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual ~Base()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    uint64_t Member { 123 };
+};
+
+class Base2
+{
+public:
+    virtual void Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Base2Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual ~Base2()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    uint64_t Member { 789 };
+};
+
+class Base3
+{
+public:
+    virtual ~Base3()
+    {
+    }
+
+    virtual void Base3Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+};
+
+class Base4
+{
+public:
+    virtual ~Base4()
+    {
+    }
+
+    virtual void Base4Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+};
+
+class Base5
+{
+public:
+    virtual ~Base5()
+    {
+    }
+
+    virtual void Base5Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+};
+
+class Derived : public Base,
+                public Base2,
+                public Base3,
+                public Base4,
+                public Base5
+{
+public:
+    void Func() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void DerivedFunc()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void BaseFunc() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void Base2Func() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void Base3Func() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void Base4Func() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    ~Derived() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    uint64_t Member { 666 };
+};
+
+// 64位程序，指针是uint64_t
+/**
+ * 子类继承自多个父类时，对象模型如下：
+ * 虚函数表指针（子类自己独有的虚函数也会放在这个虚函数表中）
+ * 成员变量指针（成员变量指针并不是必须的，如果基类没有成员变量，也就没有成员变量指针）
+ * 虚函数表指针
+ * 成员变量指针
+ * ...
+ * 子类的成员变量
+ *
+ * 注意：
+ * overwrite时，所以基类的相同签名的函数都会被子类相同签名的函数覆盖
+ * 内存布局中，父类按照声明顺序排列
+ */
+
+int main()
+{
+    typedef void (*Fun)();
+
+    // 多继承
+    // 模型：
+    {
+        std::cout << "sizeof(Derived): " << sizeof(Derived) << '\n';
+
+        Derived d;
+        uint64_t BaseMember { 0 }, Base2Member { 0 }, DerivedMember { 0 };
+
+        {
+            // 第0个父类的虚函数表
+            auto vfptr = (uint64_t*)(&d);
+
+            // 第0个父类的虚函数
+            auto Func0 = (Fun) * (uint64_t*)*vfptr;
+            Func0();
+            auto Func1 = (Fun) * ((uint64_t*)*vfptr + 1);
+            Func1();
+
+            // 子类自己定义的虚函数
+            auto Func = (Fun) * ((uint64_t*)*vfptr + 3);
+            Func();
+
+            // 第0个父类的成员变量
+            BaseMember = *(uint64_t*)(vfptr + 1);
+        }
+
+        {
+            // 第1个父类的虚函数表
+            auto vfptr = (uint64_t*)(&d) + 2; // 加2表示第0个基类需要包含：虚函数表和成员变量两个指针
+
+            // 第1个父类的虚函数
+            auto Func0 = (Fun) * (uint64_t*)*vfptr;
+            Func0();
+            auto Func1 = (Fun) * ((uint64_t*)*vfptr + 1);
+            Func1();
+
+            // 第1个父类的成员变量
+            Base2Member = *(uint64_t*)(vfptr + 1);
+        }
+
+        {
+            // 第2个父类的虚函数表
+            auto vfptr = (uint64_t*)(&d) + 4;
+
+            // 第2个父类的虚函数，第0个虚函数是析构函数，无法获取
+            auto Func1 = (Fun) * ((uint64_t*)*vfptr + 1);
+            Func1();
+        }
+
+        {
+            // 第3个父类的虚函数表
+            auto vfptr = (uint64_t*)(&d) + 5; // 因为Base3没有成员变量，所以只需要加1
+
+            // 第3个父类的虚函数，第0个虚函数是析构函数，无法获取
+            auto Func1 = (Fun) * ((uint64_t*)*vfptr + 1);
+            Func1();
+        }
+
+        {
+            // 第4个父类的虚函数表
+            auto vfptr = (uint64_t*)(&d) + 6;
+
+            // 第4个父类的虚函数，第0个虚函数是析构函数，无法获取
+            auto Func1 = (Fun) * ((uint64_t*)*vfptr + 1);
+            Func1();
+        }
+
+        // 子类自己的成员变量
+        {
+            auto vptr     = (uint64_t*)(&d) + 7;
+            DerivedMember = *vptr;
+        }
+
+        std::cout << "Member: " << BaseMember << '\t' << Base2Member << '\t' << DerivedMember << '\n';
+    }
+}
+
+#endif // TEST11
+
+#ifdef TEST13
+
+#include <iostream>
+
+class A
+{
+public:
+    virtual void Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Func2()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Func3()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual ~A()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    uint64_t AMember1 { 123 };
+    uint64_t AMember2 { 234 };
+};
+
+class C
+{
+public:
+    virtual void Func()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Func2()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual ~C()
+    {
+    }
+
+    uint64_t CMember1 { 678 };
+    uint64_t CMember2 { 789 };
+};
+
+class B : virtual public A,
+          virtual public C
+{
+public:
+    virtual void BFunc()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void BFunc2()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    void Func() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    ~B() override
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    uint64_t BMember { 666 };
+};
+
+int main()
+{
+    std::cout << "sizeof(A): " << sizeof(A) << "\nsizeof(B): " << sizeof(B) << std::endl;
+
+    typedef void (*Fun)();
+
+    {
+        B b;
+        auto ptr = (uint64_t*)(&b); // 虚函数表
+
+        // B自己的虚函数(B可以没有自己的虚函数)
+        auto B_func = (Fun) * ((uint64_t*)*(uint64_t*)(&b));
+        B_func();
+        auto B_func2 = (Fun) * ((uint64_t*)*(uint64_t*)(&b) + 1);
+        B_func2();
+
+        // 虚基类表指针，里面存放的是偏移值
+        auto x = *(int*)*((uint64_t*)(&b) + 1); // 虚基类表指针到该类内存首地址的偏移值，如果B没有自己的虚函数此处为0，有虚函数则为-8(x64)
+        auto y = *(int*)((int*)*((uint64_t*)(&b) + 1) + 1); // 最左虚继承父类的内存地址相对于虚基类表指针的偏移值
+        auto z = *(int*)((int*)*((uint64_t*)(&b) + 1) + 2); // 次左虚继承父类的内存地址相对于虚基类表指针的偏移值
+        // 其他的虚继承父类 ...
+        std::cout << "vbptr: " << x << '\t' << y << '\t' << z << '\n';
+
+        // B的成员变量
+        auto B_member = *(uint64_t*)((uint64_t*)(&b) + 2); // 前面的uint64_t表示成员变量类型，此处可以不加
+        std::cout << "B Member: " << B_member << '\n';
+
+        // 分隔标记，好像只是用来隔离
+        auto o = *((uint64_t*)(&b) + 3);
+        std::cout << "offset: " << o << '\n';
+
+        // 最左虚继承父类的虚函数（重写的虚函数不知道为啥调用不了）
+        Fun fun0_1 = (Fun) * ((uint64_t*)*((uint64_t*)(&b) + 4) + 1);
+        fun0_1();
+        Fun fun0_2 = (Fun) * ((uint64_t*)*((uint64_t*)(&b) + 4) + 2);
+        fun0_2();
+
+        // 最左虚继承父类的成员变量
+        auto m0_0 = *(uint64_t*)((uint64_t*)(&b) + 5);
+        auto m0_1 = *(uint64_t*)(((uint64_t*)(&b) + 5) + 1);
+        std::cout << "A Member: " << m0_0 << '\t' << m0_1 << '\n';
+
+        // 次左虚继承父类。偏移值里边的第二个（次左）是56=7*8（8是x64指针大小），所以此处的8=1+7
+        // 同样只能调用没有被子类重写的虚函数
+        Fun fun1_1 = (Fun) * ((uint64_t*)*((uint64_t*)(&b) + 8) + 1);
+        fun1_1();
+
+        // 次左虚继承父类的成员变量
+        auto m1_0 = *(uint64_t*)((uint64_t*)(&b) + 9);
+        auto m1_1 = *(uint64_t*)(((uint64_t*)(&b) + 9) + 1);
+        std::cout << "C Member: " << m1_0 << '\t' << m1_1 << '\n';
+    }
+}
+
+#endif // TEST13
 
 #ifdef TEST10
 
