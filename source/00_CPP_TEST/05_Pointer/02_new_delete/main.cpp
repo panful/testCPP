@@ -1,46 +1,58 @@
-/*
-
- * 4. new 和 delete 作用域
- 
-
+/**
+ * 1. 指针类型的成员变量解引用
+ * 2.
+ *
+ *
+ *
  * 17 类中new出来的成员变量内存位置 C++内存模型 00_07_TEST12
- * 18 堆和栈 优点缺点 https://www.zhihu.com/question/379456802/answer/1115546749
+ * 18 C++内存模型 堆和栈 优点缺点 https://www.zhihu.com/question/379456802/answer/1115546749
  * 19 APR内存池 http://www.wjhsh.net/jiangzhaowei-p-10383065.html
  * 20 NULL nullptr nullptr_t
-
+ *
  * 22 new和delete应该一对一，越界赋值，new崩溃
  * 23 operator new
  */
 
-#define TEST23
+#define TEST2
 
-
-#ifdef TEST4
+#ifdef TEST1
 
 #include <iostream>
 
-class A
+struct A
 {
-public:
-    A() { std::cout << "construct\n"; }
-    ~A() { std::cout << "destruct\n"; }
+    int a { 1 };
+    int b { 2 };
+};
+
+struct B
+{
+    uint64_t a { 3 };
+    int b { 4 };
+};
+
+struct C
+{
+    A* a { new A() };
+    B* b { new B() };
 };
 
 int main()
 {
-    std::cout << "start\n";
-    A* a1 = nullptr;
-    std::cout << "111\n";
+    std::cout << sizeof(C) << '\n';
+
     {
-        a1 = new A();
+        auto p = new C();
+        std::cout << p << '\n';
+
+        auto c_b     = ((uint64_t*)p + 1);                     // 获取结构体C中的成员变量b
+        auto c_b_ptr = (B*)*((uint64_t*)p + 1);                // 对C中的b解引用，然后转换为B*
+        std::cout << c_b_ptr->a << '\t' << c_b_ptr->b << '\n'; // 访问B的成员变量
     }
-    std::cout << "222\n";
-    delete a1;
-    a1 = nullptr;
-    std::cout << "end\n";
 }
 
-#endif // TEST4
+#endif // TEST1
+
 
 
 #ifdef TEST17
@@ -67,13 +79,10 @@ https://blog.csdn.net/tulingwangbo/article/details/79729548
 class Test
 {
 public:
-    Test()
-        : m_c1('x')
-        , m_c2('y')
-        , m_p1(new char[3] { 0 })
-        , m_p2(new char[3] { 0 })
+    Test() : m_c1('x'), m_c2('y'), m_p1(new char[3] { 0 }), m_p2(new char[3] { 0 })
     {
     }
+
     ~Test()
     {
         if (m_p1)
@@ -106,8 +115,8 @@ int main()
         char c { 'x' };
         char d { 'y' };
 
-        int* pa = new int(2);
-        int* pb = new int(3);
+        int* pa  = new int(2);
+        int* pb  = new int(3);
         char* pc = new char('c');
         char* pd = new char('d');
 
@@ -126,8 +135,8 @@ int main()
     std::cout << "=======================================\n";
     {
         Test t;
-        char c1 = 'c';
-        char c2 = 'c';
+        char c1  = 'c';
+        char c2  = 'c';
         char* p1 = new char[2] { 0 };
         char* p2 = new char[2] { 0 };
 
@@ -146,9 +155,9 @@ int main()
     }
     std::cout << "=======================================\n";
     {
-        Test* t = new Test();
-        char c1 = 'c';
-        char c2 = 'c';
+        Test* t  = new Test();
+        char c1  = 'c';
+        char c2  = 'c';
         char* p1 = new char[2] { 0 };
         char* p2 = new char[2] { 0 };
 
@@ -168,10 +177,10 @@ int main()
     std::cout << "=======================================\n";
     {
         std::unique_ptr<Test> t = std::make_unique<Test>();
-        char c1 = 'c';
-        char c2 = 'c';
-        char* p1 = new char[2] { 0 };
-        char* p2 = new char[2] { 0 };
+        char c1                 = 'c';
+        char c2                 = 'c';
+        char* p1                = new char[2] { 0 };
+        char* p2                = new char[2] { 0 };
 
         // 堆
         PRINT_ADDRESS(t.get());
@@ -189,10 +198,10 @@ int main()
     std::cout << "=======================================\n";
     {
         std::shared_ptr<Test> t = std::make_shared<Test>();
-        char c1 = 'c';
-        char c2 = 'c';
-        char* p1 = new char[2] { 0 };
-        char* p2 = new char[2] { 0 };
+        char c1                 = 'c';
+        char c2                 = 'c';
+        char* p1                = new char[2] { 0 };
+        char* p2                = new char[2] { 0 };
 
         // 堆
         PRINT_ADDRESS(t.get());
@@ -223,6 +232,11 @@ https://blog.csdn.net/weixin_43340455/article/details/124786128
 https://blog.csdn.net/great_emperor_/article/details/123261184
 */
 
+// 寄存器 内存 堆 栈 https://blog.csdn.net/goldenlake90/article/details/130761947
+// https://blog.csdn.net/m0_66300397/article/details/130020405
+// 堆和自由存储区的区别 https://www.cnblogs.com/QG-whz/p/5060894.html
+// Const Data、Stack、Free Store、Heap、Global/Static http://www.gotw.ca/gotw/009.htm
+
 /*
  * 全局/静态存储区
  * 1.BSS段
@@ -237,10 +251,10 @@ https://blog.csdn.net/great_emperor_/article/details/123261184
 int g_a;
 static int g_b;
 
-int g_c = 7;
+int g_c        = 7;
 static int g_d = 8;
 
-const int g_e = 9;
+const int g_e        = 9;
 const static int g_f = 9;
 
 const char* g_g = "abcd";
@@ -253,13 +267,13 @@ int main()
     // int m_a;
     static int m_b;
 
-    int m_c = 7;
+    int m_c        = 7;
     static int m_d = 8;
 
-    const int m_e = 9;
+    const int m_e        = 9;
     const static int m_f = 9;
 
-    const char* m_g = "abcd";
+    const char* m_g        = "abcd";
     static const char* m_h = "abcd";
     const static char* m_i = "abcd";
 
@@ -303,6 +317,7 @@ void func(void*)
 {
     std::cout << "func1\n";
 }
+
 void func(int)
 {
     std::cout << "func2\n";
@@ -326,8 +341,6 @@ int main()
 }
 #endif // TEST20
 
-
-
 #ifdef TEST22
 
 #include <iostream>
@@ -337,7 +350,7 @@ int main()
 {
     // 一个new对应一个delete
     {
-        int* p = new int[1000] { 0 };
+        int* p          = new int[1000] { 0 };
         long long count = 1000000;
         while (count-- > 0)
         {
@@ -364,7 +377,7 @@ int main()
         for (size_t i = 0; i < 1000; i++)
         {
             auto x = p[i];
-            p[i] = (int)i; // 此处越界赋值破坏了堆，下一次new会崩溃
+            p[i]   = (int)i; // 此处越界赋值破坏了堆，下一次new会崩溃
         }
 
         int* p2 = new int[100] { 0 };
@@ -388,11 +401,13 @@ void* operator new(size_t size)
     std::cout << "Allocing " << size << " bytes\n";
     return malloc(size);
 }
+
 void operator delete(void* memory, size_t size)
 {
     std::cout << "Free " << size << " bytes\n";
     free(memory);
 }
+
 struct Entity
 {
     int x, y, z;
