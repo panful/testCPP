@@ -5,9 +5,10 @@
  * 3. 随机数引擎如果是类成员，不设置种子，每次运行程序生成的随机数一样
  * 4. 返回各种数据类型的极值
  * 5. 二进制字面量与整形字面量分隔符
+ * 6. 数学常量 pi e...
  */
 
-#define TEST4
+#define TEST6
 
 #ifdef TEST1
 
@@ -53,8 +54,8 @@ int main()
     std::default_random_engine generator1(static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count()));
     std::default_random_engine generator2(static_cast<uint32_t>(time(nullptr)));
 
-    std::default_random_engine generator;                            // 使用默认种子，每次运行程序生成的随机数相同
-    std::uniform_int_distribution<int> distribution1(0, 255);        // 生成[0,255]之间的int型随机数
+    std::default_random_engine generator;                     // 使用默认种子，每次运行程序生成的随机数相同
+    std::uniform_int_distribution<int> distribution1(0, 255); // 生成[0,255]之间的int型随机数
 
     std::uniform_real_distribution<float> distribution2(0.0f, 1.0f); // 生成[0,1]之间的随机float值
 
@@ -163,3 +164,22 @@ int main()
     std::cout << a << '\n' << b << '\n' << c << '\n';
 }
 #endif // TEST5
+
+#ifdef TEST6
+
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <numbers>
+#include <string_view>
+
+int main()
+{
+    std::cout << "e: " << std::numbers::e << std::endl
+              << "pi: " << std::numbers::pi << std::endl
+              << "e<float>: " << std::numbers::e_v<float> << std::endl
+              << "pi<float>: " << std::numbers::pi_v<float> << std::endl;
+}
+
+#endif // TEST6

@@ -9,9 +9,10 @@
  * 8. std::as_const
  * 9. mutable
  * 10.if constexpr()
+ * 11.constexpr constinit consteval
  */
 
-#define TEST10
+#define TEST11
 
 #ifdef TEST1
 
@@ -516,3 +517,50 @@ int main()
 }
 
 #endif // TEST10
+
+#ifdef TEST11
+
+#include <iostream>
+
+constexpr int f1(int n)
+{
+    return n * n;
+}
+
+consteval int f2(int n)
+{
+    return n * n;
+}
+
+const char* GetStringDyn()
+{
+    return "dynamic init";
+}
+
+constexpr const char* GetString(bool constInit)
+{
+    return constInit ? "constant init" : GetStringDyn();
+}
+
+constinit const char* a = GetString(true); // ok
+constexpr const char* c = GetString(true); // ok
+
+// constinit const char* b = GetString(false); // error
+// constexpr const char* d = GetString(false); // error
+
+// constexpr 修饰的变量必须编译期确定值
+// constexpr 修饰的函数编译期、运行期都可执行
+// consteval 修饰的函数只能在编译期执行
+// constinit 强制指定以常量方式初始化
+
+int main()
+{
+    int x = 2;
+
+    auto result1  = f1(x); // ok
+    auto restult2 = f1(2); // ok
+    // auto result3  = f2(x); // error
+    auto result4 = f2(2); // ok
+}
+
+#endif // TEST11

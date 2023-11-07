@@ -7,9 +7,10 @@
  * 6. lambda使用static变量
  * 7. 初始化捕获
  * 8. lambda使用auto形参
+ * 9. lambda使用模板
  */
 
-#define TEST8
+#define TEST9
 
 #ifdef TEST1
 
@@ -419,7 +420,7 @@ int main()
         int i = 1;
         auto f = [i](int x) { return -(i + x); }; // 参数列表：调用时需要传入一个int值，捕获列表：变量i可以在lambda内部使用
         auto j = f(3);
-        std::cout << j << std::endl;              // -(1+3) = -4
+        std::cout << j << std::endl; // -(1+3) = -4
     }
 
     return 0;
@@ -629,6 +630,7 @@ int main()
     std::cout << "---------------------------------------------------\n";
 
     {
+        // 一次构造，一次析构
         auto f = [](auto&& h) { h.Test(); };
         f(Helper());
     }
@@ -650,3 +652,20 @@ int main()
 }
 
 #endif // TEST8
+
+#ifdef TEST9
+
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    {
+        auto func_since_20 = []<typename T>(const std::vector<T>& vec) { std::cout << typeid(T).name() << std::endl; };
+
+        std::vector<int> vec;
+        func_since_20(vec);
+    }
+}
+
+#endif // TEST9
