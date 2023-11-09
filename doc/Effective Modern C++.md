@@ -90,7 +90,7 @@ void Func<void>(void*) = delete;
 - 子类中重写的函数都应该添加override声明
 - 成员函数引用饰词使得对于左值和右值对象(*this)的处理能够区分开来
 ## 13.优先选用const_iterator，而非iterator
-- 优先选用非成员函数版本的begin()、end()和rbegin()等函数
+- 在最通用的代码中优先选用非成员函数版本的begin()、end()和rbegin()等函数（C++11中部分函数未实现）
 ```C++
 std::begin(container);
 std::end(container);
