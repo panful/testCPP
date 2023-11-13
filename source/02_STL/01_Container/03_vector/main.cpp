@@ -2,11 +2,11 @@
  * 1. vector reserve() 初始化与否导致的巨大性能差异
  * 2. emplace_back push_back
  * 3. vector扩容机制
- * 4. vector转指针 指针转vector
- * 5.
+ * 4. vector转指针 指针转std::vector
+ * 5. 扩容、裁剪
  */
 
-#define TEST4
+#define TEST5
 
 #ifdef TEST1
 
@@ -274,3 +274,34 @@ int main()
 }
 
 #endif // TEST4
+
+#ifdef TEST5
+
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    {
+        std::vector<float> vec;
+        vec.resize(10); // vec共有10个元素，且都为0.f
+
+        std::fill(vec.begin(), vec.end(), 3.f); // 将vec的值全部设置为3.f
+        vec.resize(20);                         // 将vec的大小扩充至20，后10个元素的值为0.f，前10个仍为原值
+
+        std::fill(vec.begin(), vec.end(), 4.f); // 将vec的值全部设置为4.f
+        vec.resize(10);                         // 将vec的大小缩小为10，这10个元素的值为原值
+    }
+
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        // 构造新的std::vector时传入需要截取的范围，即可截取输入std::vectotr的指定内容
+        std::vector vec3(vec1.cbegin(), vec1.cbegin() + 2);     // 12
+        std::vector vec4(vec1.cbegin() + 2, vec1.cbegin() + 5); // 345
+        std::vector vec5(vec1.cbegin() + 5, vec1.cend());       // 6789
+    }
+}
+
+#endif // TEST5

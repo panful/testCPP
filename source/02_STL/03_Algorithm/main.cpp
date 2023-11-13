@@ -1,14 +1,21 @@
 /**
  * 101. std::transform 不保证按顺序在一个范围内应用函数
  * 102. std::for_each 按顺序在一个范围内应用函数
- * 103. 已排序范围上的集合操作 set_difference set_symmetric_difference set_union set_intersection set_difference
+ * 103. std::set_difference set_symmetric_difference set_union set_intersection set_difference 已排序范围上的集合操作
  * 104. std::search 查找子序列 std::search_n 查找多个连续的相同元素
  * 105. std::includes 在已排序的范围中查找子序列
  * 106. std::find_end 在一个范围中查找子序列最后一次出现的位置
  * 107. std::find std::find_if std::find_if_not 查找范围中满足判别标准的首个元素迭代器
  * 108. std::find_first_of 在给定范围中查找另一个范围中的任意元素
  * 109. std::adjacent_find 在给定范围中查找首对连续相同元素的位置，可以自定义连续两个元素满足指定要求，比如递增、递减、升序、降序...
- *
+ * 110. std::copy std::copy_if std::copy_n std::copy_backward 拷贝指定范围内的元素到指定范围
+ * 111. std::fill std:fill_n std::generate std::generate 对指定范围填充指定值
+ * 112. std::remove_copy std::remove_copy_if std::partition_copy 将指定范围中满足特定条件的元素拷贝到指定范围
+ * 113. std::partition std::is_partitioned std::stable_partition std::partition_point
+ * 114. std::is_sorted std::is_sorted_until 
+ * 115. std::lower_bound std::upper_bound std::equal_range
+ * 116. std::binary_search
+ * 
  * 201. std::execution 并行算法
  * 202. 并行算法数据竞争问题
  *
@@ -21,7 +28,7 @@
 // https://zh.cppreference.com/w/cpp/header/algorithm
 // c++并行算法 openmp tbb mkl opencl => 06_02
 
-#define TEST109
+#define TEST112
 
 #ifdef TEST101
 
@@ -528,6 +535,145 @@ int main()
 }
 
 #endif // TEST109
+
+#ifdef TEST110
+
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(10);
+        std::vector<int> vec3;
+        vec3.reserve(5);
+
+        // 将vec1的所有元素拷贝至vec2的开始位置
+        std::copy(vec1.cbegin(), vec1.cend(), vec2.begin()); // 从vec2.begin()到vec2.end()必须不小于vec1的大小
+
+        // 将vec1的所有元素拷贝至vec2的末尾
+        std::copy(vec1.cbegin(), vec1.cend(), std::back_inserter(vec3)); // vec3不需要提前分配大小，可以提前分配内存
+    }
+
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(5);
+        std::vector<int> vec3;
+        vec3.reserve(5);
+
+        std::copy_n(vec1.cbegin(), 3, vec2.begin()); // 将vec1的前3个元素拷贝到vec2的开始位置
+        std::copy_n(vec1.cbegin(), 5, std::back_inserter(vec3));
+    }
+
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(5);
+        std::vector<int> vec3;
+        vec3.reserve(5);
+
+        // 将使函数对象返回true的元素拷贝至指定位置
+        std::copy_if(vec1.cbegin(), vec1.cend(), vec2.begin(), [](auto val) { return val % 2 == 0; });
+        std::copy_if(vec1.cbegin(), vec1.cend(), std::back_inserter(vec3), [](auto val) { return val % 2 == 0; });
+    }
+
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(10);
+        std::vector<int> vec3;
+
+        // 将vec1的所有元素复制到终于vec2.end()的范围
+        std::copy_backward(vec1.cbegin(), vec1.cend(), vec2.end());
+
+        // 只支持双向迭代器，不支持插入迭代器
+        // std::copy_backward(vec1.cbegin(), vec1.cend(), std::back_inserter(vec3));
+    }
+}
+
+#endif // TEST110
+
+#ifdef TEST111
+
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    {
+        std::vector<int> vec { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        // 将指定范围内的所有元素设置为指定值
+        std::fill(vec.begin(), vec.end(), -1);
+    }
+
+    {
+        std::vector<int> vec { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        // 将从指定位置开始连续的N个元素设置为指定值，（开始位置+N）不能超出容器大小
+        std::fill_n(vec.begin(), 5, -1);
+    }
+
+    {
+        std::vector<int> vec { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        int number { 10 };
+
+        // 将指定范围内的所有元素设置为函数对象的返回值
+        std::generate(vec.begin(), vec.end(), [&number]() { return number++; });
+    }
+
+    {
+        std::vector<int> vec { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        // 将从指定位置开始连续的N个元素设置为函数对象的返回值
+        std::generate_n(vec.begin(), 5, []() { return -1; });
+    }
+}
+
+#endif // TEST111
+
+#ifdef TEST112
+
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(5);
+        std::vector<int> vec3;
+        vec3.reserve(5);
+
+        // 将指定范围的元素复制到指定位置，忽略满足特定标准的值
+        std::remove_copy(vec1.cbegin(), vec1.cend(), vec2.begin(), 3);             // 1245
+        std::remove_copy(vec1.cbegin(), vec1.cend(), std::back_inserter(vec3), 3); // 1245
+    }
+
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(5);
+        std::vector<int> vec3;
+        vec3.reserve(5);
+
+        // 将指定范围的元素复制到指定位置，忽略使函数对象返回true的元素
+        std::remove_copy_if(vec1.cbegin(), vec1.cend(), vec2.begin(), [](auto val) { return val % 2 == 0; });             // 135
+        std::remove_copy_if(vec1.cbegin(), vec1.cend(), std::back_inserter(vec3), [](auto val) { return val % 2 == 0; }); // 135
+    }
+
+    {
+        std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+        std::vector<int> vec2(5);
+        std::vector<int> vec3(5);
+
+        // 将指定范围的元素，按照函数对象返回的类别分为两组：函数对象返回true一组，返回false另一组
+        std::partition_copy(vec1.cbegin(), vec1.cend(), vec2.begin(), vec3.begin(), [](auto val) { return val % 2 == 0; });
+    }
+}
+
+#endif // TEST112
 
 #ifdef TEST201
 
