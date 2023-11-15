@@ -10,9 +10,10 @@
  * 9. memcpy pod union
  * 10 std::aligned_union
  * 11 位域
+ * 12 std::visit使用泛型lambda对std::variant不同类型的值进行不同操作
  */
 
-#define TEST11
+#define TEST12
 
 #ifdef TEST1
 
@@ -139,7 +140,7 @@ int main()
 
     {
         std::variant<int, float, char> var2;
-        var2.emplace<int>(2);       // 没有多个int类型时才可以这样赋值
+        var2.emplace<int>(2); // 没有多个int类型时才可以这样赋值
         var2        = 2.0f;
         var2        = 3.0f;         // 覆盖前面的值
         var2        = 'x';          // 覆盖前面的值
@@ -1000,7 +1001,7 @@ int main()
 
         MyStruct* s1 = new MyStruct { npod2, pod2, 2, std::string("abc"), { 1, 2, 3 } };
         MyStruct* s2 = new MyStruct { nullptr, nullptr, 0, "", {} };
-        std::memcpy(s2, s1, sizeof(MyStruct));                            // ok
+        std::memcpy(s2, s1, sizeof(MyStruct)); // ok
 
         std::cout << std::is_standard_layout_v<MyNotPODType> << '\n';     // false
         std::cout << std::is_standard_layout_v<MyPODType> << '\n';        // true
@@ -1148,3 +1149,88 @@ int main()
 }
 
 #endif // TEST11
+
+#ifdef TEST12
+
+#include <iostream>
+#include <string>
+#include <variant>
+#include <vector>
+
+int main()
+{
+    std::vector<std::variant<int, std::string>> vec;
+    vec.emplace_back(1);
+    vec.emplace_back("abc");
+    vec.emplace_back(2);
+    vec.emplace_back("xyz");
+    vec.emplace_back(3);
+    vec.emplace_back("rgb");
+
+    std::vector<int> vInt;
+    std::vector<std::string> vStr;
+
+    //--------------------------------------------------------
+    // 通过检查std::variant是否持有某个类型，对不同类型的数据进行不同操作
+    for (auto elem : vec)
+    {
+        if (std::holds_alternative<int>(elem))
+        {
+            vInt.emplace_back(std::get<int>(elem));
+        }
+        else if (std::holds_alternative<std::string>(elem))
+        {
+            vStr.emplace_back(std::get<std::string>(elem));
+        }
+    }
+
+    vInt.clear();
+    vStr.clear();
+
+    //--------------------------------------------------------
+    // 泛型lambda
+    auto lambda = [&vInt, &vStr](auto&& elem)
+    {
+        using T = std::decay_t<decltype(elem)>;
+
+        if constexpr (std::is_same_v<T, int>)
+        {
+            vInt.push_back(elem);
+        }
+        else if constexpr (std::is_same_v<T, std::string>)
+        {
+            vStr.push_back(elem);
+        }
+    };
+
+    for (auto& elem : vec)
+    {
+        std::visit(lambda, elem);
+    }
+
+    vInt.clear();
+    vStr.clear();
+
+    //--------------------------------------------------------
+    // 泛型lambda
+    for (auto& elem : vec)
+    {
+        std::visit(
+            [&vInt, &vStr](auto&& elem)
+            {
+                using T = std::decay_t<decltype(elem)>;
+
+                if constexpr (std::is_same_v<T, int>)
+                {
+                    vInt.push_back(elem);
+                }
+                else if constexpr (std::is_same_v<T, std::string>)
+                {
+                    vStr.push_back(elem);
+                }
+            },
+            elem);
+    }
+}
+
+#endif // TEST12
