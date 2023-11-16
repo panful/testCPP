@@ -6,7 +6,7 @@
  * 5. 扩容、裁剪
  */
 
-#define TEST5
+#define TEST4
 
 #ifdef TEST1
 
@@ -185,19 +185,6 @@ int main()
 
 int main()
 {
-    // 指针转std::vector
-    {
-        int arr[] = { 0, 1, 2, 3, 4 };
-        std::vector<int> vec;
-        vec.reserve(5);
-        vec.insert(vec.cbegin(), arr, arr + 5); // 第二三个参数是指针的起始和结束地址
-        for (auto v : vec)
-        {
-            std::cout << v << ' ';
-        }
-        std::cout << std::endl;
-    }
-
     // 指针转多层std::vector
     {
         int arr[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
@@ -247,6 +234,7 @@ int main()
     }
 
     // 将指针插入std::vector<struct>
+    // 指针转std::vector
     {
         struct Point
         {
@@ -256,8 +244,32 @@ int main()
         };
 
         double input[] { 1., 2., 3., 4., 5., 6., 7., 8., 9. };
-        std::vector<Point> output;
-        std::copy(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input + 9), std::back_inserter(output));
+        std::vector<Point> output { { 6, 6, 6 } };
+
+        {
+            // 将input的所有元素复制到output的尾部，不需要提前分配大小（可以分配内存提高效率）
+            output.reserve(3 + 3);
+            std::copy(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input + 9), std::back_inserter(output));
+            std::copy(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input) + 3, std::back_inserter(output));
+        }
+
+        {
+            // 必须提前分配大小（不是内存reserve）
+            // 会将input的所有元素复制到output的begin位置，
+            // 如果output的大小超过input的大小，则ouput的前input.size()个元素会被替换为input的数据
+            output.resize(4);
+            std::copy(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input) + 3, output.begin());
+        }
+
+        {
+            // 会将output的所有元素用input的数据替换
+            output.assign(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input) + 3);
+        }
+
+        {
+            // 会在插入点之前插入input，原来的元素仍然保留
+            output.insert(output.cbegin(), reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input) + 3);
+        }
 
         auto out = reinterpret_cast<double*>(output.data());
 
@@ -265,7 +277,7 @@ int main()
         {
             std::cout << elem.x << ' ' << elem.y << ' ' << elem.z << '\n';
         }
-        for (size_t i = 0; i < 9; ++i)
+        for (size_t i = 0; i < output.size() * 3; ++i)
         {
             std::cout << out[i] << ' ';
         }
