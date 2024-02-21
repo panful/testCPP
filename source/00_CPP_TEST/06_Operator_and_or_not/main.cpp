@@ -3,11 +3,11 @@
  * 2. unsigned int 和 unsigned char[4] 互相转换 https://www.cnblogs.com/mmmmmmmmm/p/14586206.html
  * 3. 位运算符 & | ！ >> <<
  * 4. functional头文件中的位操作函数，逻辑操作函数
- * 5. 重载bool
- * 6. 重载指针类型转换
+ * 5. 重载 bool (也属于类型转换)
+ * 6. 重载类型转换
  */
 
-#define TEST5
+#define TEST6
 
 #ifdef TEST1
 
@@ -129,7 +129,7 @@ int main()
 template <typename T>
 struct Test
 {
-    operator T*() const noexcept
+    constexpr operator T*() const noexcept
     {
         return static_cast<T*>(this->Object);
     }
@@ -140,7 +140,7 @@ struct Test
 int main()
 {
     Test<int> t;
-    int* p = t;
+    int* p = t; // 将 t 隐式转换为 int* 类型，避免隐式转换可以使用 explicit
 }
 
 #endif // TEST6
