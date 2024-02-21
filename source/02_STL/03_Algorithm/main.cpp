@@ -12,12 +12,13 @@
  * 111. std::fill std:fill_n std::generate std::generate 对指定范围填充指定值
  * 112. std::remove_copy std::remove_copy_if std::partition_copy 将指定范围中满足特定条件的元素拷贝到指定范围
  * 113. std::partition std::is_partitioned std::stable_partition std::partition_point
- * 114. std::is_sorted std::is_sorted_until 
+ * 114. std::is_sorted std::is_sorted_until
  * 115. std::lower_bound std::upper_bound std::equal_range
  * 116. std::binary_search
- * 
+ *
  * 201. std::execution 并行算法
  * 202. 并行算法数据竞争问题
+ * 203. 使用 std::iota 生成连续递增的数字序列，用来索引并行算法
  *
  * 301. std::reduce std::accumulate 将一个范围内的元素累加起来、相乘、组合等
  * 302. std::transform_reduce 并行地对一个范围内的元素变换并求和
@@ -28,7 +29,7 @@
 // https://zh.cppreference.com/w/cpp/header/algorithm
 // c++并行算法 openmp tbb mkl opencl => 06_02
 
-#define TEST112
+#define TEST203
 
 #ifdef TEST101
 
@@ -776,6 +777,36 @@ int main()
 }
 
 #endif // TEST202
+
+#ifdef TEST203
+
+#include <algorithm>
+#include <execution>
+#include <iostream>
+#include <iterator>
+#include <numeric>
+#include <vector>
+
+int main()
+{
+    std::vector<int> vec1 { 1, 2, 3, 4, 5 };
+    std::vector<int> vec2(5);
+
+    std::vector<size_t> indices(vec1.size());
+    // 如果std::iota操作的是自定义类型，需要对自定义类型重载前置++运算符
+    // 可以自定义自增的大小
+    std::iota(indices.begin(), indices.end(), 0); // 从 0 开始生成连续的递增int序列
+
+    // 使用int序列索引std::vector
+    std::for_each(std::execution::par, indices.cbegin(), indices.cend(), [vec1, &vec2](auto index) { vec2[index] = vec1[index] * vec1[index]; });
+
+    for (const auto& elem : vec2)
+    {
+        std::cout << elem << ' ';
+    }
+}
+
+#endif // TEST203
 
 #ifdef TEST301
 
