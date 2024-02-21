@@ -2,6 +2,7 @@
  * 101 std::unique_ptr reset() release() 容器中保存std::unique_ptr
  * 102 自定义std::unique_ptr的释放方法
  * 103 将std::unique_ptr应用于工厂模式，std::unique_ptr转换为std::shared_ptr
+ * 104 构造函数抛出异常时使用 std::unique_ptr
  *
  * 201 std::shared_ptr的大小，控制块（引用计数）的创建
  * 202 std::enable_shared_from_this 如何安全地使用this创建std::shared_ptr
@@ -24,7 +25,7 @@
  * 405 智能指针应用于多态
  */
 
-#define TEST405
+#define TEST104
 
 #ifdef TEST101
 
@@ -261,6 +262,69 @@ int main()
 }
 
 #endif // TEST103
+
+#ifdef TEST104
+
+#include <iostream>
+#include <memory>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "Helper::Construct\n";
+    }
+
+    ~Helper()
+    {
+        std::cout << "Helper::Destruct\n";
+    }
+};
+
+class Test
+{
+public:
+    Test()
+    {
+        m_unique_ptr = std::make_unique<Helper>(); // 即使构造函数抛出异常，也可以释放该智能指针
+        m_pointer    = new Helper();               // 如果构造函数抛出异常，不能正常释放该裸指针
+
+        std::cout << "Before exception\n";
+        throw std::runtime_error("throw exception");
+        std::cout << "After exception\n";
+    }
+
+    ~Test()
+    {
+        if (m_pointer)
+        {
+            delete m_pointer;
+            m_pointer = nullptr;
+        }
+
+        std::cout << "Test::Destruct\n";
+    }
+
+private:
+    std::unique_ptr<Helper> m_unique_ptr { nullptr };
+    Helper* m_pointer { nullptr };
+};
+
+int main()
+{
+    try
+    {
+        // 如果构造 Test 时抛出异常，则不需要调用 Test 的析构函数，因为 Test 对象并没有构造成功
+        auto ptr = std::make_unique<Test>();
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << '\n';
+    }
+}
+
+#endif // TEST104
 
 //---------------------------------------------------------
 #ifdef TEST201
@@ -1595,8 +1659,8 @@ int main()
             std::cout << "+++++\n";
         } // 这里并不会调用delete，即不会释放内存，但是会调用Helper的析构函数
         std::cout << wp.use_count() << '\n';
-    }     // std::weak_ptr析构时才会调用delete释放内存
-          // 所以如果std::shared_ptr的型别特别大且被std::weak_ptr弱引用，不建议使用std::make_shared
+    } // std::weak_ptr析构时才会调用delete释放内存
+      // 所以如果std::shared_ptr的型别特别大且被std::weak_ptr弱引用，不建议使用std::make_shared
 
     std::cout << "----------------------------------------------------\n";
     return 0;

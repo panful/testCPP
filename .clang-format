@@ -21,7 +21,7 @@ BraceWrapping:
   AfterCaseLabel:           true  # case  新起一行
   BeforeCatch:              true  # catch 新起一行
   BeforeElse:               true  # else  新起一行
-  AfterLambdaBody:          true
+  #AfterLambdaBody:          true
   BeforeLambdaBody:         true
 
 # 尾随的注释对齐
@@ -55,3 +55,6 @@ MaxEmptyLinesToKeep: 1
 
 # 宏的换行符左对齐
 AlignEscapedNewlines: Left
+
+# switch语句的case缩进
+IndentCaseLabels: true
