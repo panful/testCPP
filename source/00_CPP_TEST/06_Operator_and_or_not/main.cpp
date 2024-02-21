@@ -5,9 +5,10 @@
  * 4. functional头文件中的位操作函数，逻辑操作函数
  * 5. 重载 bool (也属于类型转换)
  * 6. 重载类型转换
+ * 7. 重载前置++和后置++
  */
 
-#define TEST6
+#define TEST7
 
 #ifdef TEST1
 
@@ -144,3 +145,41 @@ int main()
 }
 
 #endif // TEST6
+
+#ifdef TEST7
+
+#include <iostream>
+
+class Test
+{
+public:
+    Test& operator++()
+    {
+        std::cout << "pre ++\n";
+        this->Number += 2;
+        return *this;
+    }
+
+    // 后置++返回的是值，不是引用，注意：不要返回局部变量的引用
+    // 参数int是用来和前置++作区分，实际并不使用
+    Test operator++(int)
+    {
+        std::cout << "post ++\n";
+        auto tmp = *this; // 拷贝一份this用作返回值
+        this->Number += 3;
+        return tmp;
+    }
+
+    int Number { 0 };
+};
+
+int main()
+{
+    Test t1;
+    auto t2 = t1++; // 先返回原值，再++
+
+    Test t3;
+    auto t4 = ++t3; // 先++，再返回值
+}
+
+#endif // TEST7
