@@ -23,6 +23,8 @@
  * 403 std::make_shared使用的时机 std::allocate_shared允许自定义分配器
  * 404 使用new构造std::shared_ptr造成内存泄漏
  * 405 智能指针应用于多态
+ * 
+ * 智能指针传参 https://www.zhihu.com/question/534389744/answer/2500052393
  */
 
 #define TEST104
