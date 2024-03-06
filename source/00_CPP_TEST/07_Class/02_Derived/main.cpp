@@ -765,6 +765,66 @@ int main()
 
 #endif // TEST8
 
+#ifdef TEST10
+
+#include <iostream>
+#include <string>
+
+class Sub;
+
+template <typename T>
+class Base
+{
+public:
+    void printInfo();
+};
+
+class Sub : public Base<Sub>
+{
+public:
+    static std::string getClassName()
+    {
+        return "Sub\n";
+    }
+
+    void printA()
+    {
+        std::cout << "A\n";
+    }
+
+    void printB()
+    {
+        std::cout << "B\n";
+    }
+};
+
+template <typename T>
+void Base<T>::printInfo()
+{
+    std::cout << "Class Name:" << Sub::getClassName();
+
+    ((T*)this)->printA();
+
+    static_cast<T*>(this)->printB();
+
+    // error 因为Base<Sub>不是多态基类
+    // dynamic_cast<T*>(this)->printB();
+
+    reinterpret_cast<T*>(this)->printB();
+}
+
+int main()
+{
+    Sub s;
+    s.getClassName();
+    s.printA();
+    s.printB();
+    s.printInfo();
+
+    return 0;
+}
+#endif // TEST10
+
 #ifdef TEST11
 
 // https://www.cnblogs.com/QG-whz/p/4909359.html
@@ -1240,66 +1300,6 @@ int main()
 }
 
 #endif // TEST13
-
-#ifdef TEST10
-
-#include <iostream>
-#include <string>
-
-class Sub;
-
-template <typename T>
-class Base
-{
-public:
-    void printInfo();
-};
-
-class Sub : public Base<Sub>
-{
-public:
-    static std::string getClassName()
-    {
-        return "Sub\n";
-    }
-
-    void printA()
-    {
-        std::cout << "A\n";
-    }
-
-    void printB()
-    {
-        std::cout << "B\n";
-    }
-};
-
-template <typename T>
-void Base<T>::printInfo()
-{
-    std::cout << "Class Name:" << Sub::getClassName();
-
-    ((T*)this)->printA();
-
-    static_cast<T*>(this)->printB();
-
-    // error 因为Base<Sub>不是多态基类
-    // dynamic_cast<T*>(this)->printB();
-
-    reinterpret_cast<T*>(this)->printB();
-}
-
-int main()
-{
-    Sub s;
-    s.getClassName();
-    s.printA();
-    s.printB();
-    s.printInfo();
-
-    return 0;
-}
-#endif // TEST10
 
 #ifdef TEST14
 

@@ -15,6 +15,7 @@
  * 114. std::is_sorted std::is_sorted_until
  * 115. std::lower_bound std::upper_bound std::equal_range
  * 116. std::binary_search
+ * 117. std::any_of std::none_of std::all_of 检查范围中的元素（所有或任意）是否对lambda返回true或false
  *
  * 201. std::execution 并行算法
  * 202. 并行算法数据竞争问题
@@ -29,7 +30,7 @@
 // https://zh.cppreference.com/w/cpp/header/algorithm
 // c++并行算法 openmp tbb mkl opencl => 06_02
 
-#define TEST203
+#define TEST117
 
 #ifdef TEST101
 
@@ -675,6 +676,34 @@ int main()
 }
 
 #endif // TEST112
+
+#ifdef TEST117
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
+int main()
+{
+    {
+        std::vector<int> vec { 1, 3, 5, 7, 9 };
+        // lambda对所有元素返回false，则none_of返回true
+        auto none = std::none_of(vec.cbegin(), vec.cend(), [](auto v) { return v % 2 == 0; }); // true
+        // lambda对所有元素返回true，则all_of返回true
+        auto all = std::all_of(vec.cbegin(), vec.cend(), [](auto v) { return v == 3; }); // false
+        // lambda对任意至少一个元素返回true，则any_of返回true
+        auto any = std::any_of(vec.cbegin(), vec.cend(), [](auto v) { return v < 3; }); // true
+    }
+
+    {
+        std::string str { "12345@#abcde" };
+        auto none = std::none_of(str.cbegin(), str.cend(), [](auto v) { return std::isupper(v); }); // true
+        auto all  = std::all_of(str.cbegin(), str.cend(), [](auto v) { return std::isdigit(v); });  // false
+        auto any  = std::any_of(str.cbegin(), str.cend(), [](auto v) { return std::islower(v); });  // true
+    }
+}
+
+#endif // TEST117
 
 #ifdef TEST201
 

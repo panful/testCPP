@@ -1186,6 +1186,7 @@ public:
             // 但是经过一定时间后，lock()获取的std::shared_ptr已经为空
             // 因此为了线程安全，必须在使用lock()返回的std::shared_ptr时再判断一次
             // C++标准规定：lock()是原子操作
+            // 可以直接使用lock()获取shared_ptr，不必使用expired()判断再使用lock()获取
             if (auto sp = m_helper.lock())
             {
                 std::cout << "lock() is valid ptr\t" << sp << '\n';
