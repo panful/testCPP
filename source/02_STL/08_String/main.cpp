@@ -1,43 +1,43 @@
 /*
-* 1. std::string_view
-* 2. 自己实现一个 std::string_view
-* 3. std::string中的字符替换
-* 4. 字面值 原生字符串 R"()" ""s ""sv
-* 5. std::string 中文字符串比较
-* 6. 字符串拼接
-* 7. std::quoted 给字符串加双引号""
-* 8. std::from_chars std::to_chars char*和数值互相转换
-* 9. std::string能否被继承
-*/
+ * 1. std::string_view
+ * 2. 自己实现一个 std::string_view
+ * 3. std::string中的字符替换
+ * 4. 字面值 原生字符串 R"()" ""s ""sv
+ * 5. std::string 中文字符串比较
+ * 6. 字符串拼接
+ * 7. std::quoted 给字符串加双引号""
+ * 8. std::from_chars std::to_chars char*和数值互相转换
+ * 9. std::string 能否被继承
+ */
 
 // std::string的实现方式以及缺点 https://www.zhihu.com/question/54664311?sort=created
 // https://blog.csdn.net/weixin_33755554/article/details/93150731
 // std::string 的缺点 https://www.zhihu.com/question/35967887?sort=created
 
-
-#define TEST1
+#define TEST9
 
 #ifdef TEST1
 
+#include <chrono>
+#include <iostream>
 #include <string>
 #include <string_view>
-#include <iostream>
-#include <chrono>
 
 class Test
 {
 public:
-    Test() :
-        m_startTime(std::chrono::high_resolution_clock::now())
+    Test() : m_startTime(std::chrono::high_resolution_clock::now())
     {
-
     }
+
     ~Test()
     {
 #if __cplusplus > 201703L && defined WIN32
-        std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime) << "\n";
+        std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime)
+                  << "\n";
 #else
-        std::cout << "Used for " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime).count() << "\n";
+        std::cout << "Used for "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_startTime).count() << "\n";
 #endif
     }
 
@@ -46,15 +46,18 @@ public:
         auto x = str;
         std::cout << x << '\n';
     }
+
     void f2(std::string_view str)
     {
         auto x = str;
         std::cout << x << '\n';
     }
+
     void f3(const std::string& str)
     {
         auto x = str;
     }
+
     void f4(std::string str)
     {
         auto x = str;
@@ -66,43 +69,45 @@ private:
 
 constexpr size_t count = 1'000'000;
 
-#define TEST_MICRO(f,x)   \
-{                         \
-    Test t;               \
-    auto _count = count;  \
-    while (_count-- > 0)  \
-    {                     \
-        t.f(x);           \
-    }                     \
-}
+#define TEST_MICRO(f, x)     \
+    {                        \
+        Test t;              \
+        auto _count = count; \
+        while (_count-- > 0) \
+        {                    \
+            t.f(x);          \
+        }                    \
+    }
 
-#define TEST_CONSTRUCT_1(...)                   \
-{                                               \
-    Test t;                                     \
-    auto _count = count;                        \
-    while (_count-- > 0)                        \
-    {                                           \
-        std::string_view sv{ __VA_ARGS__ };     \
-    }                                           \
-}
+#define TEST_CONSTRUCT_1(...)                    \
+    {                                            \
+        Test t;                                  \
+        auto _count = count;                     \
+        while (_count-- > 0)                     \
+        {                                        \
+            std::string_view sv { __VA_ARGS__ }; \
+        }                                        \
+    }
 
-#define TEST_CONSTRUCT_2(x)                             \
-{                                                       \
-    Test t;                                             \
-    auto _count = count;                                \
-    while (_count-- > 0)                                \
-    {                                                   \
-        std::string_view sv{std::begin(x),std::end(x) };\
-    }                                                   \
-}
+#define TEST_CONSTRUCT_2(x)                                     \
+    {                                                           \
+        Test t;                                                 \
+        auto _count = count;                                    \
+        while (_count-- > 0)                                    \
+        {                                                       \
+            std::string_view sv { std::begin(x), std::end(x) }; \
+        }                                                       \
+    }
 
-std::string_view GetStringView() {
-    std::string str{ "this is a string" };
-    std::string_view sv{ str };
+std::string_view GetStringView()
+{
+    std::string str { "this is a string" };
+    std::string_view sv { str };
     return sv;
 }
 
-std::string_view GetModifiedSV(const std::string_view& sv) {
+std::string_view GetModifiedSV(const std::string_view& sv)
+{
     return sv;
 }
 
@@ -111,7 +116,7 @@ std::string_view GetModifiedSV(const std::string_view& sv) {
 
 #define TEST_PRODUCT
 
-int main() 
+int main()
 {
 #ifdef TEST_PRODUCT
 
@@ -121,8 +126,8 @@ int main()
     for (size_t i = 0; i < 10; ++i)
     {
         const char* szBuf = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        char szArr[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        std::string str{ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
+        char szArr[]      = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        std::string str { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
 
         TEST_MICRO(f1, szBuf);
         TEST_MICRO(f2, szBuf);
@@ -160,26 +165,26 @@ int main()
     // 该数据类型的实例不会具体存储原数据，仅仅存储指向的数据的起始指针和长度，所以这个开销是非常小的。
     for (size_t i = 0; i < 10; ++i)
     {
-        char szBuf[]{ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
-        std::string str{ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
+        char szBuf[] { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
+        std::string str { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
 
-        std::string_view sv0{ "abc" };   // 需要通过遍历获取数据的长度，时间复杂度O(n)
-        std::string_view sv1{ "abc",3 }; // 这种方式构造最快，因为数据大小不需要通过遍历再去获取
-        std::string_view sv2{ str };
-        std::string_view sv3{ szBuf };
+        std::string_view sv0 { "abc" };    // 需要通过遍历获取数据的长度，时间复杂度O(n)
+        std::string_view sv1 { "abc", 3 }; // 这种方式构造最快，因为数据大小不需要通过遍历再去获取
+        std::string_view sv2 { str };
+        std::string_view sv3 { szBuf };
 #if __cplusplus > 201703L
-        std::string_view sv4{ std::begin(str),std::end(str) };
-        std::string_view sv5{ std::begin(szBuf),std::end(szBuf) };
+        std::string_view sv4 { std::begin(str), std::end(str) };
+        std::string_view sv5 { std::begin(szBuf), std::end(szBuf) };
 #endif
 
         // [4]最耗时；[0][3]次之；[1]耗时最少
-        TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");       // [0]
-        TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 40);   // [1]
-        TEST_CONSTRUCT_1(str);                                              // [2]
-        TEST_CONSTRUCT_1(szBuf);                                            // [3]
+        TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");     // [0]
+        TEST_CONSTRUCT_1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 40); // [1]
+        TEST_CONSTRUCT_1(str);                                            // [2]
+        TEST_CONSTRUCT_1(szBuf);                                          // [3]
 #if __cplusplus > 201703L
-        TEST_CONSTRUCT_2(str);                                              // [4]
-        TEST_CONSTRUCT_2(szBuf);                                            // [5]
+        TEST_CONSTRUCT_2(str);   // [4]
+        TEST_CONSTRUCT_2(szBuf); // [5]
 #endif
         std::cout << "++++++++ " << i << i << i << " +++++++++ \n";
     }
@@ -190,24 +195,22 @@ int main()
 
     // std::string_view 和 std::string 互转
     {
-        std::string_view sv{ "abcd1234" };
-        std::string s{ "xyz789" };
+        std::string_view sv { "abcd1234" };
+        std::string s { "xyz789" };
 
         auto svTos = static_cast<std::string>(sv);
         auto sTosv = std::string_view(s);
-        std::cout <<"string_view <=> string\n" << svTos <<'\n' << sTosv << '\n';
+        std::cout << "string_view <=> string\n" << svTos << '\n' << sTosv << '\n';
     }
 
     // std::string_view范围内的字符串可能不含有\0
     {
-        std::string_view sv{ "abcd",2 };
+        std::string_view sv { "abcd", 2 };
         auto str = static_cast<std::string>(sv); // ab
-        auto sz = sv.data();  // abcd 【注意】此处返回的是"abcd"而不是"ab"
+        auto sz  = sv.data();                    // abcd 【注意】此处返回的是"abcd"而不是"ab"
         std::cout << str << '\t' << sz << '\n';
 
-        auto lambda = [](const char* s) {
-            std::cout << s << '\n';
-        };
+        auto lambda = [](const char* s) { std::cout << s << '\n'; };
 
         lambda(sv.data());
     }
@@ -221,7 +224,7 @@ int main()
 
     {
         std::string str = "abc";
-        auto sv = GetModifiedSV(str + "xyz");
+        auto sv         = GetModifiedSV(str + "xyz");
         // 获取到的sv并不是"abcxyz"
         std::cout << "get modified sv : " << sv << '\n';
     }
@@ -238,106 +241,170 @@ int main()
 #include <string>
 
 template <typename CharT, typename Traits = std::char_traits<CharT>>
-class basic_string_view {
+class basic_string_view
+{
 public:
     using traits_type = Traits;
-    using size_type = std::size_t;
+    using size_type   = std::size_t;
 
     using value_type = CharT;
 
-    using reference = value_type&;
+    using reference       = value_type&;
     using const_reference = const value_type&;
-    using pointer = value_type*;
-    using const_pointer = const value_type*;
+    using pointer         = value_type*;
+    using const_pointer   = const value_type*;
 
-    using const_iterator = const value_type*;
-    using iterator = const_iterator;
+    using const_iterator         = const value_type*;
+    using iterator               = const_iterator;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    using reverse_iterator = const_reverse_iterator;
+    using reverse_iterator       = const_reverse_iterator;
 
     static constexpr size_type npos = size_type(-1);
 
 public:
-    constexpr basic_string_view() noexcept : str_{ nullptr }, size_{ 0 } {}
+    constexpr basic_string_view() noexcept : str_ { nullptr }, size_ { 0 }
+    {
+    }
 
     constexpr basic_string_view(const basic_string_view&) noexcept = default;
 
     constexpr basic_string_view(basic_string_view&&) noexcept = default;
 
-    constexpr basic_string_view(const CharT* str) noexcept : str_{ str }, size_{ traits_type::length(str) } {}
+    constexpr basic_string_view(const CharT* str) noexcept : str_ { str }, size_ { traits_type::length(str) }
+    {
+    }
 
-    constexpr basic_string_view(const CharT* str, size_type len) : str_{ str }, size_{ len } {}
+    constexpr basic_string_view(const CharT* str, size_type len) : str_ { str }, size_ { len }
+    {
+    }
 
     constexpr basic_string_view& operator=(const basic_string_view&) noexcept = default;
 
-    constexpr basic_string_view(const std::basic_string<CharT, Traits>& str) noexcept
-        : str_{ str.c_str() }, size_{ str.size() } {}
+    constexpr basic_string_view(const std::basic_string<CharT, Traits>& str) noexcept : str_ { str.c_str() }, size_ { str.size() }
+    {
+    }
 
-    explicit constexpr operator std::basic_string<CharT, Traits>() const {
+    explicit constexpr operator std::basic_string<CharT, Traits>() const
+    {
         return std::basic_string<CharT, Traits>(this->str_, this->size_);
     }
 
 public:
-    constexpr const_iterator begin() const noexcept { return this->str_; }
+    constexpr const_iterator begin() const noexcept
+    {
+        return this->str_;
+    }
 
-    constexpr const_iterator end() const noexcept { return this->str_ + this->size_; }
+    constexpr const_iterator end() const noexcept
+    {
+        return this->str_ + this->size_;
+    }
 
-    constexpr const_iterator cbegin() const noexcept { return this->str_; }
+    constexpr const_iterator cbegin() const noexcept
+    {
+        return this->str_;
+    }
 
-    constexpr const_iterator cend() const noexcept { return this->str_ + this->size_; }
+    constexpr const_iterator cend() const noexcept
+    {
+        return this->str_ + this->size_;
+    }
 
-    constexpr const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(this->end()); }
+    constexpr const_reverse_iterator rbegin() const noexcept
+    {
+        return const_reverse_iterator(this->end());
+    }
 
-    constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator(this->begin()); }
+    constexpr const_reverse_iterator rend() const noexcept
+    {
+        return const_reverse_iterator(this->begin());
+    }
 
-    constexpr const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(this->end()); }
+    constexpr const_reverse_iterator crbegin() const noexcept
+    {
+        return const_reverse_iterator(this->end());
+    }
 
-    constexpr const_reverse_iterator crend() const noexcept { return const_reverse_iterator(this->begin()); }
+    constexpr const_reverse_iterator crend() const noexcept
+    {
+        return const_reverse_iterator(this->begin());
+    }
 
 public:
-    constexpr size_type size() const noexcept { return this->size_; }
+    constexpr size_type size() const noexcept
+    {
+        return this->size_;
+    }
 
-    constexpr size_type length() const noexcept { return this->size_; }
+    constexpr size_type length() const noexcept
+    {
+        return this->size_;
+    }
 
-    constexpr size_type max_size() const noexcept {
+    constexpr size_type max_size() const noexcept
+    {
         // (npos - sizeof(size_type) - sizeof(void*)) / sizeof(value_type) / 4; impl of gcc
         return npos - 1;
     }
 
-    constexpr bool empty() const noexcept { return this->size_ == 0; }
+    constexpr bool empty() const noexcept
+    {
+        return this->size_ == 0;
+    }
 
 public:
-    constexpr const_pointer data() const noexcept { return this->str_; }
+    constexpr const_pointer data() const noexcept
+    {
+        return this->str_;
+    }
 
-    constexpr const_reference operator[](size_type pos) const noexcept { return *(this->str_ + pos); }
+    constexpr const_reference operator[](size_type pos) const noexcept
+    {
+        return *(this->str_ + pos);
+    }
 
-    constexpr const_reference at(size_type pos) const {
-        if (pos >= this->size_) {
-            throw std::out_of_range{ "out of range" };
+    constexpr const_reference at(size_type pos) const
+    {
+        if (pos >= this->size_)
+        {
+            throw std::out_of_range { "out of range" };
         }
         return *(this->str_ + pos);
     }
 
-    constexpr const_reference front() const noexcept { return *this->str_; }
+    constexpr const_reference front() const noexcept
+    {
+        return *this->str_;
+    }
 
-    constexpr const_reference back() const noexcept { return *(this->str_ + this->size_ - 1); }
+    constexpr const_reference back() const noexcept
+    {
+        return *(this->str_ + this->size_ - 1);
+    }
 
-    constexpr void remove_prefix(size_type n) noexcept {
+    constexpr void remove_prefix(size_type n) noexcept
+    {
         this->str_ += n;
         this->size_ -= n;
     }
 
-    constexpr void remove_suffix(size_type n) noexcept { this->size_ -= n; }
-
-    constexpr void swap(basic_string_view& v) noexcept {
-        auto temp = *this;
-        *this = v;
-        v = temp;
+    constexpr void remove_suffix(size_type n) noexcept
+    {
+        this->size_ -= n;
     }
 
-    constexpr basic_string_view substr(size_type pos = 0, size_type len = npos) const {
-        if (pos > this->size_) {
-            throw std::out_of_range{ "out of range" };
+    constexpr void swap(basic_string_view& v) noexcept
+    {
+        auto temp = *this;
+        *this     = v;
+        v         = temp;
+    }
+
+    constexpr basic_string_view substr(size_type pos = 0, size_type len = npos) const
+    {
+        if (pos > this->size_)
+        {
+            throw std::out_of_range { "out of range" };
         }
         const size_type n = std::min(len, this->size_ - pos);
         return basic_string_view(this->str_ + pos, n);
@@ -349,26 +416,26 @@ private:
 };
 
 template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
-    const basic_string_view<CharT, Traits>& str) {
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const basic_string_view<CharT, Traits>& str)
+{
     os.write(str.data(), static_cast<std::streamsize>(str.size()));
     return os;
 }
 
 using string_view = basic_string_view<char>;
 
-
 // clang++ StringView.cc -std=c++14
-int main() {
+int main()
+{
     const char* data = "helloWorld 12345678";
 
-    string_view sv1{ data };
-    string_view sv2{ data, 5 };
-    string_view sv3{ data + 3, 3 };
-    string_view sv4{ data + 5 };
+    string_view sv1 { data };
+    string_view sv2 { data, 5 };
+    string_view sv3 { data + 3, 3 };
+    string_view sv4 { data + 5 };
 
-    std::string str{ "helloWorld" };
-    string_view sv5{ str };
+    std::string str { "helloWorld" };
+    string_view sv5 { str };
     std::string string = static_cast<std::string>(sv5);
 
     std::cout << data << std::endl;
@@ -383,13 +450,13 @@ int main() {
 
 #ifdef TEST3
 
-#include <string>
 #include <iostream>
+#include <string>
 
 void replace_all(std::string& str, const std::string& old_value, const std::string& new_value)
 {
     // [1]
-    //while (true) {
+    // while (true) {
     //    std::string::size_type pos(0);
     //    if ((pos = str.find(old_value)) != std::string::npos)
     //        str.replace(pos, old_value.length(), new_value);
@@ -398,7 +465,7 @@ void replace_all(std::string& str, const std::string& old_value, const std::stri
 
     // [2]
     std::string::size_type pos(0);
-    while (( pos = str.find(old_value)) != std::string::npos)
+    while ((pos = str.find(old_value)) != std::string::npos)
     {
         str.replace(pos, old_value.length(), new_value);
     }
@@ -414,11 +481,11 @@ int main()
 
 #ifdef TEST4
 
+#include <iostream>
 #include <string>
 #include <string_view>
-#include <iostream>
 
-#define PRINT(x) std::cout<<"size:"<<x.size()<<"\t"<<x<<'\n';
+#define PRINT(x) std::cout << "size:" << x.size() << "\t" << x << '\n';
 
 int main()
 {
@@ -428,10 +495,10 @@ int main()
     // \0表示字符串的结束
 
     {
-        std::string s1{ "abc\t123" };
-        std::string s2{ "abc\t123"s };
-        std::string s3{ "abc\0123" };
-        std::string s4{ "abc\0123"s };
+        std::string s1 { "abc\t123" };
+        std::string s2 { "abc\t123"s };
+        std::string s3 { "abc\0123" };
+        std::string s4 { "abc\0123"s };
 
         PRINT(s1);
         PRINT(s2);
@@ -495,17 +562,16 @@ int main()
         PRINT(s4);
     }
 
-    //auto ret = std::string("ss").compare("ss");
-    //auto ret1 = std::string("ss").compare("sss");
+    // auto ret = std::string("ss").compare("ss");
+    // auto ret1 = std::string("ss").compare("sss");
 
-    //auto l = L"abcd1234";
-    //auto u = U"1234abcd";
-    //auto aa = 0.0F;
-    //auto bb = u8"sss";
-    //auto cc = 2l;
+    // auto l = L"abcd1234";
+    // auto u = U"1234abcd";
+    // auto aa = 0.0F;
+    // auto bb = u8"sss";
+    // auto cc = 2l;
 
     // https://blog.csdn.net/qq_21746331/article/details/111125583
-
 }
 #endif // TEST4
 
@@ -534,22 +600,21 @@ int main()
     }
 }
 
-
 #endif // TEST5
 
 #ifdef TEST6
 
-#include <vector>
+#include <array>
+#include <iostream>
 #include <list>
 #include <set>
-#include <array>
 #include <string>
-#include <iostream>
+#include <vector>
 
-//#define Method_1
+// #define Method_1
 
 template <typename T>
-auto glue(T&& t,std::string separator = "|")
+auto glue(T&& t, std::string separator = "|")
 {
 #ifdef Method_1
     // 指针不能使用empty()
@@ -559,7 +624,7 @@ auto glue(T&& t,std::string separator = "|")
     }
     // 指针不能使用begin()等函数
     {
-        auto itBeg = t.begin();
+        auto itBeg  = t.begin();
         auto retVal = *itBeg;
         for (auto it = ++itBeg; it != t.end(); ++it)
         {
@@ -574,7 +639,7 @@ auto glue(T&& t,std::string separator = "|")
         {
             retVal += (elem + separator);
         }
-        if(!separator.empty())
+        if (!separator.empty())
         {
             return retVal.substr(0, retVal.size() - separator.size());
         }
@@ -585,20 +650,20 @@ auto glue(T&& t,std::string separator = "|")
 
 int main()
 {
-    std::set<std::string> setStr{ "aa","bb","cc","dd","ee" };
-    std::list<std::string> listStr{ "aa","bb","cc","dd","ee" };
-    std::array<std::string, 5> arrayStr{ "aa","bb","cc","dd","ee" };
-    std::vector<std::string> vecStr{ "aa","bb","cc","dd","ee" };
+    std::set<std::string> setStr { "aa", "bb", "cc", "dd", "ee" };
+    std::list<std::string> listStr { "aa", "bb", "cc", "dd", "ee" };
+    std::array<std::string, 5> arrayStr { "aa", "bb", "cc", "dd", "ee" };
+    std::vector<std::string> vecStr { "aa", "bb", "cc", "dd", "ee" };
 
     std::cout << glue(setStr, "#") << '\n';
     std::cout << glue(listStr, "@") << '\n';
     std::cout << glue(arrayStr, "$") << '\n';
     std::cout << glue(vecStr, "") << '\n';
-    std::cout << glue(std::vector<std::string>{}) << '\n';
-    std::cout << glue(std::list<std::string>{"single_str"}, "#") << '\n';
+    std::cout << glue(std::vector<std::string> {}) << '\n';
+    std::cout << glue(std::list<std::string> { "single_str" }, "#") << '\n';
 
 #ifndef Method_1
-    std::string pStr[5]{ "aa","bb","cc","dd","ee" };
+    std::string pStr[5] { "aa", "bb", "cc", "dd", "ee" };
     std::cout << glue(pStr, "^") << '\n';
 #endif // Method_1
 
@@ -609,8 +674,8 @@ int main()
 
 #ifdef TEST7
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 int main()
@@ -635,13 +700,14 @@ int main()
 #include <charconv>
 #include <iostream>
 
-int main() 
+int main()
 {
     // number -> char*
     {
-        auto f = [](auto&& value,int base = 10) {
+        auto f = [](auto&& value, int base = 10)
+        {
             // result用来接收转换结果，如果buffer大小不足可能会出现意想不到的结果
-            char result[100]{ 0 };
+            char result[100] { 0 };
             auto [ptr, ec] = std::to_chars(result, result + sizeof(result), value);
 
             std::cout << "source:\t" << value << '\t';
@@ -669,9 +735,10 @@ int main()
 
     // char* -> number
     {
-        auto f = [](const char* first,const char* last,int base = 10) {
+        auto f = [](const char* first, const char* last, int base = 10)
+        {
             // 函数参数：char*开始位置，char*结束位置，转换结果，进制（默认10）
-            int ret = 0;
+            int ret        = 0;
             auto [ptr, ec] = std::from_chars(first, last, ret, base);
 
             std::cout << "source:\t" << first << '\t';
@@ -710,7 +777,6 @@ int main()
         f(c7, c7 + sizeof(c7), 16);
         f(c8, c8 + sizeof(c8), 16);
     }
-
 }
 #endif // TEST8
 
@@ -719,39 +785,65 @@ int main()
 #include <iostream>
 #include <string>
 
-// std::string的析构函数不是虚析构函数，所以std::string不能被继承
+// std::string没有被final修饰，所以可以继承，不过std::string的析构函数不是虚函数，所以继承时需要额外注意
+// 可以使用private继承std::string
 
-class MyString :public std::string
+class MyString : private std::string
 {
 public:
-    MyString(const char* p) :
-        std::string(p)
+    MyString(const char* str) : std::string(str)
     {
     }
 
-    MyString() :
-        std::string()
+    constexpr size_type size() const noexcept
     {
+        return std::string::size();
     }
+
+    constexpr const_pointer data() const noexcept
+    {
+        return std::string::data();
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, MyString& str)
+    {
+        os << str.data();
+        return os;
+    }
+
+    // ...
 };
 
 int main()
 {
-    //MyString myString("ssssssssssssssssssssssssssssssssssssssssssssssssss");
-    //auto sz = myString.size();
-
-    int g = 0;
     {
-        std::string str{ "11111111111111111111111111111111111111111111111111" };
-    }
-    {
-        std::string str{ "sssss" };
-    }
-    {
-        std::string str{ "" };
+        std::string str { "xyz789" };
+        std::cout << str.size() << '\t' << str << '\n';
     }
 
-    int s = 0;
+    {
+        MyString str { "abc123" };
+        std::cout << str.size() << '\t' << str << '\n';
+    }
+
+    {
+        auto ptr = new std::string("qwert");
+        std::cout << ptr->size() << '\t' << *ptr << '\n';
+        delete ptr;
+    }
+
+    {
+        auto ptr = new MyString("123456");
+        std::cout << ptr->size() << '\t' << *ptr << '\n';
+        delete ptr;
+    }
+
+    {
+        // 因为是私有继承，类型转换失败，所以不能赋值子类指针给父类指针变量
+        // std::string* ptr = new MyString("qwert12345");
+    }
+
+    return 0;
 }
 
 #endif // TEST9
