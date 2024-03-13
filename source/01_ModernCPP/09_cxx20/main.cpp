@@ -3,10 +3,10 @@
  * 201. std::ranges std::views
  * 301. 协程 coroutine
  * 401. 概念 concepts https://zhuanlan.zhihu.com/p/600617910?utm_id=0
- * 501. std::span 
+ * 501. std::span
  */
 
-#define TEST401
+#define TEST201
 
 #ifdef TEST101
 
@@ -53,12 +53,25 @@ int main()
 
 #ifdef TEST201
 
+#include <algorithm>
 #include <iostream>
 #include <ranges>
 #include <vector>
 
 int main()
 {
+    {
+        std::vector vec = { 1, 3, 5, 7, 9, 2, 4, 6, 8, 0 };
+        std::ranges::sort(vec);
+
+        for (const auto& elem : vec)
+        {
+            std::cout << elem << ' ';
+        }
+        std::cout << std::endl;
+    }
+
+    // 使用管道 '|'
     {
         std::vector vec = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
@@ -67,7 +80,30 @@ int main()
         // 结果res是惰性求值，只有在用到的时候才会实际执行views操作
         auto res = vec | std::views::filter([](auto v) { return v % 2 == 0; }) | std::views::transform([](auto v) { return v * 2; });
 
-        for (auto elem : res)
+        for (const auto& elem : res)
+        {
+            std::cout << elem << ' ';
+        }
+        std::cout << std::endl;
+    }
+
+    {
+        std::vector numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        auto even           = [](int i) { return 0 == i % 2; };
+        auto square         = [](int i) { return i * i; };
+
+        // 从最里边的{}开始计算，先找出偶数，再对所有偶数平方
+        // std::ranges::transform_view 是一个类：class
+        auto res1 { std::ranges::transform_view { std::ranges::filter_view { numbers, even }, square } };
+        for (const auto& elem : res1)
+        {
+            std::cout << elem << ' ';
+        }
+        std::cout << std::endl;
+
+        // std::views::transform 是一个函数对象：struct 重载了 operator()
+        auto res2 = std::views::transform(std::views::filter(numbers, even), square);
+        for (const auto& elem : res2)
         {
             std::cout << elem << ' ';
         }
