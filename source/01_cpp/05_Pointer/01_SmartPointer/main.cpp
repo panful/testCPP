@@ -25,6 +25,7 @@
  * 405 智能指针应用于多态
  * 
  * 智能指针传参 https://www.zhihu.com/question/534389744/answer/2500052393
+ * 一般情况使用 T* 或 T&，不要使用智能指针 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-smart
  */
 
 #define TEST104

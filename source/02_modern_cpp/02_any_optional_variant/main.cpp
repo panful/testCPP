@@ -13,11 +13,11 @@
  * 12 std::visit使用泛型lambda对std::variant不同类型的值进行不同操作
  */
 
-#define TEST12
+#define TEST1
 
 #ifdef TEST1
 
-// std::optional可以用在函数返回结果不一定正确的时候
+// std::optional 可以用在函数返回结果不一定正确的时候
 // 例如输入文件名读取文件并返回文件内容，有可能打开文件失败，有可能文件本身就为空
 // 所以返回空字符串就有歧义，如果文件打开失败返回std::nullopt就比较好理解
 
@@ -25,25 +25,23 @@
 #include <optional>
 #include <string>
 
-// 将std::string转换为int型数据
+// 将std::string转换为 int 型数据
 std::optional<int> asInt(const std::string& s)
 {
     try
     {
-        // 转换成功返回结果
-        return std::stoi(s);
+        return std::stoi(s); // 转换成功返回结果
     }
     catch (...)
     {
-        // 转换失败返回std::nullopt;
-        // 可以理解为nullptr
-        return std::nullopt;
+        return std::nullopt; // 转换失败返回 std::nullopt 可以理解为nullptr
     }
 }
 
 int main()
 {
-    // 使用解引用*获取std::optional的值
+
+    // 使用 解引用* 获取 std::optional 的值
     for (const auto& s : { "42", " 077", "hello", "0x33" })
     {
         std::optional<int> oi = asInt(s);
@@ -51,7 +49,7 @@ int main()
         // std::optional<T>对bool()进行了重载，所以直接可以用在if语句中
         if (oi)
         {
-            // 如果std::optional没值，则*oi是未定义的行为
+            // 如果 std::optional 没值，则 *oi 是未定义的行为
             std::cout << "convert \t'" << s << "' \t\tto int: " << *oi << "\n";
         }
         else
@@ -59,10 +57,12 @@ int main()
             std::cout << "can't convert \t'" << s << "' \tto int\n";
         }
     }
+
     std::cout << "--------------------\n";
-    // 使用value获取std::optional的值
+
+    // 使用 has_value() 判断是否有值，使用 value() 获取 std::optional 的值
     {
-        std::optional<int> optInt1 = 2.2; // 强制将double转换为int
+        std::optional<int> optInt1 = 2.2; // 会强制将 double 转换为 int
         std::cout << (optInt1.has_value() ? optInt1.value() : 0) << std::endl;
 
         std::optional<int> optInt2;
@@ -75,15 +75,46 @@ int main()
             std::cout << "value() throw error\n";
         }
     }
+
     std::cout << "--------------------\n";
-    // 使用value_or获取std::optional的值
+
+    // 使用 value_or() 获取 std::optional 的值
     {
-        // value_or如果std::optional有值则返回std::optional的值，如果没值则返回参数
+        // 如果 std::optional 有值则返回 std::optional 的值，如果没值则返回 value_or() 的参数
         std::optional<int> optInt1 = 2;
-        std::cout << optInt1.value_or(1) << '\n';
+        std::cout << optInt1.value_or(1) << '\n'; // 2
 
         std::optional<int> optInt2;
-        std::cout << optInt2.value_or(3) << '\n';
+        std::cout << optInt2.value_or(3) << '\n'; // 3
+    }
+
+    // 比较 std::optional
+    {
+        auto x = std::make_optional(1);
+        auto y = std::make_optional(2);
+        auto z = std::optional<int> { 1 };
+        auto s = std::nullopt;
+
+        if (x == y)
+        {
+            std::cout << "x == y\n";
+        }
+        if (x == z)
+        {
+            std::cout << "x == z\n";
+        }
+        if (y == z)
+        {
+            std::cout << "y == z\n";
+        }
+        if (x == s)
+        {
+            std::cout << "x == s\n";
+        }
+        if (x == 1)
+        {
+            std::cout << "x == 1\n";
+        }
     }
 }
 
@@ -140,7 +171,7 @@ int main()
 
     {
         std::variant<int, float, char> var2;
-        var2.emplace<int>(2); // 没有多个int类型时才可以这样赋值
+        var2.emplace<int>(2);       // 没有多个int类型时才可以这样赋值
         var2        = 2.0f;
         var2        = 3.0f;         // 覆盖前面的值
         var2        = 'x';          // 覆盖前面的值
@@ -1001,7 +1032,7 @@ int main()
 
         MyStruct* s1 = new MyStruct { npod2, pod2, 2, std::string("abc"), { 1, 2, 3 } };
         MyStruct* s2 = new MyStruct { nullptr, nullptr, 0, "", {} };
-        std::memcpy(s2, s1, sizeof(MyStruct)); // ok
+        std::memcpy(s2, s1, sizeof(MyStruct));                            // ok
 
         std::cout << std::is_standard_layout_v<MyNotPODType> << '\n';     // false
         std::cout << std::is_standard_layout_v<MyPODType> << '\n';        // true
