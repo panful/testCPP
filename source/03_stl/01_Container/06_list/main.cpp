@@ -1,10 +1,11 @@
 /**
- * 1. std::list的使用，std::forward_list没有size()函数
+ * 1. std::list
+ * 2. std::forward_list 没有size()函数
  */
 
 // https://www.cnblogs.com/mmmmmmmmm/p/14812567.html
 
-#define TEST1
+#define TEST2
 
 #ifdef TEST1
 
@@ -83,3 +84,38 @@ int main()
 }
 
 #endif // TEST1
+
+#ifdef TEST2
+
+#include <forward_list>
+#include <iostream>
+
+int main()
+{
+    // 在元素头部原位构造元素
+    {
+        std::forward_list<int> fl;
+        fl.emplace_front(1);
+        fl.emplace_front(2);
+        fl.emplace_front(3);
+        for (auto const elem : fl)
+        {
+            std::cout << elem << ' '; // 3,2,1 注意此处不是 1,2,3
+        }
+    }
+
+    // 在指定位置后边原位构造元素
+    {
+        std::forward_list<int> fl;
+        fl.emplace_after(fl.cbefore_begin(), 1);
+        fl.emplace_after(fl.cbefore_begin(), 2);
+        fl.emplace_after(fl.cbefore_begin(), 3);
+
+        for (auto const elem : fl)
+        {
+            std::cout << elem << ' '; // 3,2,1
+        }
+    }
+}
+
+#endif // TEST2
