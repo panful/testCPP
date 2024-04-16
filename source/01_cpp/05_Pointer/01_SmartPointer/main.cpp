@@ -28,7 +28,7 @@
  * 一般情况使用 T* 或 T&，不要使用智能指针 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-smart
  */
 
-#define TEST104
+#define TEST101
 
 #ifdef TEST101
 
@@ -110,6 +110,16 @@ int main()
         vecA.emplace_back(a.release());           // 使用release返回裸指针，然后插入vector
         vecA.emplace_back(std::make_unique<A>()); // 直接在vector上构造unique_ptr
         vecA.emplace_back(std::move(a));          // 使用移动语义将unique_ptr插入vector
+    }
+
+    std::cout << "---------------------------------------------\n";
+
+    {
+        std::vector<std::unique_ptr<A>> vec1;
+        vec1.emplace_back(std::make_unique<A>());
+
+        std::vector<std::unique_ptr<A>> vec2;
+        vec2.emplace_back(std::move(vec1.front())); // 此时 vec1 大小仍为1，但是它的元素是 nullptr
     }
 
     std::cout << "---------------------------------------------\n";
