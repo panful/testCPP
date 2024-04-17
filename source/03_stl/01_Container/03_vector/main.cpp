@@ -3,10 +3,11 @@
  * 2. emplace_back push_back
  * 3. vector扩容机制
  * 4. vector转指针 指针转std::vector
- * 5. 扩容、裁剪
+ * 5. 扩容、填充、裁剪
+ * 6. 自定义空间配置器 allocator
  */
 
-#define TEST4
+#define TEST6
 
 #ifdef TEST1
 
@@ -66,10 +67,7 @@ void uninitialized_performance()
 void initialized_performance()
 {
     std::vector<AdItem> v;
-    time_report(
-        [&v]() {
-            v.assign(num, AdItem { 0, 0, 0 });
-        },
+    time_report([&v]() { v.assign(num, AdItem { 0, 0, 0 }); },
         [&v]()
         {
             for (int i = 0; i < num; ++i)
@@ -297,7 +295,7 @@ int main()
 {
     {
         std::vector<float> vec;
-        vec.resize(10); // vec共有10个元素，且都为0.f
+        vec.resize(10);                         // vec共有10个元素，且都为0.f
 
         std::fill(vec.begin(), vec.end(), 3.f); // 将vec的值全部设置为3.f
         vec.resize(20);                         // 将vec的大小扩充至20，后10个元素的值为0.f，前10个仍为原值
@@ -317,3 +315,68 @@ int main()
 }
 
 #endif // TEST5
+
+#ifdef TEST6
+
+#include <format>
+#include <iostream>
+#include <memory>
+#include <vector>
+
+// 自定义分配器类
+template <typename T>
+class MyAllocator : public std::allocator<T>
+{
+public:
+    using value_type = typename std::allocator<T>::value_type;
+
+    MyAllocator() noexcept
+    {
+    }
+
+    template <typename U>
+    MyAllocator(const MyAllocator<U>& other) noexcept
+        : std::allocator<T>(other)
+    {
+    }
+
+    // 重写分配内存的方法
+    value_type* allocate(std::size_t num_objects)
+    {
+        std::cout << "allocate: " << num_objects << '\n';
+        return new value_type[num_objects](); // 自定义内存分配逻辑
+
+        // return std::allocator<T>::allocate(num_objects);
+    }
+
+    // 重写释放内存的方法
+    void deallocate(value_type* p, std::size_t num_objects)
+    {
+        std::cout << "deallocate: " << num_objects << '\n';
+        delete[] p; // 自定义内存释放逻辑
+
+        // std::allocator<T>::deallocate(p, num_objects);
+    }
+};
+
+int main()
+{
+    {
+        std::vector<int, MyAllocator<int>> myVector;
+        for (size_t i = 0; i < 10; ++i)
+        {
+            myVector.emplace_back(0);
+            std::cout << std::format("emplace_back: {}\tsize: {}\tcapacity: {}\n", i, myVector.size(), myVector.capacity());
+        }
+    }
+
+    std::cout << "------------------------------------\n";
+
+    {
+        std::vector<int, MyAllocator<int>> myVector;
+        myVector.reserve(10);
+        std::cout << std::format("size: {}\tcapacity: {}\n", myVector.size(), myVector.capacity());
+    }
+}
+
+#endif // TEST6
