@@ -16,6 +16,8 @@
  * 115. std::lower_bound std::upper_bound std::equal_range
  * 116. std::binary_search
  * 117. std::any_of std::none_of std::all_of 检查范围中的元素（所有或任意）是否对lambda返回true或false
+ * 118. std::merge std::inplace_merge 合并两个排序的范围，注意和103区别
+ * 119. std::sort std::stable_sort std::partial_sort std::partial_sort_copy std::nth_element
  *
  * 201. std::execution 并行算法
  * 202. 并行算法数据竞争问题
@@ -30,7 +32,7 @@
 // https://zh.cppreference.com/w/cpp/header/algorithm
 // c++并行算法 openmp tbb mkl opencl => 06_02
 
-#define TEST117
+#define TEST119
 
 #ifdef TEST101
 
@@ -369,8 +371,8 @@ int main()
 
         auto s2 = std::includes(str1.cbegin(), str1.cend(), str2.cbegin(), str2.cend());
         auto s3 = std::includes(str1.cbegin(), str1.cend(), str3.cbegin(), str3.cend());
-        auto s3_nocase
-            = std::includes(str1.cbegin(), str1.cend(), str3.cbegin(), str3.cend(), [](char a, char b) { return std::tolower(a) < std::tolower(b); });
+        auto s3_nocase =
+            std::includes(str1.cbegin(), str1.cend(), str3.cbegin(), str3.cend(), [](char a, char b) { return std::tolower(a) < std::tolower(b); });
 
         std::cout << std::format("str2: {}\nstr3 case: {}\nstr3 nocase: {}\n", s2, s3, s3_nocase);
     }
@@ -704,6 +706,88 @@ int main()
 }
 
 #endif // TEST117
+
+#ifdef TEST118
+
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <vector>
+
+int main()
+{
+    // 合并两个按照 std::less{} 排序的序列
+    {
+        std::vector<int> vec1 { 1, 3, 5, 7 };
+        std::vector<int> vec2 { 2, 4, 6, 8 };
+        std::vector<int> vec3;
+
+        // vec1 和 vec2 必须按照由小到大排序，如果不是有序则会直接中断
+        // vec3 为 {1,2,3,4,5,6,7,8}
+        auto it = std::merge(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(), std::back_inserter(vec3));
+    }
+
+    // 自定义比较函数对象
+    {
+        std::vector<int> vec1 { 7, 6, 5, 3, 1 };
+        std::vector<int> vec2 { 8, 7, 6, 4, 2 };
+        std::vector<int> vec3;
+
+        // vec3 为 {8,7,7,6,6,5,4,3,2,1}
+        auto it = std::merge(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(), std::back_inserter(vec3), std::greater {});
+    }
+
+    // 将两个相继的有序范围合并为一个有序范围
+    {
+        std::vector<int> vec1 { 1, 3, 5, 7, 2, 4, 6, 8 };
+
+        // vec1 为 {1,2,3,4,5,6,7,8}
+        std::inplace_merge(vec1.begin(), vec1.begin() + 4, vec1.end());
+    }
+}
+
+#endif // TEST118
+
+#ifdef TEST119
+
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+int main()
+{
+    // 不保证维持相等元素的顺序
+    {
+        std::vector vec { 1, 3, 5, 7, 2, 4, 6, 8 };
+        std::sort(vec.begin(), vec.end(), std::greater {});
+    }
+
+    // 保持相等的元素之间的顺序
+    {
+        std::vector vec { 1, 3, 5, 7, 2, 4, 6, 8 };
+        std::stable_sort(vec.begin(), vec.end(), std::greater {});
+    }
+
+    // 重排范围中指定个数的元素，其余元素顺序未知，不保证相等元素之间的顺序
+    {
+        std::vector vec { 3, 7, 1, 8, 4, 5, 2, 6 };
+        // 将vec中最大的4个元素排序放在vec的开始位置
+        std::partial_sort(vec.begin(), vec.begin() + 4, vec.end(), std::greater {});
+    }
+
+    // 获取范围中第i个排序后的元素，第i大或第i小等等
+    // vec不一定会被排序，只能保证指定位置是想要获取的值
+    // MSVC2022 就会将输入范围完整排序，GCC13 只会将指定位置修改为要获取的值
+    {
+        std::vector vec { 3, 7, 1, 8, 4, 5, 2, 6 };
+        std::nth_element(vec.begin(), vec.begin() + 3, vec.end());
+        auto th_4 = *(vec.begin() + 3); // 第4小 4
+        std::nth_element(vec.begin(), vec.begin() + 2, vec.end(), std::greater {});
+        auto th_3 = *(vec.begin() + 2); // 第3大 6
+    }
+}
+
+#endif // TEST119
 
 #ifdef TEST201
 
