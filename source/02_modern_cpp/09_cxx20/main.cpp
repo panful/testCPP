@@ -58,6 +58,8 @@ int main()
 #include <ranges>
 #include <vector>
 
+// std::ranges std::views https://blog.csdn.net/JohnnyMartin/article/details/118639528
+
 int main()
 {
     {
@@ -108,6 +110,11 @@ int main()
             std::cout << elem << ' ';
         }
         std::cout << std::endl;
+
+        // std::ranges::transform 是一个函数
+        // https://zh.cppreference.com/w/cpp/algorithm/ranges/transform
+        std::vector<int> res3;
+        std::ranges::transform(numbers, std::back_inserter(res3), even);
     }
 }
 
