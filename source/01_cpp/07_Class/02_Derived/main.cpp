@@ -7,16 +7,18 @@
  * 7. 纯虚析构函数，抽象类的析构函数
  * 8. 父类函数带virtual和不带virtual 纯虚函数，dynamic_cast正确使用方法
  *
- * 10.crtp 单例基类 https://mp.weixin.qq.com/s/eai6rC0V5Ym1kgfTWl4QhQ
  * 11.虚基类、单一继承对象模型
  * 12.多继承对象模型
  * 13.虚继承对象模型
  * 14.Effective Modern C++ 需要改写的函数都应该加上override
  * 15.using 在类继承时的使用
  * 16.变长using声明
+ *
+ * 201. CRTP(Curiously Recurring Template Pattern) 奇异模板递归模式
+ * 202. 将CRTP指针保存到容器，减少重复代码的书写
  */
 
-#define TEST13
+#define TEST202
 
 #ifdef TEST1
 
@@ -44,8 +46,9 @@ class B2 : public A
 {
 };
 
-class C : public B1,
-          public B2
+class C
+    : public B1
+    , public B2
 {
 };
 
@@ -58,8 +61,9 @@ class D2 : virtual public A
 {
 };
 
-class E : public D1,
-          public D2
+class E
+    : public D1
+    , public D2
 {
 };
 
@@ -694,9 +698,10 @@ public:
     virtual ~C() = default;
 };
 
-class Test : public A,
-             public B,
-             public C
+class Test
+    : public A
+    , public B
+    , public C
 {
 public:
     void funT()
@@ -743,7 +748,7 @@ int main()
     b->funB(); // 子类，父类中的funB()为纯虚函数
 
     C* c = new Test();
-    c->funC(); // 子类，因为父类函数是virtual，子类会重写该函数
+    c->funC();                            // 子类，因为父类函数是virtual，子类会重写该函数
 
     C* c1 = dynamic_cast<C*>(new Test()); // 子类转父类没必要使用dynamic_cast，直接转换就行，因为类型本来就是安全的
     c1->funC();                           // 子类
@@ -764,66 +769,6 @@ int main()
 }
 
 #endif // TEST8
-
-#ifdef TEST10
-
-#include <iostream>
-#include <string>
-
-class Sub;
-
-template <typename T>
-class Base
-{
-public:
-    void printInfo();
-};
-
-class Sub : public Base<Sub>
-{
-public:
-    static std::string getClassName()
-    {
-        return "Sub\n";
-    }
-
-    void printA()
-    {
-        std::cout << "A\n";
-    }
-
-    void printB()
-    {
-        std::cout << "B\n";
-    }
-};
-
-template <typename T>
-void Base<T>::printInfo()
-{
-    std::cout << "Class Name:" << Sub::getClassName();
-
-    ((T*)this)->printA();
-
-    static_cast<T*>(this)->printB();
-
-    // error 因为Base<Sub>不是多态基类
-    // dynamic_cast<T*>(this)->printB();
-
-    reinterpret_cast<T*>(this)->printB();
-}
-
-int main()
-{
-    Sub s;
-    s.getClassName();
-    s.printA();
-    s.printB();
-    s.printInfo();
-
-    return 0;
-}
-#endif // TEST10
 
 #ifdef TEST11
 
@@ -923,7 +868,7 @@ int main()
 
         Derived d;
 
-        auto func = (Fun) * (uint64_t*)*(uint64_t*)(&d); // Func()
+        auto func = (Fun) * (uint64_t*)*(uint64_t*)(&d);        // Func()
         func();
         auto func2 = (Fun) * ((uint64_t*)*(uint64_t*)(&d) + 2); // Func2()
         func2();
@@ -1023,11 +968,12 @@ public:
     }
 };
 
-class Derived : public Base,
-                public Base2,
-                public Base3,
-                public Base4,
-                public Base5
+class Derived
+    : public Base
+    , public Base2
+    , public Base3
+    , public Base4
+    , public Base5
 {
 public:
     void Func() override
@@ -1218,8 +1164,9 @@ public:
     uint64_t CMember2 { 789 };
 };
 
-class B : virtual public A,
-          virtual public C
+class B
+    : virtual public A
+    , virtual public C
 {
 public:
     virtual void BFunc()
@@ -1509,15 +1456,17 @@ struct S3 : A
     }
 };
 
-struct S4 : A,
-            B
+struct S4
+    : A
+    , B
 {
     // 类S4继承了类A和类B的同名成员函数f，两者形成【竞争】关系
     // 实例调用时不能确定使用哪一个就会报错
 };
 
-struct S5 : A,
-            B
+struct S5
+    : A
+    , B
 {
     // 类S5同时继承了类A和类B的同名成员函数f
     // 类S5通过using声明将基类A和基类B的同名成员函数f都引入自己的作用域。
@@ -1526,8 +1475,9 @@ struct S5 : A,
     using B::f;
 };
 
-struct S6 : A,
-            B
+struct S6
+    : A
+    , B
 {
     // [0]和[1]是等价的 在 C++17 中多个 using 声明可以通过逗号连接起来，合成一个 using 声明。
     // using A::f; using B::f;  // [0]
@@ -1616,3 +1566,154 @@ int main()
 }
 
 #endif // TEST16
+
+#ifdef TEST201
+
+#include <iostream>
+#include <vector>
+
+template <typename T>
+class Base
+{
+public:
+    void interface()
+    {
+        static_cast<T*>(this)->impl();
+    }
+
+    // 不需要声明为虚函数
+    void impl()
+    {
+        std::cout << "Base\n";
+    }
+
+    void printType() const
+    {
+        std::cout << typeid(*this).name() << '\n';
+    }
+};
+
+class Derived : public Base<Derived>
+{
+public:
+    void impl()
+    {
+        std::cout << "Derived\n";
+    }
+};
+
+class Derived2 : public Base<Derived2>
+{
+public:
+    void impl()
+    {
+        std::cout << "Derived2\n";
+    }
+};
+
+// 惯用法之CRTP https://mp.weixin.qq.com/s/giSDMWLO0d7t3fX-ZC7eVg
+// CRTP避坑实践 https://mp.weixin.qq.com/s/eai6rC0V5Ym1kgfTWl4QhQ
+// 惯用法之CRTP(单例类) https://mp.weixin.qq.com/s/bIRO7bidt5q66LIoO4Siqw
+
+int main()
+{
+    static_assert(std::is_base_of<Base<Derived>, Derived>::value, "Derived is not derived from Base");
+
+    // 静态多态，编译期就对模板进行了实例化
+    {
+        Derived d {};
+        d.interface();
+    }
+
+    // 代码复用，如果是虚函数，则需要在派生类中重新实现 printType()
+    {
+        auto a = new Derived();
+        auto b = new Derived2();
+        a->printType();
+        b->printType();
+    }
+
+    // 局限性
+    {
+        auto a = new Derived();  // Base<Derived>*
+        auto b = new Derived2(); // Base<Derived2>*
+
+        // 因为 Base 类是一个模板类，对于不同的派生类，基类模板初始化会有不同的类型
+        // a 和 b 有两种类型的 Base 指针，所以不能将 CRTP 基类指针存储在容器中
+        // auto vec = { a, b }; // error
+    }
+}
+
+#endif // TEST201
+
+#ifdef TEST202
+
+#include <iostream>
+#include <memory>
+#include <vector>
+
+class Object
+{
+public:
+    virtual ~Object() noexcept = default;
+
+    virtual const char* getClassName() const
+    {
+        return typeid(Object).name();
+    }
+};
+
+template <typename ParentClass, typename Subclass>
+class Base : public ParentClass
+{
+public:
+    // 派生类可以复用该函数，不需要多次实现
+    const char* getClassName() const override
+    {
+        return typeid(Subclass).name();
+    }
+};
+
+class Derived : public Base<Object, Derived>
+{
+public:
+    ~Derived() noexcept override
+    {
+        std::cout << "~Derived\n";
+    }
+};
+
+class Derived2 : public Base<Object, Derived2>
+{
+public:
+    ~Derived2() noexcept override
+    {
+        std::cout << "~Derived2\n";
+    }
+};
+
+class Derived3 : public Base<Object, Derived3>
+{
+public:
+    ~Derived3() noexcept override
+    {
+        std::cout << "~Derived3\n";
+    }
+};
+
+// 可以保存到容器，但是Base的成员函数不能调用，即只能实现代码复用，不能实现静态多态
+
+int main()
+{
+    std::vector<std::unique_ptr<Object>> vec;
+    vec.emplace_back(std::make_unique<Derived>());
+    vec.emplace_back(std::make_unique<Derived2>());
+    vec.emplace_back(std::make_unique<Derived3>());
+
+    for (auto& elem : vec)
+    {
+        std::cout << elem->getClassName() << '\n';
+    }
+}
+
+#endif // TEST202
