@@ -1,6 +1,6 @@
 /**
  * 1. std::list
- * 2. std::forward_list 没有size()函数
+ * 2. std::forward_list 的元素顺序会和插入的顺序相反
  */
 
 // https://www.cnblogs.com/mmmmmmmmm/p/14812567.html
@@ -110,6 +110,30 @@ int main()
         fl.emplace_after(fl.cbefore_begin(), 1);
         fl.emplace_after(fl.cbefore_begin(), 2);
         fl.emplace_after(fl.cbefore_begin(), 3);
+
+        for (auto const elem : fl)
+        {
+            std::cout << elem << ' '; // 3,2,1
+        }
+    }
+
+    {
+        std::forward_list<int> fl;
+        fl.insert_after(fl.before_begin(), 1);
+        fl.insert_after(fl.before_begin(), 2);
+        fl.insert_after(fl.before_begin(), 3);
+
+        for (auto const elem : fl)
+        {
+            std::cout << elem << ' '; // 3,2,1
+        }
+    }
+
+    {
+        std::forward_list<int> fl;
+        fl.push_front(1);
+        fl.push_front(2);
+        fl.push_front(3);
 
         for (auto const elem : fl)
         {
