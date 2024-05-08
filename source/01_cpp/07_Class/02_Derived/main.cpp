@@ -1,7 +1,8 @@
 /*
  * 1. 继承方式的区别 虚继承（菱形继承）
 
- * 4. 基类的拷贝构造、拷贝赋值可以被继承
+ * 3. 基类应该定义6个特殊成员函数，并将析构声明为虚函数，子类在无特殊要求下这些函数都无需定义
+ * 4. 子类在那些情况下不能生成特殊函数
  * 5. 子类可以继承父类那些成员
  * 6. 基类的析构函数为什么要声明为虚函数
  * 7. 纯虚析构函数，抽象类的析构函数
@@ -18,7 +19,7 @@
  * 202. 将CRTP指针保存到容器，减少重复代码的书写
  */
 
-#define TEST202
+#define TEST3
 
 #ifdef TEST1
 
@@ -100,6 +101,101 @@ int main()
 
 #endif // TEST1
 
+#ifdef TEST3
+
+#include <iostream>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&) noexcept
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&) noexcept
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+class Base
+{
+public:
+    Base()                           = default;
+    Base(const Base&)                = default;
+    Base(Base&&) noexcept            = default;
+    Base& operator=(const Base&)     = default;
+    Base& operator=(Base&&) noexcept = default;
+    virtual ~Base() noexcept         = default;
+
+private:
+    Helper heler {};
+};
+
+// 基类已经将6个特殊成员函数都显式定义，子类如果没有必要就不要再显式定义这些特殊成员函数
+// 例如：如果子类显式定义析构函数，子类的移动操作就会被禁止
+class Derived : public Base
+{
+};
+
+// 基类将析构函数定义为虚函数，子类不定义析构函数，多态时仍然可以正常释放子类的资源
+class Derived2 : public Base
+{
+    Helper helper2 {};
+};
+
+int main()
+{
+    {
+        Derived d1 {}, d2 {}, d3 {};
+        std::cout << "1\n";
+
+        Derived d4(d1);
+        std::cout << "2\n";
+
+        Derived d5(std::move(d1));
+        std::cout << "3\n";
+
+        d2 = d3;
+        std::cout << "4\n";
+
+        d2 = std::move(d3);
+        std::cout << "5\n";
+    }
+
+    std::cout << "---------------------------------\n";
+
+    {
+        Base* ptr = new Derived2();
+        delete ptr;
+    }
+}
+
+#endif // TEST3
+
 #ifdef TEST4
 
 #include <iostream>
@@ -123,25 +219,72 @@ class Derived : public Base
 {
 };
 
+class Base2
+{
+public:
+    Base2()
+    {
+    }
+
+    virtual ~Base2()
+    {
+    }
+
+private:
+    Base2(const Base2&)            = default;
+    Base2& operator=(const Base2&) = default;
+};
+
+class Derived2 : public Base
+{
+};
+
 class Test
 {
-    // 编译器会自动生成：拷贝构造、拷贝赋值、移动构造、移动赋值
+    // 编译器会自动生成：默认构造、拷贝构造、拷贝赋值、移动构造、移动赋值、析构函数
 };
+
+/**
+ * 总结：
+ * 父类将对应的函数（拷贝构造、拷贝赋值）删除，或者父类将对应的函数访问禁止
+ * 则编译器会放弃对此特殊函数的生成，而隐式将其声明为 delete
+ */
 
 int main()
 {
     {
-        Test t;
+        Test t {};
         Test t2(t);
         Test t3(std::move(t2));
         t = t3;
     }
 
     {
-        Derived d, d2;
-        // Derived d3(d);               // 编译失败，基类拷贝构造函数被继承
-        // Derived d4(std::move(d3));   // 编译失败
-        // d = d2;                      // 编译失败
+        Base b {}, b2 {};
+        // Base b3(b);             // 编译失败，已隐式删除函数
+        // Base b4(std::move(b3)); // 编译失败
+        // b = b2;                 // 编译失败
+    }
+
+    {
+        Base2 b {}, b2 {};
+        // Base2 b3(b);             // 编译失败，无法访问
+        // Base2 b4(std::move(b3)); // 编译失败
+        // b = b2;                  // 编译失败
+    }
+
+    {
+        Derived d {}, d2 {};
+        // Derived d3(d);             // 编译失败，已隐式删除函数
+        // Derived d4(std::move(d3)); // 编译失败
+        // d = d2;                    // 编译失败
+    }
+
+    {
+        Derived2 d {}, d2 {};
+        // Derived2 d3(d);             // 编译失败，已隐式删除函数
+        // Derived2 d4(std::move(d3)); // 编译失败
+        // d = d2;                     // 编译失败
     }
 }
 
@@ -151,11 +294,10 @@ int main()
 
 // operator= 参数是本类对象可以被继承，不是则不能被继承
 // 除过=以外的其他重载运算符都可以被子类继承
-// 拷贝构造（赋值）函数可以被继承(crtp单例模板基类)，子类不显式定义复制操作则不能使用复制操作
-// 无参构造函数不能被继承
-// 析构函数不能被继承
 // 友元不会被继承
 // static成员函数也可以继承、重写，但是不能使用virtual override修饰
+// 拷贝构造、拷贝赋值、移动构造、移动赋值、析构都可以被继承（除非基类这些函数被声明为 private 或 delete）
+// 注意：当子类声明了某些特殊函数时，其他的特殊函数编译器可能就不会自动生成
 
 #include <iostream>
 
@@ -737,15 +879,15 @@ public:
 int main()
 {
     Test* t = new Test();
-    t->funA(); // 子类
-    t->funB(); // 子类
-    t->funC(); // 子类
+    t->funA();                            // 子类
+    t->funB();                            // 子类
+    t->funC();                            // 子类
 
     A* a = new Test();
-    a->funA(); // 父类
+    a->funA();                            // 父类
 
     B* b = new Test();
-    b->funB(); // 子类，父类中的funB()为纯虚函数
+    b->funB();                            // 子类，父类中的funB()为纯虚函数
 
     C* c = new Test();
     c->funC();                            // 子类，因为父类函数是virtual，子类会重写该函数
@@ -875,8 +1017,8 @@ int main()
         auto func3 = (Fun) * ((uint64_t*)*(uint64_t*)(&d) + 3); // Func3() 子类定义的虚函数附加到基类虚函数后边
         func3();
 
-        auto baseMember    = *(int*)((uint64_t*)(&d) + 1); // 第1个是基类的成员变量
-        auto deviredMember = *(int*)((uint64_t*)(&d) + 2); // 第2个是子类的成员变量
+        auto baseMember    = *(int*)((uint64_t*)(&d) + 1);      // 第1个是基类的成员变量
+        auto deviredMember = *(int*)((uint64_t*)(&d) + 2);      // 第2个是子类的成员变量
         std::cout << "Member: " << baseMember << '\t' << deviredMember << '\n';
     }
 }
