@@ -12,7 +12,7 @@
 
 // 一文读懂C++右值引用和std::move https://zhuanlan.zhihu.com/p/335994370
 
-#define TEST4
+#define TEST6
 
 #ifdef TEST1
 
@@ -327,6 +327,7 @@ int main()
 // 在 x86-64 上，对于只有一个指针成员且没有自定义复制构造函数的类，传值是可以通过寄存器进行的，就像传递普通int和指针那样
 
 #include <iostream>
+#include <vector>
 
 int x = 1;
 
@@ -350,13 +351,131 @@ void f4(const int& n)
     x = n + 1;
 }
 
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&) noexcept
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&) noexcept
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+void f5(const Helper& h)
+{
+    Helper tmp = h;
+}
+
+void f6(Helper&& h)
+{
+    Helper tmp = h;
+}
+
+void f7(Helper&& h)
+{
+    Helper tmp = std::move(h);
+}
+
+void f8(Helper&& h)
+{
+    f5(h);
+}
+
+void f9(Helper h)
+{
+    Helper tmp = h;
+}
+
+class Test
+{
+    std::vector<int> _data;
+
+public:
+    void Set(const std::vector<int>& data)
+    {
+        _data = data;
+    }
+
+    void Set(std::vector<int>&& data)
+    {
+        _data = std::move(data);
+    }
+};
+
 int main()
 {
-    int n = 0;
-    f1(n);
-    f2(n);
-    f3(0);
-    f4(n);
+    {
+        int n = 0;
+        f1(n);
+        f2(n);
+        f3(0);
+        f4(n);
+    }
+
+    std::cout << "1-------------\n";
+    {
+        f5(Helper());
+    }
+
+    std::cout << "2-------------\n";
+    {
+        f6(Helper());
+    }
+
+    std::cout << "3-------------\n";
+    {
+        f7(Helper());
+    }
+
+    std::cout << "4-------------\n";
+    {
+        Helper h {};
+        f5(std::move(h));
+    }
+
+    std::cout << "5-------------\n";
+    {
+        Helper h {};
+        f5(h);
+    }
+
+    std::cout << "6-------------\n";
+    {
+        Helper h {};
+        f8(std::move(h));
+    }
+
+    std::cout << "7-------------\n";
+    {
+        Helper h {};
+        f9(h);
+    }
 }
 
 #endif // TEST6
