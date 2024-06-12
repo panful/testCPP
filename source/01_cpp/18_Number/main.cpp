@@ -8,7 +8,7 @@
  * 6. 数学常量 pi e...
  */
 
-#define TEST6
+#define TEST2
 
 #ifdef TEST1
 
@@ -50,22 +50,32 @@ int main()
 
 int main()
 {
-    // 参数表示生成随机数的种子，种子不同每次运行程序生成的随机数才能不同
-    std::default_random_engine generator1(static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count()));
-    std::default_random_engine generator2(static_cast<uint32_t>(time(nullptr)));
-
-    std::default_random_engine generator;                     // 使用默认种子，每次运行程序生成的随机数相同
-    std::uniform_int_distribution<int> distribution1(0, 255); // 生成[0,255]之间的int型随机数
-
-    std::uniform_real_distribution<float> distribution2(0.0f, 1.0f); // 生成[0,1]之间的随机float值
-
-    for (int i = 0; i < 10; i++)
     {
-        std::cout << distribution1(generator); // 0-255
+        // 参数表示生成随机数的种子，种子不同每次运行程序生成的随机数才能不同
+        std::default_random_engine generator1(static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count()));
+        std::default_random_engine generator2(static_cast<uint32_t>(time(nullptr)));
+        std::default_random_engine generator3;                           // 使用默认种子，每次运行程序生成的随机数相同
 
-        std::cout << distribution2(generator1) << "\n";
+        std::uniform_int_distribution<int> distribution1(0, 255);        // 生成[0,255]之间的int型随机数
+        std::uniform_real_distribution<float> distribution2(0.0f, 1.0f); // 生成[0,1]之间的随机float值
 
-        std::cout << 1 + (int)(10.0 * (rand() / (RAND_MAX + 1.0))) << " "; //[1,10]  不要使用rand()%10
+        for (int i = 0; i < 10; i++)
+        {
+            std::cout << distribution1(generator3) << '\t'; // [0, 255]
+            std::cout << distribution2(generator1) << "\n"; // [0.f, 1.f]
+        }
+    }
+
+    {
+        std::random_device device {}; // 可以提供一个非确定性的随机数
+        std::mt19937 engine(device()); // std::random_device 的性能不如某些随机数生成器，一般用来当作种子初始化一个随机数生成器
+
+        std::uniform_int_distribution<int> distribution(0, 10);
+        for (int i = 0; i < 10; ++i)
+        {
+            std::cout << distribution(engine) << '\t';
+            std::cout << distribution(device) << '\n';
+        }
     }
 }
 #endif // TEST2
