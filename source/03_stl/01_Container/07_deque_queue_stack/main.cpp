@@ -1,48 +1,12 @@
 /*
- * 1. stack 栈
+ * 1.
  * 2. deque 双端队列 double ended queue
  * 3. priority_queue 优先级队列
- * 4.
- * 5. queue 单端队列 先进先出，只能队尾插入，队首弹出
+ * 4. stack 栈
+ * 5. queue 单端队列
  */
 
-#define TEST1
-
-#ifdef TEST1
-
-#include <deque>
-#include <list>
-#include <queue>
-#include <stack>
-#include <vector>
-
-int main()
-{
-    // std::stack 包含一个【容器】成员变量，实际的元素就是存储在这个容器中，默认容器是 std::deque
-    // std::stack 往往被称为：容器适配器(container adapter)
-    // 只能先进后出(First In Last Out, FILO)，除了最顶端元素，没有任何方法可以存取其他元素
-    {
-        std::stack<int> stack {};
-        stack.emplace(1);       // 将1插入到栈顶，实际调用的是成员容器的 emplace_back()
-        stack.push(2);          // 将2插入到栈顶，实际调用的是成员容器的 push_back()
-        auto top = stack.top(); // 获取栈顶元素（2），并不弹出，实际调用的是成员容器的 back()
-        stack.pop();            // 弹出栈顶元素（2），实际调用的是成员容器的 pop_back
-    }
-
-    {
-        std::stack<int, std::vector<int>> vecStack {}; // vector的类型和stack的第一个类型必须一样，否则编译失败
-        std::stack<int, std::list<int>> listStack {};
-        std::stack<int, std::queue<int>> queueStack {};
-        std::stack<int, std::stack<int>> statckStack {};
-
-        std::vector<int> vec { 1, 2, 3, 4, 5 };
-        std::stack stack(vec); // 栈顶是5，栈底是1
-    }
-
-    return 0;
-}
-
-#endif // TEST1
+#define TEST5
 
 #ifdef TEST2
 
@@ -146,34 +110,75 @@ int main()
 
 #ifdef TEST4
 
-#include <iostream>
+#include <deque>
+#include <list>
 #include <queue>
+#include <stack>
+#include <vector>
 
 int main()
 {
+    // std::stack 包含一个【容器】成员变量，实际的元素就是存储在这个容器中，默认容器是 std::deque
+    // std::stack 往往被称为：容器适配器(container adapter)
+    // 只能先进后出(First In Last Out, FILO)，除了最顶端元素，没有任何方法可以存取其他元素，不允许有遍历行为
+    {
+        std::stack<int> stack {};
+        stack.emplace(1);       // 将1插入到栈顶，实际调用的是成员容器的 emplace_back()
+        stack.push(2);          // 将2插入到栈顶，实际调用的是成员容器的 push_back()
+        auto top = stack.top(); // 获取栈顶元素（2），并不弹出，实际调用的是成员容器的 back()
+        stack.pop();            // 弹出栈顶元素（2），实际调用的是成员容器的 pop_back
+    }
+
+    {
+        std::stack<int, std::vector<int>> vecStack {}; // vector的类型和stack的第一个类型必须一样，否则编译失败
+        std::stack<int, std::list<int>> listStack {};
+        std::stack<int, std::queue<int>> queueStack {};
+        std::stack<int, std::stack<int>> statckStack {};
+
+        std::vector<int> vec { 1, 2, 3, 4, 5 };
+        std::stack stack(vec); // 栈顶是5，栈底是1
+    }
+
+    {
+        std::stack<int> stack1({ 1, 2, 3, 4 }); // ok 相当于先使用{}构造 std::deque，再使用 std::deque 构造 std::stack
+        // std::stack<int> stack2{1, 2, 3, 4};  // error
+        // std::stack<int> stack3(1, 2, 3, 4);  // error
+    }
+
+    return 0;
 }
 
 #endif // TEST4
 
 #ifdef TEST5
 
+#include <deque>
+#include <list>
 #include <queue>
+#include <vector>
 
 int main()
 {
-    std::queue<int> myQueue({ 1, 2, 3 });
-    myQueue.emplace(4);          // 队尾添加一个元素
-    myQueue.push(5);             // 队尾添加一个元素
-    myQueue.pop();               // 抛出【队首】元素
+    // std::queue 包含一个【容器】成员变量，实际的元素就是存储在这个容器中，默认容器是 std::deque
+    // std::queue 往往被称为：容器适配器(container adapter)
+    // 只能先进先出(First In First Out, FIFO)，除了最顶端取出、最底端插入外，没有任何方法可以存取其他元素，不允许有遍历行为
+    {
+        std::queue<int> queue {};
+        queue.push(1);              // 队尾插入一个元素
+        queue.emplace(2);           // 队尾插入一个元素
+        auto back  = queue.back();  // 2  返回队尾元素，不弹出
+        auto front = queue.front(); // 1  返回队首元素，不弹出
+        queue.pop();                // 抛出队首元素
+    }
 
-    auto ret1 = myQueue.empty(); // 判断是否为空
-    auto ret2 = myQueue.size();  // 元素个数
-    auto ret3 = myQueue.back();  // 返回队尾元素
-    auto ret4 = myQueue.front(); // 返回队首元素
+    // 其他行为和 std::stack 类似，它们都是容器适配器
+    {
+        std::queue<int, std::vector<int>> vecQueue {};
+        std::queue<int, std::list<int>> listQueue {};
 
-    std::deque<int> myDeque { 2, 3, 4 };
-    std::queue<int> myQueue1(myDeque);
-    myQueue.swap(myQueue1); // 交换元素
+        std::vector vec { 1, 2, 3, 4, 5 };
+        std::queue queue(vec); // 队尾是5，队首是1
+    }
 
     return 0;
 }
