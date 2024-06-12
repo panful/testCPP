@@ -5,7 +5,7 @@
 4. 位移
 */
 
-#define TEST4
+#define TEST1
 
 #ifdef TEST1
 
@@ -25,6 +25,8 @@ int main()
         //auto ret1 = b4[55];      //如果越界直接中断
 
         bitset<8> foo("10011011");
+
+        bitset<5> b5 {}; // 默认构造所有位都是0
 
         cout << foo.count() << endl;  //5（count函数用来求bitset中1的位数，foo中共有５个１
         cout << foo.size() << endl;   //8（size函数用来求bitset的大小，一共有８位
@@ -154,4 +156,3 @@ int main()
 
 
 #endif // TEST4
-
