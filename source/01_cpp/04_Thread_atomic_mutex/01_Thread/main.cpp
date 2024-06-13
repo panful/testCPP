@@ -21,11 +21,12 @@
 24. 默认以异步方式执行任务
 25. 对std::async的返回值（期指）使用wait_for时的坑
 ------------------------------------------------
-31. std::condition_variable 条件变量同步机制
+31. std::condition_variable 条件变量同步机制 虚假唤醒
+32. 解决虚假唤醒
 
 */
 
-#define TEST31
+#define TEST32
 
 #ifdef TEST01
 
@@ -281,7 +282,7 @@ int main()
 
 #include "../00_Timer/myUtility.hpp"
 #include <atomic>
-#include <future> //std::future std::promise
+#include <future>  //std::future std::promise
 #include <mutex>
 #include <thread>
 #include <utility> //std::ref模板传参的时候使用
@@ -469,12 +470,10 @@ int main()
     // std::future.wait()
     {
         MyUtility::ConsumeTime ct;
-        std::future<int> result_future = std::async(std::launch::async,
-            []()
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(3));
-                return 9;
-            });
+        std::future<int> result_future = std::async(std::launch::async, []() {
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            return 9;
+        });
         ct.ConsumeTimeByNow();
 
         result_future.wait();
@@ -497,12 +496,10 @@ int main()
     // };
     {
         MyUtility::ConsumeTime ct;
-        std::future<int> result_future = std::async(std::launch::async,
-            []()
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(3));
-                return 9;
-            });
+        std::future<int> result_future = std::async(std::launch::async, []() {
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            return 9;
+        });
         ct.ConsumeTimeByNow();
 
         auto wait_status = result_future.wait_for(std::chrono::seconds(2));
@@ -604,19 +601,16 @@ int main()
         std::promise<int> p;
         std::future<int> f = p.get_future();
 
-        std::thread(
-            [&p]
-            {
-                std::this_thread::sleep_for(2s);
+        std::thread([&p] {
+            std::this_thread::sleep_for(2s);
 
-                // 在当前线程退出的时候再将状态设置为就绪
-                p.set_value_at_thread_exit(9);
+            // 在当前线程退出的时候再将状态设置为就绪
+            p.set_value_at_thread_exit(9);
 
-                // 执行完set_value()就会将状态设置为就绪
-                // p.set_value(9);
-                std::this_thread::sleep_for(2s);
-            })
-            .detach();
+            // 执行完set_value()就会将状态设置为就绪
+            // p.set_value(9);
+            std::this_thread::sleep_for(2s);
+        }).detach();
 
         std::cout << "Waiting...\n" << std::flush;
 
@@ -641,8 +635,7 @@ int main()
 {
     std::cout << std::boolalpha;
     std::cout << "thread id: " << std::this_thread::get_id() << '\n';
-    auto worker = [](int n)
-    {
+    auto worker = [](int n) {
         std::cout << "thread id: " << std::this_thread::get_id() << '\n';
         return 2 * n;
     };
@@ -935,104 +928,120 @@ int main()
 
 //-------------------------------
 
-// 虚假唤醒（更准确的说法应该是第一种）：
+#ifdef TEST31
+
+#include <condition_variable>
+#include <iostream>
+#include <mutex>
+#include <thread>
+
+struct Test
+{
+    std::mutex mutex {};
+    std::condition_variable cv {};
+
+    void worker()
+    {
+        while (true)
+        {
+            std::unique_lock lk(mutex);
+
+            // 此处 wait_for 阻塞时并不会占用 CPU
+            if (std::cv_status::timeout == cv.wait_for(lk, std::chrono::seconds(1)))
+            {
+                std::cout << "time out\n";
+                continue;
+            }
+
+            // 被其他线程唤醒（notify）或发生虚假唤醒，都返回 std::cv_status::no_timeout
+            std::cout << "do something\n";
+        }
+    }
+
+    void notify()
+    {
+        cv.notify_all();
+    }
+};
+
+// 虚假唤醒：
 // 1. 由notify_all唤醒之后却得不到需要的数据，notify_all会唤醒所有线程，但是只能有一个线程使用数据
 // 2. 有的系统会出于某种原因唤醒正在阻塞队列的线程，这时候消费者线程也是得不到需要的数据的(因为不是由生产者线程唤醒)。
 // 解决虚假唤醒的方法：提前while判断队列是否为空，为空则继续等待，建议使用wait的lambda判断
 
-#ifdef TEST31
+// 对于第二种情况
+// Windows(MSVC) 会发生虚假唤醒（没有调用 notify 但是每过一段时间就会返回 std::cv_status::no_timeout
+// Windows(MinGW) 会发生
+// Linux 可能不会发生这种虚假唤醒，实测：打印300多次 time out，也只打印了一次 do something
 
+int main()
+{
+    Test test {};
+
+    std::thread t(&Test::worker, &test);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    test.notify();
+
+    t.join();
+}
+
+#endif // TEST31
+
+#ifdef TEST32
+
+#include <atomic>
+#include <condition_variable>
 #include <iostream>
-#include <list>
 #include <mutex>
 #include <thread>
 
-class Test
+struct Test
 {
-public:
-    Test()  = default;
-    ~Test() = default;
+    std::mutex mutex {};
+    std::condition_variable cv {};
+    std::atomic_bool flag { false };
 
-    void Eexcutor()
+    void worker()
     {
-        std::thread(&Test::PrintElement, this).detach();
-    }
-
-    void AddElement(int e)
-    {
-        // std::lock_guard<std::mutex> lock(m_mutex);
-        std::cout << "add element: " << e << '\n';
-        m_list.emplace_back(e);
-        m_cv.notify_one();
-    }
-
-private:
-    void PrintElement()
-    {
-#if (1)
         while (true)
         {
-            // 只有当std::condition_variable收到通知时才会打印
-            std::cout << "--- while ---\n";
+            std::unique_lock lk(mutex);
 
-            std::unique_lock<std::mutex> lock(m_mutex);
-            // 当lambda表达式返回false时会一直阻塞，阻塞并不会占用cpu
+            // 当lambda表达式返回false时会一直阻塞
             // 当调用std::condition_variable::notify_all或notify_one时，会执行一次lambda，
-            // 如果lambda返回true停止阻塞执行后面代码，返回false则继续阻塞
-            m_cv.wait(lock,
-                [this]()
-                {
-                    std::cout << "lambda result: " << !m_list.empty() << "\twait\n";
-                    return !m_list.empty();
-                });
-
-            auto element = m_list.front();
-            m_list.pop_front();
-            std::cout << "pop front: " << element << '\n';
-        }
-#elif
-        while (true)
-        {
-            // 程序结束之前会一直打印，即一直占用cpu
-            std::cout << "--- while ---\n";
-
-            if (!m_list.empty())
+            // 如果lambda返回true则停止阻塞执行后面代码，返回false则继续阻塞
+            if (!cv.wait_for(lk, std::chrono::seconds(1), [this]() { return static_cast<bool>(this->flag); }))
             {
-                auto element = m_list.front();
-                m_list.pop_front();
-                std::cout << element << '\n';
+                std::cout << "time out\n";
+                continue;
             }
+
+            // 带谓词的 wait_for 相当于：超时后再执行谓词，并返回谓词的结果
+
+            // 被其他线程唤醒（notify）或发生虚假唤醒，都返回 std::cv_status::no_timeout
+            std::cout << "do something\n";
+            flag = false;
         }
-#endif
     }
 
-private:
-    std::condition_variable m_cv;
-    std::mutex m_mutex;
-    std::list<int> m_list;
+    void notify()
+    {
+        flag = true;
+        cv.notify_all();
+    }
 };
 
 int main()
 {
-    Test t;
-    t.Eexcutor();
+    Test test {};
 
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    t.AddElement(1);
-    t.AddElement(2);
+    std::thread t(&Test::worker, &test);
 
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    t.AddElement(3);
-    t.AddElement(4);
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    test.notify();
 
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    t.AddElement(5);
-    t.AddElement(6);
-
-    // 保证将插入的元素全部pop完成
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-
-    return 0;
+    t.join();
 }
 
-#endif // TEST31
+#endif // TEST32
