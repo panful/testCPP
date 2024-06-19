@@ -1,5 +1,7 @@
 /*
  * 1. std::optional 可选返回值 pointer
+ * 11 std::optional 拷贝时，存储的值是深拷贝
+ * 
  * 2. std::variant 值多态 union
  * 3. std::visit 可以用来访问std::variant
  * 4. std::any 万能容器 void*
@@ -119,6 +121,88 @@ int main()
 }
 
 #endif // TEST1
+
+#ifdef TEST11
+
+#include <iostream>
+#include <optional>
+#include <vector>
+
+class Helper
+{
+public:
+    Helper()
+    {
+        std::cout << "construct\n";
+    }
+
+    Helper(const Helper&)
+    {
+        std::cout << "copy construct\n";
+    }
+
+    Helper(Helper&&) noexcept
+    {
+        std::cout << "move construct\n";
+    }
+
+    Helper& operator=(const Helper&)
+    {
+        std::cout << "copy assignment\n";
+        return *this;
+    }
+
+    Helper& operator=(Helper&&) noexcept
+    {
+        std::cout << "move assignment\n";
+        return *this;
+    }
+
+    ~Helper()
+    {
+        std::cout << "destruct\n";
+    }
+};
+
+std::optional<Helper> get(bool x)
+{
+    if (x)
+    {
+        return std::nullopt;
+    }
+
+    Helper h {}; // construct
+    return h;    // move construct
+}
+
+void f(Helper&&)
+{
+}
+
+int main()
+{
+    std::cout << "0-------------\n";
+    {
+        auto opt = get(false);  // move construct
+        auto h   = opt.value(); // copy construct，auto 是左值
+    }
+    std::cout << "1-------------\n";
+    {
+        auto opt = get(false);
+
+        std::cout << "has: " << opt.has_value() << '\n';
+        auto&& h = opt.value(); // 引用，既不调用移动也不调用拷贝
+
+        f(std::move(h));
+
+        std::cout << opt.has_value() << '\n'; // 即使move，optional还是有值
+        opt.reset();
+        std::cout << opt.has_value() << '\n';
+    }
+    std::cout << "2-------------\n";
+}
+
+#endif // TEST11
 
 #ifdef TEST2
 
