@@ -9,13 +9,13 @@
 8. extern template，代码暂时编译不过去
 9. 模板显示实例化
 10.通过模板自定义一个栈
-11.
+11.使用折叠表达式获取可变模板参数的每一个类型
 12.变参模板 std::integer_sequence  01_07  https://blog.csdn.net/baidu_41388533/article/details/109716432
 */
 
 // 预处理 -> 编译 -> 汇编 -> 链接
 
-#define TEST2
+#define TEST11
 
 #ifdef TEST1
 
@@ -443,3 +443,35 @@ int main()
     return 0;
 }
 #endif // TEST10
+
+#ifdef TEST11
+
+#include <iostream>
+#include <type_traits>
+
+template <typename... Ts>
+struct Traits
+{
+    static void process()
+    {
+        ([](auto... xs) {
+            (
+                [](auto x) {
+                    if constexpr (std::is_same_v<decltype(x), int>)
+                    {
+                        // 当参数类型为int时，打印类型
+                        std::cout << typeid(x).name() << std::endl;
+                    }
+                }(xs),
+                ...);
+        })(Ts()...);
+    }
+};
+
+int main()
+{
+    Traits<char, int, double>::process();
+    return 0;
+}
+
+#endif // TEST11
