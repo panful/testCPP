@@ -17,18 +17,19 @@
  * 304 std::weak_ptr解决std::shared_ptr循环引用
  * 305 std::weak_ptr解决野指针（悬空指针）的问题
  * 306 std::weak_ptr用在观察者模式
+ * 307 std::enable_shared_from_this 和 std::weak_ptr 结合使用
  *
  * 401 std::unique_ptr和std::shared_ptr的get()函数，智能指针和裸指针混用的问题
  * 402 智能指针离开作用域前抛出异常，也可以正常释放
  * 403 std::make_shared使用的时机 std::allocate_shared允许自定义分配器
  * 404 使用new构造std::shared_ptr造成内存泄漏
  * 405 智能指针应用于多态
- * 
+ *
  * 智能指针传参 https://www.zhihu.com/question/534389744/answer/2500052393
  * 一般情况使用 T* 或 T&，不要使用智能指针 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-smart
  */
 
-#define TEST101
+#define TEST307
 
 #ifdef TEST101
 
@@ -199,8 +200,7 @@ int main()
     std::cout << "---------------------------------------------\n";
 
     {
-        auto lambdaDel = [](int* p)
-        {
+        auto lambdaDel = [](int* p) {
             std::cout << "use lambda to delete int\n";
             delete p;
             p = nullptr;
@@ -735,24 +735,20 @@ int main()
 
     {
         // 使用lambda指定智能指针释放规则
-        std::shared_ptr<int> p8(new int[8](),
-            [](int* p)
-            {
-                delete[] p;
-                std::cout << "use lambda delete\n";
-            });
+        std::shared_ptr<int> p8(new int[8](), [](int* p) {
+            delete[] p;
+            std::cout << "use lambda delete\n";
+        });
     }
 
     std::cout << "------------------------------------------------------\n";
 
     {
-        std::shared_ptr<Obj> p1(new Obj(),
-            [](Obj* p)
-            {
-                delete p;
-                p = nullptr;
-                std::cout << "use lambda delete Obj\n";
-            });
+        std::shared_ptr<Obj> p1(new Obj(), [](Obj* p) {
+            delete p;
+            p = nullptr;
+            std::cout << "use lambda delete Obj\n";
+        });
 
         std::shared_ptr<Obj> p2(new Obj());
     }
@@ -791,7 +787,8 @@ static auto now = std::chrono::steady_clock::now();
 class Helper
 {
 public:
-    constexpr Helper() : m_number(new int(66))
+    constexpr Helper()
+        : m_number(new int(66))
     {
         std::cout << "Helper construct\n";
         std::cout << *m_number << '\t' << m_number << '\n';
@@ -1142,7 +1139,8 @@ static auto now = std::chrono::steady_clock::now();
 class Helper
 {
 public:
-    Helper() : m_number(new int(66))
+    Helper()
+        : m_number(new int(66))
     {
         std::cout << "Helper construct\n";
 
@@ -1401,6 +1399,109 @@ int main()
 }
 
 #endif // TEST305
+
+#ifdef TEST307
+
+#include <iostream>
+#include <memory>
+
+struct Window;
+
+struct Device
+{
+    Device()
+    {
+        std::cout << "Device\n";
+    }
+
+    ~Device()
+    {
+        std::cout << "~Device\n";
+    }
+};
+
+struct Renderer
+{
+    Renderer();
+    ~Renderer();
+    void SetWindow(std::shared_ptr<Window> window);
+    void Render();
+
+    std::weak_ptr<Window> m_window {};
+    std::shared_ptr<Device> m_device {};
+};
+
+struct Window : std::enable_shared_from_this<Window>
+{
+    Window();
+    ~Window();
+    void SetRenderer(std::shared_ptr<Renderer> renderer);
+    void Render();
+
+    std::shared_ptr<Device> m_device {};
+    std::shared_ptr<Renderer> m_renderer {};
+};
+
+Renderer::Renderer()
+{
+    std::cout << "Renderer\n";
+}
+
+Renderer::~Renderer()
+{
+    std::cout << "~Renderer\n";
+}
+
+void Renderer::SetWindow(std::shared_ptr<Window> window)
+{
+    m_window = window;
+    m_device = window->m_device;
+}
+
+void Renderer::Render()
+{
+    std::cout << "Renderer::Render\n";
+}
+
+Window::Window()
+{
+    std::cout << "Window\n";
+}
+
+Window::~Window()
+{
+    std::cout << "~Window\n";
+}
+
+void Window::SetRenderer(std::shared_ptr<Renderer> renderer)
+{
+    renderer->SetWindow(shared_from_this());
+    m_renderer = std::move(renderer);
+}
+
+void Window::Render()
+{
+    std::cout << "Window::Render\n";
+    m_renderer->Render();
+}
+
+int main()
+{
+    // 无论先创建那个对象，都要保证Device最后一个释放
+    auto renderer = std::make_shared<Renderer>();
+    auto window   = std::make_shared<Window>();
+    auto device   = std::make_shared<Device>();
+
+    window->m_device = device;
+    window->SetRenderer(renderer);
+
+    device.reset();
+    renderer.reset();
+
+    window->Render();
+}
+
+#endif // TEST307
 
 //---------------------------------------------------------
 #ifdef TEST401
