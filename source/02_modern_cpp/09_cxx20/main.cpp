@@ -6,7 +6,7 @@
  * 501. std::span
  */
 
-#define TEST201
+#define TEST101
 
 #ifdef TEST101
 
@@ -46,6 +46,12 @@ int main()
         auto str1 = std::format("pointer: {:#X}\n", reinterpret_cast<std::uintptr_t>(&i));
         auto str2 = std::format("pointer: {:#x}\n", unsigned long long(&i));
         std::cout << str1 << str2;
+    }
+
+    // 转义字符
+    {
+        std::cout << std::format("abc {{}} 123\n");
+        std::cout << std::format("abc {{\n\txyz\t123\n}}\nabc\n");
     }
 }
 
@@ -96,7 +102,9 @@ int main()
 
         // 从最里边的{}开始计算，先找出偶数，再对所有偶数平方
         // std::ranges::transform_view 是一个类：class
-        auto res1 { std::ranges::transform_view { std::ranges::filter_view { numbers, even }, square } };
+        auto res1 {
+            std::ranges::transform_view { std::ranges::filter_view { numbers, even }, square }
+        };
         for (const auto& elem : res1)
         {
             std::cout << elem << ' ';
