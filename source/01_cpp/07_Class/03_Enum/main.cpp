@@ -63,6 +63,9 @@ enum class Color
     GREEN = 8
 };
 
+// magin_enum 解析，实现一个magic_enum
+// https://blog.csdn.net/albertsh/article/details/126214355
+
 int main()
 {
     {
