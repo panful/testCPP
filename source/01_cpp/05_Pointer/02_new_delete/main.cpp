@@ -1,7 +1,9 @@
 /**
  * 1. 指针类型的成员变量解引用
- * 2.
- *
+ * 2. placment new
+ * 3. std::allocate
+ * 4. std::destroy std::destroy_at std::construct std::construct
+ * 5. std::launder std::start_lifetime_as
  *
  *
  * 17 类中new出来的成员变量内存位置 C++内存模型 00_07_TEST12
@@ -13,7 +15,7 @@
  * 23 operator new
  */
 
-#define TEST2
+#define TEST3
 
 #ifdef TEST1
 
@@ -53,6 +55,55 @@ int main()
 
 #endif // TEST1
 
+#ifdef TEST2
+
+#include <algorithm>
+#include <memory>
+#include <vector>
+
+int main()
+{
+    {
+        char* ptr = new char[1024]();
+
+        char* buf = ptr;
+        for (int i = 0; i < 10; ++i)
+        {
+            new (buf) int(i);
+            buf += sizeof(int);
+            new (buf) char(static_cast<char>(i + 10));
+            buf += sizeof(char);
+        }
+
+        delete[] ptr;
+    }
+
+    // std::copy_n 适用于内存已经初始化的区域
+    // std::fill_n
+    {
+        char* ptr = new char[1024](); // 有 () ，ptr指向的区域内存使用默认值初始化
+
+        std::vector<int> vec { 1, 2, 3, 4, 5 };
+        std::copy_n(vec.begin(), vec.size(), reinterpret_cast<int*>(ptr));
+
+        delete[] ptr;
+    }
+
+    // std::uninitialized_copy_n 适用于内存未初始化的区域
+    // std::uninitialized_fill_n
+    // std::uninitialized_move_n
+    {
+        char* ptr = new char[1024]; // 没有后面的 () ，ptr指向的区域内存还没有初始化
+
+        std::vector<int> vec { 1, 2, 3, 4, 5 };
+        std::uninitialized_copy_n(vec.begin(), vec.size(), reinterpret_cast<int*>(ptr));
+
+        delete[] ptr;
+    }
+}
+
+#endif // TEST2
+
 
 
 #ifdef TEST17
@@ -79,7 +130,11 @@ https://blog.csdn.net/tulingwangbo/article/details/79729548
 class Test
 {
 public:
-    Test() : m_c1('x'), m_c2('y'), m_p1(new char[3] { 0 }), m_p2(new char[3] { 0 })
+    Test()
+        : m_c1('x')
+        , m_c2('y')
+        , m_p1(new char[3] { 0 })
+        , m_p2(new char[3] { 0 })
     {
     }
 
@@ -339,7 +394,7 @@ int main()
     nullptr_t s = 0; // 必须初始化
     func(s);         // 1
 }
-#endif // TEST20
+#endif               // TEST20
 
 #ifdef TEST22
 

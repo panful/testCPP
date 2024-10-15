@@ -7,7 +7,7 @@
  * 6. 自定义空间配置器 allocator
  */
 
-#define TEST6
+#define TEST4
 
 #ifdef TEST1
 
@@ -55,8 +55,7 @@ void uninitialized_performance()
 {
     std::vector<AdItem> v;
     time_report([&v]() { v.reserve(num); },
-        [&v]()
-        {
+        [&v]() {
             for (int i = 0; i < num; ++i)
             {
                 v[i] = { i + 2, i + 4, i + 6 };
@@ -67,9 +66,11 @@ void uninitialized_performance()
 void initialized_performance()
 {
     std::vector<AdItem> v;
-    time_report([&v]() { v.assign(num, AdItem { 0, 0, 0 }); },
-        [&v]()
-        {
+    time_report(
+        [&v]() {
+            v.assign(num, AdItem { 0, 0, 0 });
+        },
+        [&v]() {
             for (int i = 0; i < num; ++i)
             {
                 v[i] = { i + 2, i + 4, i + 6 };
@@ -202,7 +203,11 @@ int main()
     // 多维std::vector转换为指针
     // std::vector内部的std::vector内存不是连续的
     {
-        std::vector<std::vector<int>> vec { { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 } };
+        std::vector<std::vector<int>> vec {
+            {0,  1, 2},
+            { 3, 4, 5},
+            { 6, 7, 8}
+        };
         int* p = vec.front().data();
 
         size_t size { 0 };
@@ -242,7 +247,9 @@ int main()
         };
 
         double input[] { 1., 2., 3., 4., 5., 6., 7., 8., 9. };
-        std::vector<Point> output { { 6, 6, 6 } };
+        std::vector<Point> output {
+            {6, 6, 6}
+        };
 
         {
             // 将input的所有元素复制到output的尾部，不需要提前分配大小（可以分配内存提高效率）
@@ -262,6 +269,7 @@ int main()
         {
             // 会将output的所有元素用input的数据替换
             output.assign(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input) + 3);
+            output.assign(reinterpret_cast<Point*>(input), reinterpret_cast<Point*>(input + 9)); // 两个效果一样
         }
 
         {
