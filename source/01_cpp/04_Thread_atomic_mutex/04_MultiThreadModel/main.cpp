@@ -2,6 +2,9 @@
 
 // https://blog.csdn.net/qq_37756310/article/details/110174026
 
+// https://blog.51cto.com/u_15127612/4355770 => 9
+// Future Actor Fork&join Producer-consumer Master-worker
+
 #include <condition_variable>
 #include <functional>
 #include <iostream>
