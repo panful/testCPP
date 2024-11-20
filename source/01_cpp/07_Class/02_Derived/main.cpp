@@ -17,9 +17,10 @@
  *
  * 201. CRTP(Curiously Recurring Template Pattern) 奇异模板递归模式
  * 202. 将CRTP指针保存到容器，减少重复代码的书写
+ * 203. Pimpl
  */
 
-#define TEST3
+#define TEST203
 
 #ifdef TEST1
 
@@ -1859,3 +1860,97 @@ int main()
 }
 
 #endif // TEST202
+
+#ifdef TEST203
+
+#include <iostream>
+
+template <typename T>
+class Base
+{
+public:
+    template <typename... ARGS>
+    explicit Base(ARGS&&... args)
+        : m_impl(new T(std::forward<ARGS>(args)...))
+    {
+    }
+
+    Base()
+        : m_impl(new T())
+    {
+    }
+
+    Base(const Base& base)
+        : m_impl(new T(*base.m_impl))
+    {
+    }
+
+    Base& operator=(const Base& base)
+    {
+        if (this != &base)
+        {
+            this->m_impl = *base.m_impl;
+        }
+
+        return *this;
+    }
+
+    Base(Base&& base) noexcept
+        : m_impl(base.m_impl)
+    {
+        base.m_impl = nullptr;
+    }
+
+    Base& operator=(Base&& base) noexcept
+    {
+        auto temp    = this->m_impl;
+        this->m_impl = base.m_impl;
+        base.m_impl  = temp;
+
+        return *this;
+    }
+
+    ~Base() noexcept
+    {
+        delete m_impl;
+    }
+
+protected:
+    T* m_impl {}; // 可以将裸指针改为 std::unique_ptr
+
+    inline T* operator->() noexcept
+    {
+        return m_impl;
+    }
+
+    inline const T* operator->() const noexcept
+    {
+        return m_impl;
+    }
+};
+
+struct Private
+{
+    int a { 1 };
+    float b { 2 };
+    double c { 3 };
+};
+
+class Derived : public Base<Private>
+{
+public:
+    // Derived 不用暴露 Private
+    int GetA() const noexcept
+    {
+        return m_impl->a;
+    }
+};
+
+int main()
+{
+    Derived derived {};
+
+    std::cout << derived.GetA() << std::endl;
+}
+
+#endif // TEST203
