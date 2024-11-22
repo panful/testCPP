@@ -4,9 +4,16 @@
  * 301. 协程 coroutine
  * 401. 概念 concepts https://zhuanlan.zhihu.com/p/600617910?utm_id=0
  * 501. std::span
+ * 601. std::jthread 无需结合，可以优雅地停止线程 std::osyncstream
+ * 602. std::barrier arrive_and_wait()
+ * 603. std::barrier arrive_and_drop()
+ * 604. std::barrier 构造时设置回调函数
+ * 605. std::latch count_down()
+ * 606. std::latch arrive_and_wait()
+ * 607. std::counting_semaphore std::binary_semaphore
  */
 
-#define TEST101
+#define TEST607
 
 #ifdef TEST101
 
@@ -103,7 +110,7 @@ int main()
         // 从最里边的{}开始计算，先找出偶数，再对所有偶数平方
         // std::ranges::transform_view 是一个类：class
         auto res1 {
-            std::ranges::transform_view { std::ranges::filter_view { numbers, even }, square }
+            std::ranges::transform_view {std::ranges::filter_view { numbers, even }, square}
         };
         for (const auto& elem : res1)
         {
@@ -341,3 +348,320 @@ int main()
 }
 
 #endif // TEST501
+
+#ifdef TEST601
+
+#include <iostream>
+#include <syncstream>
+#include <thread>
+
+void task(bool sync)
+{
+    if (sync)
+    {
+        // 确保输出流在多线程环境中同步，免除数据竞争，而且将不以任何方式穿插或截断。
+        std::osyncstream { std::cout } << "first line\n"
+                                       << "second line\n"
+                                       << "third line\n";
+    }
+    else
+    {
+        std::cout << "first line\n"
+                  << "second line\n"
+                  << "third line\n";
+    }
+}
+
+int main()
+{
+    // std::jthread 无需手动合并
+    {
+        std::jthread t1(task, true);
+        std::jthread t2(task, true);
+        std::jthread t3(task, true);
+    }
+
+    std::cout << "--------------------------------------\n";
+
+    {
+        std::jthread t1(task, false);
+        std::jthread t2(task, false);
+        std::jthread t3(task, false);
+    }
+
+    std::cout << "--------------------------------------\n";
+
+    {
+        std::jthread t([](std::stop_token stop_token) {
+            while (!stop_token.stop_requested())
+            {
+                std::cout << "Working...\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
+            std::cout << "Exiting...\n";
+        });
+
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        t.request_stop(); // 请求停止线程
+    }
+
+    std::cout << "--------------------------------------\n";
+
+    {
+        std::jthread t([](std::stop_token stop_token) {
+            while (!stop_token.stop_requested())
+            {
+                std::cout << "Working...\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
+            std::cout << "Thread stopped.\n";
+        });
+
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        auto stop_source = t.get_stop_source();
+        stop_source.request_stop(); // 请求线程停止
+    }
+
+    std::cout << "--------------------------------------\n";
+
+    {
+        std::jthread t([](std::stop_token stop_token) {
+            while (!stop_token.stop_requested())
+            {
+                std::cout << "Working...\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
+            std::cout << "Thread stopped.\n";
+        });
+
+        // stop_requested()
+        // 作用：返回一个布尔值，表示是否收到停止请求。
+        // 用法：线程可以通过循环检查 stop_requested() 来决定是否停止运行。
+
+        // stop_possible()
+        // 作用：返回一个布尔值，表示是否可以对该 std::stop_token 发起停止请求。
+        // 说明：如果没有与 std::stop_token 关联的 std::stop_source，该函数返回 false。
+
+        auto stop1 = t.get_stop_token();
+        std::osyncstream { std::cout } << "possible: " << stop1.stop_possible() << "\trequest: " << stop1.stop_requested() << '\n';
+
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        t.request_stop(); // 请求线程停止
+
+        auto stop2 = t.get_stop_token();
+        std::osyncstream { std::cout } << "possible: " << stop2.stop_possible() << "\trequest: " << stop2.stop_requested() << '\n';
+    }
+}
+
+#endif // TEST601
+
+#ifdef TEST602
+
+#include <barrier>
+#include <iostream>
+#include <thread>
+
+std::barrier b(3); // 创建一个屏障，需要3个线程到达
+
+void task(const char* threadName)
+{
+    std::cout << threadName << " is waiting\n";
+    // b.arrive_and_wait(); // 减少计数并等待（阻塞）
+    b.wait(b.arrive()); // 和 b.arrive_and_wait() 等价
+    std::cout << threadName << " is processing\n";
+}
+
+int main()
+{
+    {
+        std::jthread t1(task, "Thread 1");
+        std::jthread t2(task, "Thread 2");
+        std::jthread t3(task, "Thread 3");
+    }
+
+    std::cout << "-----------------------\n";
+
+    // std::barrier 是周期性的，当等待的线程达到设置的数量时就会重置，可以被再次使用
+    {
+        std::jthread t1(task, "Thread 1");
+        std::jthread t2(task, "Thread 2");
+        std::jthread t3(task, "Thread 3");
+    }
+
+    return 0;
+}
+
+#endif // TEST602
+
+#ifdef TEST603
+
+#include <barrier>
+#include <iostream>
+#include <thread>
+
+std::barrier b(3); // 创建一个屏障，需要3个线程到达
+
+void task(int id)
+{
+    std::cout << id << " is waiting\n";
+
+    if (id == 0)
+    {
+        // 减少当前计数1，并减少重置计数1，不会等待（阻塞）
+        b.arrive_and_drop();
+    }
+    else
+    {
+        b.arrive_and_wait();
+    }
+
+    std::cout << id << " is processing\n";
+}
+
+int main()
+{
+    {
+        std::jthread t1(task, 0);
+        std::jthread t2(task, 1);
+        std::jthread t3(task, 2);
+    }
+
+    std::cout << "-----------------------\n";
+
+    // 使用 arrive_and_drop() 之后，只需要两个线程就能满足等待数量
+    {
+        std::jthread t1(task, 3);
+        std::jthread t2(task, 4);
+    }
+}
+
+#endif // TEST603
+
+#ifdef TEST604
+
+#include <barrier>
+#include <iostream>
+#include <thread>
+
+// std::barrier 的回调函数必须是无参数的函数，且不能抛出异常
+// 回调函数在每次所有线程到达（期望次数减为0）后会被调用
+std::barrier b(3, [n = 0]() mutable noexcept { std::cout << "callback " << n++ << std::endl; });
+
+void task(const char* str)
+{
+    std::cout << "before " << str << std::endl;
+    b.arrive_and_wait();
+    std::cout << "after " << str << std::endl;
+}
+
+int main()
+{
+    std::jthread t1(task, "t1");
+    std::jthread t2(task, "t2");
+    std::jthread t3(task, "t3");
+}
+
+#endif // TEST604
+
+#ifdef TEST605
+
+#include <chrono>
+#include <iostream>
+#include <latch>
+#include <thread>
+
+// std::latch 只能减少计数，无法增加计数，也不会重置计数
+// 是一个比 std::barrier 更简单的线程屏障，只能单次使用
+std::latch work_start { 3 };
+
+void work()
+{
+    std::cout << "wait other thread\n";
+    work_start.wait(); // 等待计数为 0
+    std::cout << "exectue work\n";
+}
+
+int main()
+{
+    using namespace std::chrono_literals;
+
+    std::jthread thread { work };
+    std::this_thread::sleep_for(3s);
+
+    std::cout << "sleep done\n";
+
+    work_start.count_down();  // 默认值是 1 减少计数 1
+    work_start.count_down(2); // 传递参数 2 减少计数 2
+
+    return 0;
+}
+
+#endif // TEST605
+
+#ifdef TEST606
+
+#include <iostream>
+#include <latch>
+#include <thread>
+
+std::latch work_start { 3 };
+
+void task(int n)
+{
+    std::cout << n << " wait other thread\n";
+    work_start.arrive_and_wait(); // 等价于 count_down(); wait(); 减少计数并等待（阻塞）
+    std::cout << n << " execute work\n";
+
+    // try_wait() 返回期望计数是否等于0
+    std::cout << "not need wait: " << work_start.try_wait() << std::endl;
+}
+
+int main()
+{
+    std::jthread t1(task, 0);
+    std::jthread t2(task, 1);
+    std::jthread t3(task, 2);
+}
+
+#endif // TEST606
+
+#ifdef TEST607
+
+#include <chrono>
+#include <iostream>
+#include <semaphore>
+#include <thread>
+
+std::counting_semaphore<1> sema(0); // 创建一个初始计数值为0的信号量
+
+// std::binary_semaphore 的定义如下
+// using binary_semaphore = counting_semaphore<1>;
+
+void worker()
+{
+    std::cout << "before acquire\n";
+
+    // 尝试获取一个资源，如果计数值为0则阻塞当前线程直到计数值变为正，如果计数值大于0，则减少计数值并继续执行
+    sema.acquire();
+
+    // 非阻塞地尝试获取一个资源，如果计数值大于0则减少计数值并返回true，如果计数值为0，则立即返回false
+    if (sema.try_acquire())
+    {
+    }
+
+    std::cout << "after acquire\n";
+}
+
+int main()
+{
+    std::jthread t(worker); // 创建一个新线程
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    std::cout << "before release\n";
+    sema.release(); // 增加计数值，最多增加到 std::counting_semaphore<MAX> 的 MAX 值
+    std::cout << "after release\n";
+
+    return 0;
+}
+
+#endif // TEST607
