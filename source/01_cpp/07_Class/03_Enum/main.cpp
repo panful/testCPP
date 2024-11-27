@@ -3,13 +3,13 @@
  * 1. 宏定义获取枚举对应的字符串 https://zhuanlan.zhihu.com/p/388703062?utm_id=0 评论区
  * 2. magic_enum https://github.com/Neargye/magic_enum 枚举转字符串第三方库
  * 3. QMetaEnum 枚举转字符串 查看Qt测试程序
- * 4. 枚举与或非操作 00_06_TEST1
+ * 4. 枚举与或非操作
  * 5. 匿名枚举，std::get<Enum>()
  * 6. enum 和 enum class 类型转换
  * 7. sizeof(enum) 00_11_TEST2
  */
 
-#define TEST1
+#define TEST4
 
 #ifdef TEST1
 
@@ -36,8 +36,8 @@ const char* StringOf(Color c)
         return #v;
         COLOR_TABLE()
 #undef DEF_COLOR
-    default:
-        return "";
+        default:
+            return "";
     }
 }
 
@@ -111,33 +111,43 @@ int main()
 #ifdef TEST4
 
 #include <iostream>
+#include <type_traits>
 
-enum class ENUM_1
+// 让所有枚举默认不支持按位操作
+template <typename Enum>
+struct EnableBitMaskOperators : public std::false_type
 {
-    E1 = 0x01,
-    E2 = 0x02,
-    E3 = 0x04,
-    E4 = 0x08,
 };
 
-enum ENUM_2
+// 重载位运算符'|'，只有当Enum是枚举，且Enum特化了EnableBitMaskOperators并设置为true才能被实例化
+template <typename Enum, typename std::enable_if_t<std::is_enum<Enum>::value && EnableBitMaskOperators<Enum>::value, int> = 0>
+inline constexpr Enum operator|(Enum lhs, Enum rhs) noexcept
 {
-    E1 = 0x01,
-    E2 = 0x02,
-    E3 = 0x04,
-    E4 = 0x08,
-};
-
-#define E_1 0x01
-#define E_2 0x02
-#define E_3 0x04
-#define E_4 0x08
-
-// 重载位操作符就可以像enum一样使用按位与或非
-ENUM_1 operator|(ENUM_1 e1, ENUM_1 e2)
-{
-    return static_cast<ENUM_1>(static_cast<uint32_t>(e1) | static_cast<uint32_t>(e2));
+    using underlying = std::underlying_type_t<Enum>;
+    return Enum(underlying(lhs) | underlying(rhs));
 }
+
+template <typename Enum, typename std::enable_if_t<std::is_enum<Enum>::value && EnableBitMaskOperators<Enum>::value, int> = 0>
+inline constexpr Enum operator&(Enum lhs, Enum rhs) noexcept
+{
+    using underlying = std::underlying_type_t<Enum>;
+    return Enum(underlying(lhs) & underlying(rhs));
+}
+
+enum class MyEnum : uint8_t
+{
+    E0 = 0x00,
+    E1 = 0x01,
+    E2 = 0x02,
+    E3 = 0x03,
+    E4 = 0x04,
+};
+
+// 模板特化，让枚举 MyEnum 支持按位操作
+template <>
+struct EnableBitMaskOperators<MyEnum> : std::true_type
+{
+};
 
 // ^ 异或 相同为0，相异为1
 // & 与   有0则为0
@@ -145,73 +155,11 @@ ENUM_1 operator|(ENUM_1 e1, ENUM_1 e2)
 
 int main()
 {
-    {
-        // auto r1 = ENUM_1::E1 & ENUM_1::E2; // error 因为ENUM_1::E1 和 ENUM_1::E2是ENUM类型的，并不是int或其他整形
-        auto r1 = ENUM_1::E3 | ENUM_1::E4; // E3|E4 = 12  重载了operator |
+    auto a = MyEnum::E1;
+    auto b = MyEnum::E2;
 
-        ENUM_1 test = ENUM_1::E1 | ENUM_1::E2; // E1|E2 = 3 走的是default分支
-
-        switch (test)
-        {
-        case ENUM_1::E1:
-            std::cout << "E1\n";
-            break;
-        case ENUM_1::E2:
-            std::cout << "E2\n";
-            break;
-        case ENUM_1::E3:
-            std::cout << "E3\n";
-            break;
-        case ENUM_1::E4:
-            std::cout << "E4\n";
-            break;
-        default:
-            std::cout << "ELSE\n";
-            break;
-        }
-    }
-
-    std::cout << "--------------------\n";
-
-    {
-        auto testEnum = [](ENUM_2 x) {
-            if (x & ENUM_2::E1)
-            {
-                std::cout << "E1\n";
-            }
-            if (x & ENUM_2::E2)
-            {
-                std::cout << "E2\n";
-            }
-            if (x & ENUM_2::E3)
-            {
-                std::cout << "E3\n";
-            }
-            if (x & ENUM_2::E4)
-            {
-                std::cout << "E4\n";
-            }
-        };
-
-        testEnum(ENUM_2::E1);
-        testEnum(ENUM_2::E2);
-        testEnum(ENUM_2::E3);
-        testEnum(ENUM_2::E4);
-    }
-    std::cout << "--------------------\n";
-
-    {
-        auto r2 = ENUM_2::E1 & ENUM_2::E2;
-        auto r3 = ENUM_2::E2 ^ ENUM_2::E3;
-        auto r4 = ENUM_2::E3 | ENUM_2::E4;
-    }
-    std::cout << "--------------------\n";
-
-    {
-        auto r5 = E_1 & E_2;
-        auto r6 = E_2 ^ E_3;
-        auto r7 = E_3 | E_4;
-    }
+    auto c = a | b;
+    auto d = a & b;
 
     return 0;
 }
