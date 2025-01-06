@@ -1,5 +1,5 @@
 /*
- * 1. Windows API以及C方式获取当前时间
+ * 1.
  * 2. C++方式获取当前时间
  * 3. 时间类型转换
  * 4. 计时，秒表
@@ -8,81 +8,29 @@
 
 #define TEST2
 
-#ifdef TEST1
-
-#include <Windows.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-
-int main()
-{
-    // system("time");  //将当前时间输出到控制台（黑框），并且可以输入时间修改系统时间
-
-    // SYSTEMTIME SysTime;     //需要包含windows.h头文件
-    // GetLocalTime(&SysTime); //得到本地时间，不再需要转换，就是当前时区的时间
-    // SysTime.wYear;            //年份，类型为unsigned short
-    // SysTime.wMonth;            //月份
-    // SysTime.wDay;            //天
-    // SysTime.wHour;            //小时
-    // SysTime.wMinute;        //分钟
-    // SysTime.wSecond;        //秒
-    // SysTime.wMilliseconds;    //毫秒
-    // SysTime.wDayOfWeek;        //一周的第几天（每周的星期一是第一天）
-
-    // time_t timer;
-    // time(&timer);
-    // tm* tm1 = nullptr;
-    ////tm = localtime(&timer); //报错：C4996会提示不安全
-    // localtime_s(tm1,&timer);
-
-    char szTimer[MAX_PATH]; // MAX_PATH需要包含windows.h
-    tm tm2;
-    time_t now;
-    time(&now); // 获取系统日期和时间
-    localtime_s(&tm2, &now);
-    strftime(szTimer, _countof(szTimer), "%Y%m%d%H%M%S", &tm2);
-    // strftime使用参考：http://www.cplusplus.com/reference/ctime/strftime/
-    // localtime_r运行于linux下
-
-    // SYSTEMTIME systime;
-    // GetLocalTime(&systime);
-    // auto year = systime.wYear;
-    // char ct[MAX_PATH] = { 0 };
-    // sprintf_s(ct, MAX_PATH, "%04d-%04d-%04d", systime.wYear, systime.wMonth, systime.wDay);
-    // std::string str = ct;
-    // std::string str2 = "Hello";
-    // std::string str3 = str2 + str + std::string("HHHH");
-    // SYSTEMTIME SysTime;  //需要包含windows.h头文件
-    // GetLocalTime(&SysTime);
-    // char ct[MAX_PATH];
-    // sprintf_s(ct, MAX_PATH, "%04d%02d%02d%02d%02d%02d", SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute,
-    // SysTime.wSecond); std::ofstream outfile; std::string path = "C:\\Users\\Yang\\Desktop\\dump"; path = path + ct + std::string(".txt");
-    // outfile.open(path);
-
-    return 0;
-}
-
-#endif // TEST1
-
 #ifdef TEST2
+
+// std::localtime std::ctime std::gmtime
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <algorithm>
 #include <chrono>
+#include <ctime>   // std::strftime
+#include <iomanip> // std::put_time
 #include <iostream>
+#include <locale>
 
 int main()
 {
-    // 当前时间点，会随着系统时间变化，比如修改Windows的系统时间，这个返回值也会跟着变化
-    // const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-
     // 获取当前时间的年月日（注意时区导致的误差）
     {
+        // 当前时间点，会随着系统时间变化，比如修改Windows的系统时间，这个返回值也会跟着变化
+        // const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         auto now = std::chrono::system_clock::now();
         auto tp  = std::chrono::floor<std::chrono::days>(now); // 将当前时间点转换为天数时间点
         auto ymd = std::chrono::year_month_day(tp);            // C++20
         auto y   = ymd.year();
-        auto m   = ymd.month(); // 重载了类型转换 unsigned int
+        auto m   = ymd.month();                                // 重载了类型转换 unsigned int
         auto d   = ymd.day();
 
         std::cout << std::format("Year: {} Month: {} Day: {}\n", y, static_cast<uint32_t>(m), d);
@@ -111,8 +59,49 @@ int main()
         std::cout << std::format("time zone name: {}\n", local_time.get_time_zone()->name());
     }
 
+    std::cout << "-----------------------------------------\n";
+
+    // c++20 以下获取时间
+    // https://zh.cppreference.com/w/cpp/header/ctime 
+    {
+        auto now        = std::chrono::system_clock::now();
+        auto now_time_t = std::chrono::system_clock::to_time_t(now);
+        auto local_time = std::localtime(&now_time_t);
+
+        std::cout << "put time: " << std::put_time(local_time, "%H:%M:%S") << std::endl;
+    }
+
+    std::cout << "-----------------------------------------\n";
+
+    {
+        auto now      = std::chrono::system_clock::now();
+        auto time_t   = std::chrono::system_clock::to_time_t(now);
+        auto time_str = std::ctime(&time_t);
+        std::cout << "ctime: " << time_str << std::endl;
+    }
+
+    std::cout << "-----------------------------------------\n";
+
+    {
+        std::time_t time = std::time({});
+        char timeString[std::size("yyyy-mm-dd hh:mm:ss")];
+        std::strftime(std::data(timeString), std::size(timeString), "%F %T", std::gmtime(&time));
+        std::cout << "time strftime: " << timeString << std::endl;
+    }
+
+    {
+        auto now        = std::chrono::system_clock::now();
+        auto now_time_t = std::chrono::system_clock::to_time_t(now);
+        auto local_time = std::localtime(&now_time_t);
+
+        char timeString[std::size("yyyy-mm-dd hh:mm:ss")];
+        std::strftime(std::data(timeString), std::size(timeString), "%F %T", local_time);
+        std::cout << "chrono strftime: " << timeString << std::endl;
+    }
+
     return 0;
 }
+
 #endif // TEST2
 
 #ifdef TEST3
