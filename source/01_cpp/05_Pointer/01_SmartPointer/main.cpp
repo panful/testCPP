@@ -29,7 +29,7 @@
  * 一般情况使用 T* 或 T&，不要使用智能指针 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-smart
  */
 
-#define TEST307
+#define TEST405
 
 #ifdef TEST101
 
@@ -148,7 +148,7 @@ public:
     }
 };
 
-void MyDeleterFunc(Obj* p)
+void MyDeleterFunc(Obj*& p)
 {
     std::cout << "use func to delete pointer\n";
     delete p;
@@ -192,10 +192,7 @@ int main()
 
         std::cout << sizeof(p1) << '\t' << sizeof(p2) << '\n';
 
-        // 使用自定义释放方法不能使用std::make_unique???
-        // auto p3 = std::make_unique<int, MyDeleter>(1,MyDeleter()); // error
-        // auto p4 = std::make_unique<int>(2, MyDeleter()); // error
-        // std::unique_ptr<int, MyDeleter> p5 = std::make_unique<int, MyDeleter>(3, MyDeleter()); // error
+        // 使用自定义释放方法不能使用std::make_unique，仅支持默认delete
     }
     std::cout << "---------------------------------------------\n";
 
@@ -217,7 +214,7 @@ int main()
 
     {
         // std::unique_ptr<Obj, decltype(MyDeleterFunc)> p1(new Obj(), MyDeleterFunc); // error
-        std::unique_ptr<Obj, void (*)(Obj*)> p2(new Obj(), MyDeleterFunc);
+        std::unique_ptr<Obj, void (*)(Obj*&)> p2(new Obj(), MyDeleterFunc);
 
         std::cout << sizeof(p2) << '\n';
     }
@@ -358,7 +355,7 @@ public:
         std::cout << "copy construct\n";
     }
 
-    Helper(Helper&&)
+    Helper(Helper&&) noexcept
     {
         std::cout << "move construct\n";
     }
@@ -369,7 +366,7 @@ public:
         return *this;
     }
 
-    Helper& operator=(Helper&&)
+    Helper& operator=(Helper&&) noexcept
     {
         std::cout << "move assignment\n";
         return *this;
@@ -391,7 +388,8 @@ int main()
         // 一个指向控制块的裸指针
         // 控制块包含引用计数、弱计数、删除器、内存分配器等
         std::shared_ptr<Helper> helper {};
-        std::cout << sizeof(Helper) << '\t' << sizeof(helper) << '\n';
+        std::shared_ptr<Helper> helper2 = std::make_shared<Helper>();
+        std::cout << sizeof(Helper) << '\t' << sizeof(helper) << '\t' << sizeof(helper2) << '\n';
     }
 
     std::cout << "------------------------------------------------------\n";
@@ -415,7 +413,7 @@ int main()
         // 即有多个引用计数，引用计数变为0就会释放一次，导致多次释放
         Helper* p = new Helper();
         std::shared_ptr<Helper> h1(p);
-        // std::shared_ptr<Helper> h2(p);
+        // std::shared_ptr<Helper> h2(p); // 此处继续使用p构造智能指针，在离开作用域时就会多次释放p，程序中断
     }
 
     std::cout << "------------------------------------------------------\n";
@@ -1874,12 +1872,12 @@ public:
         std::cout << "B()\n";
     }
 
-    virtual ~B() override
+    ~B() override
     {
         std::cout << "~B()\n";
     }
 
-    virtual void Func() override
+    void Func() override
     {
         std::cout << "B::Func()\n";
     }
@@ -1889,6 +1887,15 @@ public:
         std::cout << "B::Func_B()\n";
     }
 };
+
+/*
+以下四种转换都只适用于 std::shared_ptr
+转换方式	                                用途	                        是否检查类型
+std::static_pointer_cast	            静态转换（类似 static_cast）        不检查
+std::dynamic_pointer_cast	            动态转换（类似 dynamic_cast）	    检查（失败返回 nullptr）
+std::const_pointer_cast	                移除 const（类似 const_cast）	    不检查
+std::reinterpret_pointer_cast (C++17)	低级别转换（类似 reinterpret_cast）	不检查
+*/
 
 int main()
 {
@@ -1964,6 +1971,15 @@ int main()
         {
             ptr_b->Func_B();
         }
+
+        // 在能保证是基类指针转换为派生类指针时，可以使用 std::static_pointer_cast ，效率更高
+        // 如果不能保证，则会产生 UB 行为
+        auto ptr_c = std::static_pointer_cast<B>(ptr);
+        if (ptr_c)
+        {
+            ptr_c->Func_B();
+        }
+
         if (ptr)
         {
             ptr->Func_A();
