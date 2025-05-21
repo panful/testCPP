@@ -3,11 +3,12 @@
  * 2. emplace_back push_back
  * 3. vector扩容机制
  * 4. vector转指针 指针转std::vector
- * 5. 扩容、填充、裁剪
+ * 5. 扩容、填充、裁剪， clear() 只清空数据，不清空内存
  * 6. 自定义空间配置器 allocator
+ * 7.
  */
 
-#define TEST4
+#define TEST5
 
 #ifdef TEST1
 
@@ -66,10 +67,7 @@ void uninitialized_performance()
 void initialized_performance()
 {
     std::vector<AdItem> v;
-    time_report(
-        [&v]() {
-            v.assign(num, AdItem { 0, 0, 0 });
-        },
+    time_report([&v]() { v.assign(num, AdItem { 0, 0, 0 }); },
         [&v]() {
             for (int i = 0; i < num; ++i)
             {
@@ -104,7 +102,7 @@ public:
         std::cout << "copy construct\n";
     }
 
-    Helper(Helper&&)
+    Helper(Helper&&) noexcept
     {
         std::cout << "move construct\n";
     }
@@ -115,37 +113,61 @@ public:
         return *this;
     }
 
-    Helper& operator=(Helper&&)
+    Helper& operator=(Helper&&) noexcept
     {
         std::cout << "move assignment\n";
         return *this;
     }
 
-    ~Helper()
+    ~Helper() noexcept
     {
         std::cout << "destruct\n";
     }
 };
 
-// push_back 比 emplace_back 多一次拷贝构造
+class Foo
+{
+public:
+    Foo(int a, int b)
+    {
+        std::cout << "construct: " << a << '\t' << b << std::endl;
+    }
+};
+
+// push_back 比 emplace_back 多一次移动构造
+// emplace_back 是原位构造
 
 int main()
 {
-    Helper h1, h2;
-    std::cout << "1----------------------\n";
+    {
+        Helper h1, h2;
+        std::cout << "1----------------------\n";
 
-    std::vector<Helper> vec;
+        std::vector<Helper> vec;
 
-    vec.emplace_back(h1);
-    std::cout << "2----------------------\n";
+        vec.emplace_back(h1);       // 一次拷贝
+        std::cout << "2----------------------\n";
 
-    vec.push_back(h2);
-    std::cout << "3----------------------\n";
+        vec.push_back(h2);          // 一次拷贝，一次移动，一次析构
+        std::cout << "3----------------------\n";
 
-    vec.emplace_back(Helper());
-    std::cout << "4----------------------\n";
+        vec.emplace_back(Helper()); // 一次构造，三次移动，三次析构
+        std::cout << "4----------------------\n";
 
-    vec.push_back(Helper());
+        vec.push_back(Helper());    // 一次构造，四次移动，四次析构
+        std::cout << "5----------------------\n";
+    }
+
+    std::cout << "=============================\n";
+
+    {
+        Foo f(1, 2);
+        std::vector<Foo> vec {};
+        vec.push_back(f);
+        vec.emplace_back(f);
+        // vec.push_back(3, 4); // 编译错误
+        vec.emplace_back(5, 6); // 编译成功
+    }
 }
 
 #endif // TEST2
@@ -204,9 +226,9 @@ int main()
     // std::vector内部的std::vector内存不是连续的
     {
         std::vector<std::vector<int>> vec {
-            {0,  1, 2},
-            { 3, 4, 5},
-            { 6, 7, 8}
+            { 0, 1, 2 },
+            { 3, 4, 5 },
+            { 6, 7, 8 }
         };
         int* p = vec.front().data();
 
@@ -248,7 +270,7 @@ int main()
 
         double input[] { 1., 2., 3., 4., 5., 6., 7., 8., 9. };
         std::vector<Point> output {
-            {6, 6, 6}
+            { 6, 6, 6 }
         };
 
         {
@@ -296,6 +318,7 @@ int main()
 #ifdef TEST5
 
 #include <algorithm>
+#include <format>
 #include <iostream>
 #include <vector>
 
@@ -319,6 +342,18 @@ int main()
         std::vector vec3(vec1.cbegin(), vec1.cbegin() + 2);     // 12
         std::vector vec4(vec1.cbegin() + 2, vec1.cbegin() + 5); // 345
         std::vector vec5(vec1.cbegin() + 5, vec1.cend());       // 6789
+    }
+
+    {
+        std::vector<int> vec;
+        vec.resize(5);       // 5, 5
+        std::cout << std::format("size: {}, capacity: {}\n", vec.size(), vec.capacity());
+        vec.reserve(10);     // 5, 10
+        std::cout << std::format("size: {}, capacity: {}\n", vec.size(), vec.capacity());
+        vec.clear();         // 0, 10 只清空数据，不清空内存
+        std::cout << std::format("size: {}, capacity: {}\n", vec.size(), vec.capacity());
+        vec.shrink_to_fit(); // 0, 0
+        std::cout << std::format("size: {}, capacity: {}\n", vec.size(), vec.capacity());
     }
 }
 
